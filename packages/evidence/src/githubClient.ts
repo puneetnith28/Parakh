@@ -237,5 +237,52 @@ export class GitHubClient {
       resolvedAt: new Date().toISOString(),
     };
   }
+
+  /**
+   * Fetch recursive Git tree at commit SHA.
+   */
+  async fetchTree(owner: string, repo: string, commitSha: string): Promise<{
+    sha: string;
+    tree: Array<{
+      path: string;
+      mode: string;
+      type: "blob" | "tree" | "commit";
+      sha: string;
+      size?: number;
+      url: string;
+    }>;
+    truncated: boolean;
+  }> {
+    const url = `${this.baseUrl}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(commitSha)}?recursive=1`;
+    const headers = this.buildHeaders();
+
+    const response = await this.fetch(url, { method: "GET", headers });
+    this.checkRateLimitHeaders(response);
+
+    if (response.status === 404) {
+      throw new GitHubNotFoundError(owner, `${repo} (tree for ${commitSha.slice(0, 7)})`);
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new GitHubApiError(
+        `Failed to scan tree for ${owner}/${repo}@${commitSha.slice(0, 7)}: HTTP ${response.status} ${errorText}`,
+        response.status
+      );
+    }
+
+    return (await response.json()) as {
+      sha: string;
+      tree: Array<{
+        path: string;
+        mode: string;
+        type: "blob" | "tree" | "commit";
+        sha: string;
+        size?: number;
+        url: string;
+      }>;
+      truncated: boolean;
+    };
+  }
 }
 
