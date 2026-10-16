@@ -5,6 +5,7 @@ import { healthRouter } from "./routes/health.js";
 import { opportunityRouter } from "./routes/opportunity.js";
 import { uploadRouter } from "./routes/upload.js";
 import { repositoryRouter } from "./routes/repository.js";
+import { reportsRouter } from "./routes/reports.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(healthRouter);
 app.use(opportunityRouter);
 app.use(uploadRouter);
 app.use(repositoryRouter);
+app.use(reportsRouter);
 
 // Centralized error handling middleware
 app.use(errorHandler);
