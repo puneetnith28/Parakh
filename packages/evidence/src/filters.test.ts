@@ -71,4 +71,61 @@ describe("File Path Allowlist and Category Filter", () => {
       ["src/index.ts", "README.md", "package.json", "src/index.test.ts"]
     );
   });
+
+  test("strictly denylists vendor and build directories", () => {
+    const blockedPaths = [
+      "node_modules/express/index.js",
+      "apps/api/node_modules/zod/index.js",
+      "vendor/bundle/ruby.rb",
+      ".git/config",
+      "dist/bundle.js",
+      "build/index.html",
+      ".next/server/pages/index.js",
+      "coverage/lcov-report/index.html",
+    ];
+
+    for (const path of blockedPaths) {
+      const res = categorizeFile(path);
+      assert.equal(res.allowed, false, `Expected ${path} to be denied`);
+      assert.match(res.reason || "", /excluded directory pattern/i);
+    }
+  });
+
+  test("strictly denylists lockfiles, secrets, and environment files", () => {
+    const blocked = [
+      ".env",
+      ".env.production",
+      ".env.local",
+      "package-lock.json",
+      "yarn.lock",
+      "pnpm-lock.yaml",
+      "credentials.json",
+      "id_rsa",
+      "cert.pem",
+      "ssl.key",
+    ];
+
+    for (const path of blocked) {
+      const res = categorizeFile(path);
+      assert.equal(res.allowed, false, `Expected ${path} to be denied`);
+    }
+  });
+
+  test("strictly denylists binary, media, and minified files", () => {
+    const blocked = [
+      "assets/logo.png",
+      "public/avatar.webp",
+      "music/intro.mp3",
+      "release/app.zip",
+      "native/core.so",
+      "static/jquery.min.js",
+      "bundle.js.map",
+    ];
+
+    for (const path of blocked) {
+      const res = categorizeFile(path);
+      assert.equal(res.allowed, false, `Expected ${path} to be denied`);
+    }
+  });
 });
+

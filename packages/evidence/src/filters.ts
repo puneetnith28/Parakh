@@ -1,10 +1,11 @@
 import type { FileType } from "@parakh/contracts";
 
 /**
- * File Path Categorizer and Evidence Allowlist Filter.
+ * File Path Categorizer, Allowlist, and Defensive Denylist Filter.
  *
  * Categorizes repository files into source, test, doc, and config categories
- * for heuristic evidence weighting, while identifying file programming language.
+ * for heuristic evidence weighting, while aggressively excluding vendor code,
+ * binary assets, lockfiles, build outputs, and credential files.
  */
 
 export interface CategorizedFile {
@@ -13,6 +14,109 @@ export interface CategorizedFile {
   fileType?: FileType;
   language?: string;
   reason?: string;
+}
+
+export interface DenylistCheckResult {
+  denied: boolean;
+  reason?: string;
+}
+
+const DENIED_DIR_PATTERNS = [
+  /(?:^|\/)\.git\//i,
+  /(?:^|\/)\.svn\//i,
+  /(?:^|\/)\.hg\//i,
+  /(?:^|\/)\.vscode\//i,
+  /(?:^|\/)\.idea\//i,
+  /(?:^|\/)node_modules\//i,
+  /(?:^|\/)vendor\//i,
+  /(?:^|\/)third_party\//i,
+  /(?:^|\/)bower_components\//i,
+  /(?:^|\/)site-packages\//i,
+  /(?:^|\/)target\/(?:debug|release|\.rustc_info\.json)/i,
+  /(?:^|\/)dist\//i,
+  /(?:^|\/)build\//i,
+  /(?:^|\/)out\//i,
+  /(?:^|\/)bin\//i,
+  /(?:^|\/)obj\//i,
+  /(?:^|\/)\.next\//i,
+  /(?:^|\/)\.nuxt\//i,
+  /(?:^|\/)\.turbo\//i,
+  /(?:^|\/)\.cache\//i,
+  /(?:^|\/)coverage\//i,
+  /(?:^|\/)\.nyc_output\//i,
+];
+
+const DENIED_EXTENSIONS = new Set([
+  // Binaries, Executables & Objects
+  ".exe", ".dll", ".so", ".dylib", ".class", ".pyc", ".pyo", ".wasm", ".o", ".a", ".bin",
+  // Media & Images
+  ".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".webp", ".avif", ".bmp", ".tiff",
+  // Audio & Video
+  ".mp4", ".webm", ".mkv", ".avi", ".mov", ".mp3", ".wav", ".ogg",
+  // Archives
+  ".zip", ".tar", ".gz", ".tgz", ".7z", ".rar", ".bz2",
+  // Fonts
+  ".woff", ".woff2", ".ttf", ".eot", ".otf",
+  // Binary Documents
+  ".pdf", ".docx", ".xlsx", ".pptx",
+  // Secrets and Key Material
+  ".pem", ".key", ".pfx", ".p12", ".crt", ".cert",
+  // Source Maps & Minified
+  ".map",
+]);
+
+const DENIED_FILENAMES = new Set([
+  ".ds_store",
+  "thumbs.db",
+  "package-lock.json",
+  "yarn.lock",
+  "pnpm-lock.yaml",
+  "cargo.lock",
+  "composer.lock",
+  "poetry.lock",
+  "gemfile.lock",
+  "credentials.json",
+  "id_rsa",
+  "id_ed25519",
+]);
+
+/**
+ * Check if a file path is blocked by the security or hygiene denylist.
+ */
+export function isDeniedFile(filePath: string): DenylistCheckResult {
+  const normalized = filePath.replace(/\\/g, "/");
+  const lower = normalized.toLowerCase();
+  const filename = lower.split("/").pop() || "";
+  const ext = filename.includes(".") ? `.${filename.split(".").pop()}` : "";
+
+  // 1. Directory pattern denylist (vendor, build, git, etc.)
+  for (const pattern of DENIED_DIR_PATTERNS) {
+    if (pattern.test(lower)) {
+      return { denied: true, reason: `Excluded directory pattern: ${pattern.source}` };
+    }
+  }
+
+  // 2. Secret file patterns (e.g. .env, .env.local, .env.production)
+  if (filename === ".env" || filename.startsWith(".env.")) {
+    return { denied: true, reason: "Potential secret or environment file (.env*)" };
+  }
+
+  // 3. Exact filename denylist (lockfiles, secrets, OS metadata)
+  if (DENIED_FILENAMES.has(filename)) {
+    return { denied: true, reason: `Excluded lockfile, credential, or OS file: ${filename}` };
+  }
+
+  // 4. Minified file patterns
+  if (filename.endsWith(".min.js") || filename.endsWith(".min.css") || filename.endsWith(".bundle.js")) {
+    return { denied: true, reason: "Excluded minified or bundled artifact" };
+  }
+
+  // 5. Binary and media extension denylist
+  if (DENIED_EXTENSIONS.has(ext)) {
+    return { denied: true, reason: `Excluded binary or media extension: ${ext}` };
+  }
+
+  return { denied: false };
 }
 
 const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
@@ -78,8 +182,18 @@ const CONFIG_FILENAMES = new Set([
 
 /**
  * Categorize a file path into source, test, doc, or config.
+ * Enforces the denylist check prior to categorization.
  */
 export function categorizeFile(filePath: string): CategorizedFile {
+  const denylistResult = isDeniedFile(filePath);
+  if (denylistResult.denied) {
+    return {
+      path: filePath,
+      allowed: false,
+      reason: denylistResult.reason,
+    };
+  }
+
   const normalized = filePath.replace(/\\/g, "/").toLowerCase();
   const filename = normalized.split("/").pop() || "";
   const ext = filename.includes(".") ? `.${filename.split(".").pop()}` : "";
@@ -164,7 +278,7 @@ export function categorizeFile(filePath: string): CategorizedFile {
 }
 
 /**
- * Filter an array of scanned file paths using the allowlist.
+ * Filter an array of scanned file paths using both denylist and allowlist rules.
  */
 export function filterAllowlist(filePaths: string[]): CategorizedFile[] {
   return filePaths.map(categorizeFile).filter((f) => f.allowed);
