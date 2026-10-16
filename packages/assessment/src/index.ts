@@ -9,5 +9,6 @@ export * from "./retrieval/candidateSelector.js";
 export * from "./retrieval/coverageTracker.js";
 export * from "./validator.js";
 export * from "./statusRules.js";
+export * from "./generators/questionGenerator.js";
 
 export const ASSESSMENT_VERSION = "0.1.0";
