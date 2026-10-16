@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { Requirement } from "@parakh/contracts";
 import { Header } from "./components/Header.tsx";
 import { InputSection } from "./components/InputSection.tsx";
+import { RequirementsEditor } from "./components/RequirementsEditor.tsx";
 
 const API_BASE = "http://localhost:3000";
 
@@ -11,6 +13,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Requirements stage state
+  const [stage, setStage] = useState<"input" | "review_requirements">("input");
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -50,31 +56,64 @@ export default function App() {
 
     const githubRegex = /^https?:\/\/(www\.)?github\.com\/[\w-]+\/[\w.-]+\/?$/i;
     if (!githubRegex.test(repoUrl.trim())) {
-      setValidationError(
-        "Invalid repository URL. Must be in the format: https://github.com/owner/repo"
-      );
+      setValidationError("Invalid repository URL. Must be in the format: https://github.com/owner/repo");
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/ping`);
+      const res = await fetch(`${API_BASE}/api/opportunity/text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: opportunityText, title: "Opportunity Brief" }),
+      });
+
       if (res.ok) {
-        setSuccessMessage(
-          "Connection verified! Inputs validated according to @parakh/contracts schema specifications."
-        );
+        // Extract basic criteria from paragraphs/lines for review
+        const lines = opportunityText
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.length > 5 && !l.startsWith("#"));
+
+        const initialRequirements: Requirement[] = (lines.length > 0 ? lines : [opportunityText])
+          .slice(0, 6)
+          .map((line, idx) => ({
+            id: `req_${String(idx + 1).padStart(3, "0")}`,
+            text: line.replace(/^[-*•\d.]+\s*/, ""),
+            category: line.toLowerCase().includes("database")
+              ? "database"
+              : line.toLowerCase().includes("react") || line.toLowerCase().includes("front")
+                ? "frontend"
+                : line.toLowerCase().includes("test")
+                  ? "testing"
+                  : line.toLowerCase().includes("docker") || line.toLowerCase().includes("ci")
+                    ? "devops"
+                    : "general",
+            priority: line.toLowerCase().includes("must") || line.toLowerCase().includes("require")
+              ? "mandatory"
+              : "preferred",
+            sourceLocation: {
+              pageNumber: 1,
+              sourceSnippet: line,
+            },
+          }));
+
+        setRequirements(initialRequirements);
+        setStage("review_requirements");
+        setSuccessMessage("Brief ingested successfully! Review and refine extracted requirements below.");
       } else {
-        setValidationError(
-          "Backend API is currently unreachable. Please verify that the API server is running."
-        );
+        const errorData = await res.json().catch(() => ({}));
+        setValidationError(errorData.message || "Failed to process opportunity text.");
       }
     } catch {
-      setValidationError(
-        "Could not connect to Parakh backend API. Please run 'npm run dev' to start both services."
-      );
+      setValidationError("Could not connect to Parakh backend API. Please run 'npm run dev' to start both services.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleConfirmRequirements = () => {
+    alert(`Confirmed ${requirements.length} requirements. Ready to initiate repository evidence matching!`);
   };
 
   return (
@@ -87,21 +126,43 @@ export default function App() {
             Developer Capability Assessment
           </h1>
           <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto">
-            Extract requirements from your client brief and verify them against inspectable code,
-            tests, and documentation from your GitHub repository.
+            Extract requirements from your client brief and verify them against inspectable code, tests, and documentation from your GitHub repository.
           </p>
         </div>
 
-        <InputSection
-          opportunityText={opportunityText}
-          setOpportunityText={setOpportunityText}
-          repoUrl={repoUrl}
-          setRepoUrl={setRepoUrl}
-          onAnalyze={handleAnalyze}
-          isLoading={isLoading}
-          validationError={validationError}
-          successMessage={successMessage}
-        />
+        {stage === "input" && (
+          <InputSection
+            opportunityText={opportunityText}
+            setOpportunityText={setOpportunityText}
+            repoUrl={repoUrl}
+            setRepoUrl={setRepoUrl}
+            onAnalyze={handleAnalyze}
+            isLoading={isLoading}
+            validationError={validationError}
+            successMessage={successMessage}
+          />
+        )}
+
+        {stage === "review_requirements" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setStage("input")}
+                className="text-xs text-slate-400 hover:text-slate-200 transition"
+              >
+                &larr; Back to Brief Input
+              </button>
+              <span className="text-xs font-mono text-emerald-400">Target Repo: {repoUrl}</span>
+            </div>
+
+            <RequirementsEditor
+              requirements={requirements}
+              onChange={setRequirements}
+              onConfirm={handleConfirmRequirements}
+            />
+          </div>
+        )}
       </main>
 
       <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
