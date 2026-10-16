@@ -6,3 +6,4 @@ export * from "./treeScanner.js";
 export * from "./filters.js";
 export * from "./contentFetcher.js";
 export * from "./normalizer.js";
+export * from "./recordBuilder.js";
