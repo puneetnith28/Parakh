@@ -1,0 +1,12 @@
+{
+  "name": "@parakh/contracts",
+  "version": "0.1.0",
+  "description": "Shared schemas and type contracts for Parakh",
+  "license": "Apache-2.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "echo \"contracts build ready\"",
+    "test": "echo \"contracts test ready\""
+  }
+}

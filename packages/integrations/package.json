@@ -1,0 +1,15 @@
+{
+  "name": "@parakh/integrations",
+  "version": "0.1.0",
+  "description": "Provider adapters for models, databases, and telemetry for Parakh",
+  "license": "Apache-2.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@parakh/contracts": "*"
+  },
+  "scripts": {
+    "build": "echo \"integrations build ready\"",
+    "test": "echo \"integrations test ready\""
+  }
+}

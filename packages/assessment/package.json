@@ -1,0 +1,15 @@
+{
+  "name": "@parakh/assessment",
+  "version": "0.1.0",
+  "description": "Evidence matching, scoring, and citation validation for Parakh",
+  "license": "Apache-2.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@parakh/contracts": "*"
+  },
+  "scripts": {
+    "build": "echo \"assessment build ready\"",
+    "test": "echo \"assessment test ready\""
+  }
+}

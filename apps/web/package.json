@@ -1,0 +1,15 @@
+{
+  "name": "@parakh/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frontend React application for Parakh",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@parakh/contracts": "*"
+  },
+  "scripts": {
+    "dev": "echo \"web dev ready\"",
+    "build": "echo \"web build ready\"",
+    "test": "echo \"web test ready\""
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@parakh/evidence",
+  "version": "0.1.0",
+  "description": "GitHub repository ingestion and evidence extraction for Parakh",
+  "license": "Apache-2.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@parakh/contracts": "*"
+  },
+  "scripts": {
+    "build": "echo \"evidence build ready\"",
+    "test": "echo \"evidence test ready\""
+  }
+}

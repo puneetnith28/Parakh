@@ -1,0 +1,17 @@
+{
+  "name": "parakh-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prove your skills. Back every claim. Open-source, evidence-grounded developer capability assessment.",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  }
+}
