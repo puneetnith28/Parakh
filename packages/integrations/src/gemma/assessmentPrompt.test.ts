@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   formatAssessmentPrompt,
   sanitizeEvidenceContent,
+  extractCandidateUniverseIds,
   HARDENED_ASSESSMENT_SYSTEM_INSTRUCTION,
 } from "./assessmentPrompt.js";
 import type { Requirement, CandidateSnippet } from "@parakh/contracts";
@@ -56,5 +57,21 @@ describe("Hardened Assessment Prompt & Code Injection Neutralizer", () => {
     assert.ok(prompt.includes('lines="L10-L25"'));
     assert.ok(prompt.includes("<UNTRUSTED_EVIDENCE"));
     assert.ok(prompt.includes("</UNTRUSTED_EVIDENCE>"));
+  });
+
+  test("extracts allowed candidate ID universe and enforces bounded mandate", () => {
+    assert.match(HARDENED_ASSESSMENT_SYSTEM_INSTRUCTION, /BOUNDED EVIDENCE UNIVERSE MANDATE/i);
+    assert.match(HARDENED_ASSESSMENT_SYSTEM_INSTRUCTION, /STRICTLY FORBIDDEN from citing external knowledge/i);
+
+    const candidates: CandidateSnippet[] = [
+      { candidateId: "cand_001" } as unknown as CandidateSnippet,
+      { candidateId: "cand_002" } as unknown as CandidateSnippet,
+    ];
+
+    const ids = extractCandidateUniverseIds(candidates);
+    assert.equal(ids.size, 2);
+    assert.ok(ids.has("cand_001"));
+    assert.ok(ids.has("cand_002"));
+    assert.ok(!ids.has("cand_003"));
   });
 });
