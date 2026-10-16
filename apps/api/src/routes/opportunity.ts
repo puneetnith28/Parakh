@@ -15,7 +15,8 @@ opportunityRouter.post("/api/opportunity/text", (req: Request, res: Response) =>
       status: "success",
       opportunity: {
         id: opportunityId,
-        title: typeof title === "string" && title.trim() ? title.trim() : "Untitled Opportunity Brief",
+        title:
+          typeof title === "string" && title.trim() ? title.trim() : "Untitled Opportunity Brief",
         rawText: sanitized.sanitizedText,
         characterCount: sanitized.characterCount,
         createdAt: new Date().toISOString(),

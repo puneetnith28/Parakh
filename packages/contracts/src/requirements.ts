@@ -31,7 +31,10 @@ export const RequirementSchema = z.object({
   id: z
     .string()
     .min(1)
-    .regex(/^req_[a-zA-Z0-9_-]+$/, "Requirement ID must begin with 'req_' followed by alphanumeric characters"),
+    .regex(
+      /^req_[a-zA-Z0-9_-]+$/,
+      "Requirement ID must begin with 'req_' followed by alphanumeric characters"
+    ),
   text: z
     .string()
     .min(3, "Requirement text must be at least 3 characters")

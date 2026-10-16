@@ -50,7 +50,9 @@ export default function App() {
 
     const githubRegex = /^https?:\/\/(www\.)?github\.com\/[\w-]+\/[\w.-]+\/?$/i;
     if (!githubRegex.test(repoUrl.trim())) {
-      setValidationError("Invalid repository URL. Must be in the format: https://github.com/owner/repo");
+      setValidationError(
+        "Invalid repository URL. Must be in the format: https://github.com/owner/repo"
+      );
       return;
     }
 
@@ -62,10 +64,14 @@ export default function App() {
           "Connection verified! Inputs validated according to @parakh/contracts schema specifications."
         );
       } else {
-        setValidationError("Backend API is currently unreachable. Please verify that the API server is running.");
+        setValidationError(
+          "Backend API is currently unreachable. Please verify that the API server is running."
+        );
       }
     } catch {
-      setValidationError("Could not connect to Parakh backend API. Please run 'npm run dev' to start both services.");
+      setValidationError(
+        "Could not connect to Parakh backend API. Please run 'npm run dev' to start both services."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +87,8 @@ export default function App() {
             Developer Capability Assessment
           </h1>
           <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto">
-            Extract requirements from your client brief and verify them against inspectable code, tests, and documentation from your GitHub repository.
+            Extract requirements from your client brief and verify them against inspectable code,
+            tests, and documentation from your GitHub repository.
           </p>
         </div>
 
