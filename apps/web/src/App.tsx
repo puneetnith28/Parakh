@@ -16,7 +16,9 @@ export default function App() {
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight text-white">Parakh</span>
-              <span className="text-xs text-emerald-400 font-mono ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">MVP</span>
+              <span className="text-xs text-emerald-400 font-mono ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                MVP
+              </span>
             </div>
           </div>
           <div className="flex items-center space-x-4 text-sm text-slate-400">
@@ -32,7 +34,8 @@ export default function App() {
             Developer Capability Assessment
           </h1>
           <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto">
-            Extract requirements from your client brief and verify them against inspectable code, tests, and documentation from your GitHub repository.
+            Extract requirements from your client brief and verify them against inspectable code,
+            tests, and documentation from your GitHub repository.
           </p>
         </div>
 

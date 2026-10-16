@@ -17,7 +17,7 @@ app.get("/healthz", (_req: Request, res: Response) => {
     service: "parakh-api",
     timestamp: new Date().toISOString(),
     version: "0.1.0",
-    mastra: mastraOrchestrator.getStatus()
+    mastra: mastraOrchestrator.getStatus(),
   });
 });
 

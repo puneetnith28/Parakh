@@ -12,6 +12,7 @@ Parakh helps freelance developers, students, and software agencies assess whethe
 When applying for software contracts or engineering roles, developers often make claims about their technical experience. Conversely, clients and hiring managers must sift through generic resumes, unverified cover letters, and AI-generated proposals with no proof that the candidate has built what they claim.
 
 **Parakh inverts this paradigm:**
+
 1. You provide a client opportunity brief or RFP (pasted text or PDF).
 2. You provide a public GitHub repository showcasing your work.
 3. Parakh extracts structured requirements, retrieves candidate code and tests, and performs model-assisted capability assessment.
@@ -46,6 +47,7 @@ See [docs/architecture-overview.md](docs/architecture-overview.md) for full tech
 ## MVP Scope & Non-Goals
 
 ### Supported in MVP
+
 - Structured technical requirement extraction from pasted text and PDF documents.
 - Interactive requirement review and editing before repository analysis.
 - Safe, bounded public GitHub repository scanning (max files, max bytes, rate-limiting).
@@ -58,6 +60,7 @@ See [docs/architecture-overview.md](docs/architecture-overview.md) for full tech
 - Optional MongoDB Atlas persistence with session-fallback mode.
 
 ### Explicit Non-Goals
+
 - **No arbitrary code execution:** Scanned code is analyzed purely as text/AST data; Parakh never executes untrusted code, runs build scripts, or installs scanned dependencies.
 - **No private repo crawling without OAuth:** Public repositories only for MVP.
 - **No automated hiring decisions:** Parakh is an evidence tool for developers to substantiate their work, not an automated hiring filter.
@@ -67,11 +70,13 @@ See [docs/architecture-overview.md](docs/architecture-overview.md) for full tech
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js (v20+ LTS recommended)
 - npm (v10+)
 - Git
 
 ### Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/puneetnith28/Parakh.git
@@ -82,10 +87,12 @@ npm install
 ```
 
 ### Running Locally
+
 ```bash
 # Start both frontend and backend development servers
 npm run dev
 ```
+
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:3000`
 

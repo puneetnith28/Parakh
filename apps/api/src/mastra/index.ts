@@ -27,7 +27,7 @@ export class MastraAgentOrchestrator {
   public getStatus(): { initialized: boolean; provider: string } {
     return {
       initialized: this.isInitialized,
-      provider: "gemma-orchestrated"
+      provider: "gemma-orchestrated",
     };
   }
 }
