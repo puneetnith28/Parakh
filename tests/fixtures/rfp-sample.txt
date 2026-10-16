@@ -1,0 +1,14 @@
+# Client Technical Scope & Request For Proposal (RFP)
+
+## Overview
+We require an experienced full-stack engineering team to construct a cloud-native developer dashboard.
+
+## Technical Requirements
+- The backend service must be developed using Node.js and Express with strict TypeScript typings.
+- The system must persist data within a PostgreSQL relational database.
+- Database migrations and schemas must be automated.
+- PostgreSQL database schemas must be properly indexed for high-volume order queries.
+- A modern, responsive user interface must be constructed using React and Tailwind CSS.
+- Automated testing is mandatory: developers must write unit and integration test suites using Jest or native Node test runner.
+- It is preferred that the application is containerized with Docker.
+- Experience with deploying on Render or AWS ECS is a plus.
