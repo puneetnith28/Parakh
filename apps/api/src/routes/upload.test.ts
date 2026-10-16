@@ -27,7 +27,7 @@ test("Upload validation checks PDF magic bytes and extracts opportunity", async 
       method: "POST",
       body: formData1,
     });
-    const json1 = await res1.json();
+    const json1 = (await res1.json()) as any;
     assert.equal(res1.status, 200);
     assert.equal(json1.status, "success");
     assert.equal(json1.upload.filename, "document.pdf");
@@ -43,7 +43,7 @@ test("Upload validation checks PDF magic bytes and extracts opportunity", async 
       method: "POST",
       body: formData2,
     });
-    const json2 = await res2.json();
+    const json2 = (await res2.json()) as any;
     assert.equal(res2.status, 400);
     assert.match(json2.message, /magic bytes/);
 
@@ -56,7 +56,7 @@ test("Upload validation checks PDF magic bytes and extracts opportunity", async 
       method: "POST",
       body: formData3,
     });
-    const json3 = await res3.json();
+    const json3 = (await res3.json()) as any;
     assert.equal(res3.status, 400);
     assert.match(json3.message, /Only \.pdf files are supported/);
   } finally {

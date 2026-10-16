@@ -3,6 +3,7 @@ import {
   type EvidenceRecord,
   type RequirementAssessment,
   type AssessmentReport,
+  type EvidenceStatus,
   ModelAssessmentOutputSchema,
 } from "@parakh/contracts";
 import {
@@ -120,7 +121,7 @@ export class AssessmentService {
     }
 
     // 4. Parse model JSON response
-    let proposedStatus = "needs_review" as const;
+    let proposedStatus: EvidenceStatus = "needs_review";
     let proposedRationale = rawResponse;
     let citedIds: string[] = [];
     let limitations: string | undefined;
