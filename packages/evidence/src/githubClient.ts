@@ -177,4 +177,65 @@ export class GitHubClient {
       updatedAt: data.updated_at,
     };
   }
+
+  /**
+   * Resolve a ref (branch, tag, HEAD, or partial SHA) to an immutable 40-character commit SHA.
+   */
+  async resolveCommitSha(owner: string, repo: string, ref = "HEAD"): Promise<string> {
+    const trimmedRef = ref.trim();
+
+    // If already a valid 40-character commit SHA, verify or return
+    if (/^[0-9a-f]{40}$/i.test(trimmedRef)) {
+      return trimmedRef.toLowerCase();
+    }
+
+    const commitUrl = `${this.baseUrl}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits/${encodeURIComponent(trimmedRef)}`;
+    const headers = this.buildHeaders();
+
+    const response = await this.fetch(commitUrl, { method: "GET", headers });
+    this.checkRateLimitHeaders(response);
+
+    if (response.status === 404) {
+      throw new GitHubNotFoundError(owner, `${repo} (ref '${trimmedRef}')`);
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new GitHubApiError(
+        `Failed to resolve commit for ref '${trimmedRef}': HTTP ${response.status} ${errorText}`,
+        response.status
+      );
+    }
+
+    const data = (await response.json()) as { sha?: string };
+    if (!data.sha || !/^[0-9a-f]{40}$/i.test(data.sha)) {
+      throw new GitHubApiError(
+        `GitHub API returned invalid or missing commit SHA for ref '${trimmedRef}': ${JSON.stringify(data)}`,
+        500
+      );
+    }
+
+    return data.sha.toLowerCase();
+  }
+
+  /**
+   * Resolve and package revision immutability metadata.
+   */
+  async resolvePinnedRevision(owner: string, repo: string, ref = "HEAD"): Promise<{
+    owner: string;
+    repo: string;
+    ref: string;
+    commitSha: string;
+    resolvedAt: string;
+  }> {
+    const commitSha = await this.resolveCommitSha(owner, repo, ref);
+    return {
+      owner,
+      repo,
+      ref,
+      commitSha,
+      resolvedAt: new Date().toISOString(),
+    };
+  }
 }
+

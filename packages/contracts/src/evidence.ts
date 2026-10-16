@@ -6,6 +6,16 @@ export type FileType = z.infer<typeof FileTypeSchema>;
 export const IngestionStatusSchema = z.enum(["full", "truncated", "skipped"]);
 export type IngestionStatus = z.infer<typeof IngestionStatusSchema>;
 
+export const PinnedRevisionSchema = z.object({
+  owner: z.string().min(1),
+  repo: z.string().min(1),
+  ref: z.string().min(1),
+  commitSha: z.string().regex(/^[0-9a-f]{40}$/i, "Must be a 40-character commit SHA"),
+  resolvedAt: z.string().datetime().or(z.string()),
+});
+
+export type PinnedRevision = z.infer<typeof PinnedRevisionSchema>;
+
 export const EvidenceRecordSchema = z.object({
   id: z.string().min(1),
   repository: z.string(), // owner/repo

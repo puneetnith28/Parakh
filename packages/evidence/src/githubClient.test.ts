@@ -116,4 +116,59 @@ describe("GitHub Repository Metadata Resolution Service", () => {
       }
     );
   });
+
+  test("resolves branch ref to immutable 40-character commit SHA", async () => {
+    const expectedSha = "4f738b55239a031a0e4c6c0e816a2d1f4d924cb5";
+    const mockFetch: typeof fetch = async (url) => {
+      assert.ok(url.toString().includes("/commits/main"));
+      return new Response(JSON.stringify({ sha: expectedSha }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    const client = new GitHubClient({ fetchFn: mockFetch });
+    const sha = await client.resolveCommitSha("facebook", "react", "main");
+    assert.equal(sha, expectedSha);
+    assert.match(sha, /^[0-9a-f]{40}$/);
+
+    const pinned = await client.resolvePinnedRevision("facebook", "react", "main");
+    assert.equal(pinned.owner, "facebook");
+    assert.equal(pinned.repo, "react");
+    assert.equal(pinned.commitSha, expectedSha);
+    assert.ok(pinned.resolvedAt);
+  });
+
+  test("returns verbatim lowercase SHA if input is already 40-character SHA", async () => {
+    const existingSha = "A49A329F5BD8E127E3B6E09E964257125DC457B1";
+    let fetchCalled = false;
+    const mockFetch: typeof fetch = async () => {
+      fetchCalled = true;
+      return new Response("{}", { status: 200 });
+    };
+
+    const client = new GitHubClient({ fetchFn: mockFetch });
+    const sha = await client.resolveCommitSha("owner", "repo", existingSha);
+    assert.equal(sha, existingSha.toLowerCase());
+    assert.equal(fetchCalled, false, "Should not make network call for full 40-char SHA");
+  });
+
+  test("throws GitHubNotFoundError when resolving non-existent ref", async () => {
+    const mockFetch: typeof fetch = async () => {
+      return new Response(JSON.stringify({ message: "No commit found for SHA: ghost-branch" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    const client = new GitHubClient({ fetchFn: mockFetch });
+    await assert.rejects(
+      async () => client.resolveCommitSha("owner", "repo", "ghost-branch"),
+      (err: unknown) => {
+        assert.ok(err instanceof GitHubNotFoundError);
+        return true;
+      }
+    );
+  });
 });
+
