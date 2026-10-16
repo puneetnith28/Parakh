@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
 import multer from "multer";
 import { pdfUpload, validatePdfMagicBytes } from "../middleware/fileUpload.js";
+import { PdfExtractor } from "../services/pdfExtractor.js";
 
 export const uploadRouter = Router();
 
@@ -30,19 +31,36 @@ uploadRouter.post(
     });
   },
   validatePdfMagicBytes,
-  (req: Request, res: Response) => {
-    const file = req.file!;
-    const uploadId = `upload_${crypto.randomUUID()}`;
+  async (req: Request, res: Response) => {
+    try {
+      const file = req.file!;
+      const uploadId = `upload_${crypto.randomUUID()}`;
 
-    res.status(200).json({
-      status: "success",
-      upload: {
-        id: uploadId,
-        filename: file.originalname,
-        sizeBytes: file.size,
-        mimeType: file.mimetype,
-        uploadedAt: new Date().toISOString(),
-      },
-    });
+      const extracted = await PdfExtractor.extract(file.buffer);
+
+      res.status(200).json({
+        status: "success",
+        upload: {
+          id: uploadId,
+          filename: file.originalname,
+          sizeBytes: file.size,
+          mimeType: file.mimetype,
+          uploadedAt: new Date().toISOString(),
+        },
+        opportunity: {
+          id: `opp_${crypto.randomUUID()}`,
+          title: file.originalname.replace(/\.pdf$/i, ""),
+          rawText: extracted.text,
+          pageCount: extracted.numpages,
+          characterCount: extracted.characterCount,
+          createdAt: extracted.extractedAt,
+        },
+      });
+    } catch (err: any) {
+      res.status(400).json({
+        status: "error",
+        message: err.message || "Failed to extract text from PDF",
+      });
+    }
   }
 );
