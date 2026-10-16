@@ -18,6 +18,11 @@ export function filterAssessments(
       return false;
     }
 
+    // Category filter
+    if (categoryFilter !== "all" && (item as any).category && (item as any).category !== categoryFilter) {
+      return false;
+    }
+
     // Keyword search
     if (query.trim()) {
       const q = query.toLowerCase();
