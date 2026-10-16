@@ -56,6 +56,8 @@ export const RequirementAssessmentSchema = z.object({
   nextActions: z.array(z.string()).default([]),
   confidence: z.enum(["high", "medium", "low"]).default("medium"),
   manuallyOverridden: z.boolean().default(false),
+  userNotes: z.string().optional(),
+  originalStatus: EvidenceStatusSchema.optional(),
   downgradeReason: z.string().optional(),
 });
 
