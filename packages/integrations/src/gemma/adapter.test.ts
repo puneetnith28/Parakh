@@ -1,0 +1,101 @@
+import { test, describe } from "node:test";
+import assert from "node:assert/strict";
+import { GemmaModelAdapter } from "./adapter.js";
+import { ModelProviderError } from "./types.js";
+
+describe("Unified Gemma Model Adapter", () => {
+  test("generates structured output with mock provider in test environment", async () => {
+    const adapter = new GemmaModelAdapter({ provider: "mock" });
+    const result = await adapter.generateText("Analyze candidate evidence");
+
+    assert.equal(result.provider, "mock");
+    assert.ok(result.text.length > 0);
+    assert.ok(result.usage.totalTokens > 0);
+    const parsed = JSON.parse(result.text);
+    assert.equal(parsed.status, "demonstrated");
+  });
+
+  test("routes to Google AI and formats payload correctly", async () => {
+    const mockFetch: typeof fetch = async (url, init) => {
+      assert.ok(url.toString().includes("generativelanguage.googleapis.com"));
+      assert.ok(url.toString().includes("key=test_api_key"));
+
+      const body = JSON.parse(init?.body as string);
+      assert.equal(body.contents[0].parts[0].text, "test prompt");
+      assert.equal(body.generationConfig.temperature, 0.1);
+
+      return new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: "{\"status\":\"partially_demonstrated\"}" }] } }],
+          usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 40, totalTokenCount: 140 },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    };
+
+    const adapter = new GemmaModelAdapter({
+      provider: "google-ai",
+      apiKey: "test_api_key",
+      fetchFn: mockFetch,
+    });
+
+    const result = await adapter.generateText("test prompt");
+    assert.equal(result.provider, "google-ai");
+    assert.equal(result.usage.totalTokens, 140);
+    assert.match(result.text, /partially_demonstrated/);
+  });
+
+  test("normalizes HTTP 429 rate limit to retryable ModelProviderError", async () => {
+    const mockFetch: typeof fetch = async () => {
+      return new Response(JSON.stringify({ error: { message: "Resource exhausted" } }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    const adapter = new GemmaModelAdapter({
+      provider: "google-ai",
+      apiKey: "test_key",
+      fetchFn: mockFetch,
+    });
+
+    await assert.rejects(
+      async () => adapter.generateText("prompt"),
+      (err: unknown) => {
+        assert.ok(err instanceof ModelProviderError);
+        assert.equal((err as ModelProviderError).statusCode, 429);
+        assert.equal((err as ModelProviderError).isRetryable, true);
+        return true;
+      }
+    );
+  });
+
+  test("normalizes timeout to 504 retryable error", async () => {
+    const mockFetch: typeof fetch = async (_url, init) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const abortError = new Error("The operation was aborted");
+          abortError.name = "AbortError";
+          reject(abortError);
+        });
+      });
+    };
+
+    const adapter = new GemmaModelAdapter({
+      provider: "google-ai",
+      apiKey: "test_key",
+      fetchFn: mockFetch,
+    });
+
+    await assert.rejects(
+      async () => adapter.generateText("prompt", { timeoutMs: 20 }),
+      (err: unknown) => {
+        assert.ok(err instanceof ModelProviderError);
+        assert.equal((err as ModelProviderError).statusCode, 504);
+        assert.equal((err as ModelProviderError).isRetryable, true);
+        assert.match((err as ModelProviderError).message, /timed out/i);
+        return true;
+      }
+    );
+  });
+});
