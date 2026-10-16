@@ -29,12 +29,15 @@ export type Citation = z.infer<typeof CitationSchema>;
  * Raw Model Output Schema returned by Gemma evaluation step.
  */
 export const ModelAssessmentOutputSchema = z.object({
-  requirementId: z.string().min(1),
+  requirementId: z.string().optional(),
   status: EvidenceStatusSchema,
   rationale: z.string().min(1),
   citedCandidateIds: z.array(z.string()).default([]),
   limitations: z.string().optional(),
-  nextActions: z.array(z.string()).default([]),
+  nextActions: z
+    .array(z.string())
+    .or(z.string().transform((s) => [s]))
+    .default([]),
 });
 
 export type ModelAssessmentOutput = z.infer<typeof ModelAssessmentOutputSchema>;

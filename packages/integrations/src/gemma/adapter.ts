@@ -68,7 +68,7 @@ export class GemmaModelAdapter {
           rationale: "Mock response generated for test environment",
           citedCandidateIds: ["cand_001"],
           limitations: "None in mock",
-          nextActions: "Proceed with report generation",
+          nextActions: ["Proceed with report generation"],
         }),
         usage: { promptTokens: 50, completionTokens: 30, totalTokens: 80 },
         provider: "mock",
