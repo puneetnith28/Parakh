@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { CONTRACTS_VERSION } from "@parakh/contracts";
 import { mastraOrchestrator } from "../mastra/index.js";
 import { config } from "../config.js";
+import { mongoConnection } from "../storage/mongodb.js";
 
 export const healthRouter = Router();
 
@@ -14,6 +15,7 @@ healthRouter.get("/healthz", (_req: Request, res: Response) => {
     contractsVersion: CONTRACTS_VERSION,
     environment: config.NODE_ENV,
     mastra: mastraOrchestrator.getStatus(),
+    storage: mongoConnection.getStatus(),
   });
 });
 
