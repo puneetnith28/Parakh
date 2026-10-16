@@ -1,10 +1,12 @@
 {
   "name": "@parakh/assessment",
   "version": "0.1.0",
+  "type": "module",
   "description": "Evidence matching, scoring, and citation validation for Parakh",
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "exports": "./src/index.ts",
   "dependencies": {
     "@parakh/contracts": "*"
   },
