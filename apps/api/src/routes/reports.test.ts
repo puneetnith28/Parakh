@@ -95,6 +95,19 @@ test("Reports API: Authorization token lifecycle and security enforcement", asyn
     assert.equal(shareRes.status, 200);
     const shareJson = (await shareRes.json()) as any;
     assert.ok(shareJson.shareUrl.includes(validToken));
+
+    // 7. DELETE with valid token returns 204 No Content
+    const deleteRes = await fetch(`http://localhost:3097/api/reports/${sampleReport.id}`, {
+      method: "DELETE",
+      headers: { "X-Report-Token": validToken },
+    });
+    assert.equal(deleteRes.status, 204);
+
+    // 8. Subsequent GET returns 404 Not Found
+    const afterDeleteRes = await fetch(`http://localhost:3097/api/reports/${sampleReport.id}`, {
+      headers: { "X-Report-Token": validToken },
+    });
+    assert.equal(afterDeleteRes.status, 404);
   } finally {
     server.close();
   }

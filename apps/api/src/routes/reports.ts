@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import { AssessmentReportSchema } from "@parakh/contracts";
 import { getStorage } from "../storage/index.js";
 import { sanitizeReportForPersistence } from "../storage/sanitizer.js";
+import { reportService } from "../storage/services/reportService.js";
 import {
   generateViewToken,
   requireReportToken,
@@ -79,5 +80,32 @@ reportsRouter.post(
       token: viewToken,
       expiresIn: "30 days",
     });
+  }
+);
+
+/**
+ * DELETE /api/reports/:id
+ * Permanently deletes the report, associated analysis runs, and evidence references.
+ * Returns 204 No Content upon success.
+ */
+reportsRouter.delete(
+  "/api/reports/:id",
+  requireReportToken,
+  async (req: AuthenticatedReportRequest, res: Response): Promise<void> => {
+    const reportId = req.params.id;
+    const viewToken = req.reportRecord?.viewToken;
+
+    if (!viewToken) {
+      res.status(401).json({ status: "error", message: "Token missing" });
+      return;
+    }
+
+    const success = await reportService.cascadeDeleteReport(reportId, viewToken);
+
+    if (success) {
+      res.status(204).send();
+    } else {
+      res.status(500).json({ status: "error", message: "Failed to delete report record." });
+    }
   }
 );
