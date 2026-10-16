@@ -1,0 +1,14 @@
+type User {
+  id: ID!
+  email: String!
+  role: String!
+}
+
+type Query {
+  me: User
+  users(limit: Int): [User!]!
+}
+
+type Mutation {
+  login(token: String!): User
+}
