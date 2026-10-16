@@ -284,5 +284,33 @@ export class GitHubClient {
       truncated: boolean;
     };
   }
+
+  /**
+   * Fetch Git blob content by SHA.
+   */
+  async fetchBlob(
+    owner: string,
+    repo: string,
+    blobSha: string
+  ): Promise<{
+    data: { content?: string; encoding?: string; size?: number };
+    rateLimitRemaining?: number;
+  }> {
+    const url = `${this.baseUrl}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/blobs/${encodeURIComponent(blobSha)}`;
+    const headers = this.buildHeaders();
+
+    const response = await this.fetch(url, { method: "GET", headers });
+    this.checkRateLimitHeaders(response);
+
+    const remainingStr = response.headers.get("x-ratelimit-remaining");
+    const remaining = remainingStr ? parseInt(remainingStr, 10) : undefined;
+
+    if (!response.ok) {
+      throw new GitHubApiError(`Failed to fetch blob ${blobSha}: HTTP ${response.status}`, response.status);
+    }
+
+    const data = (await response.json()) as { content?: string; encoding?: string; size?: number };
+    return { data, rateLimitRemaining: remaining };
+  }
 }
 
