@@ -25,16 +25,35 @@ export const CitationSchema = z.object({
 
 export type Citation = z.infer<typeof CitationSchema>;
 
+/**
+ * Raw Model Output Schema returned by Gemma evaluation step.
+ */
+export const ModelAssessmentOutputSchema = z.object({
+  requirementId: z.string().min(1),
+  status: EvidenceStatusSchema,
+  rationale: z.string().min(1),
+  citedCandidateIds: z.array(z.string()).default([]),
+  limitations: z.string().optional(),
+  nextActions: z.array(z.string()).default([]),
+});
+
+export type ModelAssessmentOutput = z.infer<typeof ModelAssessmentOutputSchema>;
+
+/**
+ * Complete verified Requirement Assessment with citations and downgrade metadata.
+ */
 export const RequirementAssessmentSchema = z.object({
   requirementId: z.string().min(1),
   requirementText: z.string(),
   status: EvidenceStatusSchema,
   rationale: z.string(),
+  citedCandidateIds: z.array(z.string()).default([]),
   citations: z.array(CitationSchema).default([]),
   limitations: z.string().optional(),
   nextActions: z.array(z.string()).default([]),
   confidence: z.enum(["high", "medium", "low"]).default("medium"),
   manuallyOverridden: z.boolean().default(false),
+  downgradeReason: z.string().optional(),
 });
 
 export type RequirementAssessment = z.infer<typeof RequirementAssessmentSchema>;
