@@ -2,21 +2,69 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   RequirementSchema,
+  ExtractedRequirementsResultSchema,
   EvidenceRecordSchema,
   RequirementAssessmentSchema,
   AssessmentReportSchema,
 } from "./index.js";
 
-test("RequirementSchema validates valid requirement", () => {
+test("RequirementSchema validates valid requirement with req_ prefix", () => {
   const valid = {
-    id: "req_001",
+    id: "req_auth_01",
     text: "Implement role-based authorization",
-    category: "security",
-    priority: "mandatory",
+    category: "security" as const,
+    priority: "mandatory" as const,
+    sourceLocation: {
+      pageNumber: 2,
+      charStart: 120,
+      charEnd: 240,
+      sourceSnippet: "The platform must enforce role-based access control.",
+    },
+    acceptanceCriteria: ["Admins can access dashboard", "Guests are redirected"],
   };
   const parsed = RequirementSchema.parse(valid);
-  assert.equal(parsed.id, "req_001");
+  assert.equal(parsed.id, "req_auth_01");
   assert.equal(parsed.category, "security");
+  assert.equal(parsed.sourceLocation?.pageNumber, 2);
+});
+
+test("RequirementSchema rejects invalid ID format", () => {
+  const invalid = {
+    id: "invalid-id-without-prefix",
+    text: "Implement role-based authorization",
+    category: "security",
+  };
+  assert.throws(() => RequirementSchema.parse(invalid), /Requirement ID must begin with 'req_'/);
+});
+
+test("RequirementSchema rejects text under minimum length", () => {
+  const invalid = {
+    id: "req_01",
+    text: "ab",
+  };
+  assert.throws(() => RequirementSchema.parse(invalid), /at least 3 characters/);
+});
+
+test("ExtractedRequirementsResultSchema validates structured model output", () => {
+  const validResult = {
+    summary: "Extracted 2 requirements from brief",
+    requirements: [
+      {
+        id: "req_001",
+        text: "Build React frontend with Tailwind CSS",
+        category: "frontend" as const,
+        priority: "mandatory" as const,
+      },
+      {
+        id: "req_002",
+        text: "Provide PostgreSQL relational database",
+        category: "database" as const,
+        priority: "preferred" as const,
+      },
+    ],
+  };
+  const parsed = ExtractedRequirementsResultSchema.parse(validResult);
+  assert.equal(parsed.requirements.length, 2);
 });
 
 test("EvidenceRecordSchema enforces 40-character commit SHA", () => {
@@ -37,7 +85,7 @@ test("RequirementAssessmentSchema validates valid assessment", () => {
   const valid = {
     requirementId: "req_001",
     requirementText: "Implement role-based authorization",
-    status: "demonstrated",
+    status: "demonstrated" as const,
     rationale: "Found role check middleware",
     citations: [
       {
