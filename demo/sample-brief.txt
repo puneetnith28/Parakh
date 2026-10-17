@@ -1,0 +1,17 @@
+# Project Brief: Modern Full-Stack Enterprise Billing & Subscription Engine
+
+## 1. Project Overview
+We are seeking a senior full-stack engineer to build an enterprise SaaS billing portal and subscription microservice. The platform must handle multi-tenant customer onboarding, automated recurring invoices, and real-time payment reconciliation.
+
+## 2. Key Technical Requirements
+- **FR-01 Frontend Architecture:** Must implement a responsive React 18 or Next.js SPA utilizing TypeScript and clean component boundaries.
+- **FR-02 Authentication & Authorization:** Must implement secure JSON Web Token (JWT) session handling with refresh token rotation and role-based access control (RBAC).
+- **FR-03 Relational Database Layer:** Must integrate a PostgreSQL or MongoDB persistence layer with schema migrations and ACID transaction compliance.
+- **FR-04 API Rate Limiting & Security:** Must enforce API rate limiting (sliding window or token bucket) to prevent brute-force abuse and scrapers.
+- **FR-05 Automated Testing:** Must achieve comprehensive automated test coverage (>= 80%) with unit and integration test suites.
+- **FR-06 Containerization & CI/CD:** Must provide production Dockerfile containers and automated GitHub Actions workflows for linting, testing, and deployment.
+
+## 3. Deliverables & Timeline
+- Complete source code with documentation and environment setup scripts.
+- Verified test reports demonstrating API reliability.
+- Initial MVP delivery within 4 weeks.

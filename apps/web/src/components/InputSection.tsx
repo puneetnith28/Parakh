@@ -1,4 +1,5 @@
 import { Code, Search, AlertCircle, CheckCircle2 } from "lucide-react";
+import { DemoLoader } from "./DemoLoader.tsx";
 
 interface InputSectionProps {
   opportunityText: string;
@@ -21,8 +22,15 @@ export function InputSection({
   validationError,
   successMessage,
 }: InputSectionProps) {
+  const handleLoadDemo = (brief: string, repo: string) => {
+    setOpportunityText(brief);
+    setRepoUrl(repo);
+  };
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+      <DemoLoader onLoadDemo={handleLoadDemo} />
+
       {validationError && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-start space-x-3">
           <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />

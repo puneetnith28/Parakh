@@ -1,0 +1,8 @@
+{
+  "scenario": "Enterprise Full-Stack SaaS Microservice",
+  "recommendedRepoUrl": "https://github.com/puneetnith28/Parakh",
+  "description": "Public reference repository demonstrating React frontend, Express API, TypeScript contracts, MongoDB/PostgreSQL integrations, deterministic test suites, and Docker containerization.",
+  "targetCommitSha": "main",
+  "sampleRequirementsCount": 6,
+  "expectedDemonstratedRate": ">= 80%"
+}
