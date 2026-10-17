@@ -6,196 +6,167 @@ Every claimed sponsor is backed by actual code in the repository, reproducible t
 
 ---
 
-## Matrix Overview
+## Sponsor Integration Matrix
 
-| Sponsor | Integration Level | Primary Source Code Paths | Verifiable Test Path |
-|---|---|---|---|
-| **Google Gemma / AI Studio** | Core LLM Engine | `packages/integrations/src/gemma/` | `quotaGuard.test.ts`, `assessmentPrompt.test.ts` |
-| **MongoDB Atlas** | Production Document Store | `apps/api/src/storage/` | `mongodb.test.ts`, `mongoStore.ts` |
-| **Sentry** | Observability & Tracing | `apps/api/src/observability/`, `apps/web/src/observability/` | `sentry.test.ts` |
-| **GitHub Copilot** | Developer Workflow & Scaffolding | Throughout monorepo | `docs/copilot-usage.md` |
-| **TigerData** | Vector Ground Truth Retrieval | `packages/integrations/src/tigerdata/` | `retrieval.test.ts` |
-| **Temporal** | Long-Running Workflow Scaffold | `packages/integrations/src/temporal/` | `workflow.test.ts`, `docs/temporal-evaluation.md` |
-| **SerpApi** | External Documentation Search | `packages/integrations/src/serpapi/` | `client.test.ts` |
-| **.tech Domains** | Production Custom Domain & TLS | `render.yaml`, `docs/domain-setup.md` | `docs/domain-setup.md` |
-| **ElevenLabs** | Voice Synthesis (Summary Narration) | `packages/integrations/src/secondary/elevenlabs.ts` | `secondary.test.ts` |
-| **Backboard** | Candidate Context Memory | `packages/integrations/src/secondary/backboard.ts` | `secondary.test.ts` |
-| **DigitalOcean** | Scalable Background Compute Spec | `packages/integrations/src/secondary/digitalocean.ts` | `secondary.test.ts` |
+| Sponsor | Architectural Role | Primary Source Code Links | Verifiable Test Suite | Status |
+|---|---|---|---|---|
+| **Google Gemma / AI Studio** | Core Reasoning & Requirement Extraction LLM | [`packages/integrations/src/gemma/`](file:///packages/integrations/src/gemma/) | [`packages/integrations/src/gemma/quotaGuard.test.ts`](file:///packages/integrations/src/gemma/quotaGuard.test.ts) | Verified Active |
+| **Mastra** | Multi-Step Agent Workflow & Tool Orchestration | [`apps/api/src/mastra/`](file:///apps/api/src/mastra/) | [`apps/api/src/mastra/workflows/assessmentWorkflow.test.ts`](file:///apps/api/src/mastra/workflows/assessmentWorkflow.test.ts) | Verified Active |
+| **MongoDB Atlas** | Production Document Store & Indexing | [`apps/api/src/storage/`](file:///apps/api/src/storage/) | [`apps/api/src/storage/mongodb.test.ts`](file:///apps/api/src/storage/mongodb.test.ts) | Verified Active |
+| **Sentry** | End-to-End Tracing & Privacy-Preserving Observability | [`apps/api/src/observability/`](file:///apps/api/src/observability/) | [`apps/api/src/observability/sentry.test.ts`](file:///apps/api/src/observability/sentry.test.ts) | Verified Active |
+| **Render** | Cloud Production Hosting & CI/CD Deployment | [`render.yaml`](file:///render.yaml) | Cloud Health Probe (`/api/health`) | Verified Active |
+| **GitHub Copilot** | AI-Assisted Development & Scaffold Acceleration | Monorepo-wide prompts | [`docs/copilot-usage.md`](file:///docs/copilot-usage.md) | Documented Evidence |
+| **TigerData (PGVector)** | Vector Ground Truth Retrieval Engine | [`packages/integrations/src/tigerdata/`](file:///packages/integrations/src/tigerdata/) | [`packages/integrations/src/tigerdata/retrieval.test.ts`](file:///packages/integrations/src/tigerdata/retrieval.test.ts) | Verified Active |
+| **Temporal** | Durable Workflow Scaffold & Architectural ADR | [`packages/integrations/src/temporal/`](file:///packages/integrations/src/temporal/) | [`packages/integrations/src/temporal/workflow.test.ts`](file:///packages/integrations/src/temporal/workflow.test.ts) | Scaffolded & Evaluated |
+| **SerpApi** | Isolated External Technical Documentation Search | [`packages/integrations/src/serpapi/`](file:///packages/integrations/src/serpapi/) | [`packages/integrations/src/serpapi/client.test.ts`](file:///packages/integrations/src/serpapi/client.test.ts) | Verified Active |
+| **.tech Domains** | Production Custom Domain Routing & TLS 1.3 | [`render.yaml`](file:///render.yaml), [`docs/domain-setup.md`](file:///docs/domain-setup.md) | DNS CNAME Verification | Production Bound |
+| **ElevenLabs** | Voice Synthesis (Audio Assessment Narration) | [`packages/integrations/src/secondary/elevenlabs.ts`](file:///packages/integrations/src/secondary/elevenlabs.ts) | [`packages/integrations/src/secondary/secondary.test.ts`](file:///packages/integrations/src/secondary/secondary.test.ts) | Secondary Feature-Flagged |
+| **Backboard** | Candidate Context Memory Persistence | [`packages/integrations/src/secondary/backboard.ts`](file:///packages/integrations/src/secondary/backboard.ts) | [`packages/integrations/src/secondary/secondary.test.ts`](file:///packages/integrations/src/secondary/secondary.test.ts) | Secondary Feature-Flagged |
+| **DigitalOcean** | Scalable Background Compute Container Spec | [`packages/integrations/src/secondary/digitalocean.ts`](file:///packages/integrations/src/secondary/digitalocean.ts) | [`packages/integrations/src/secondary/secondary.test.ts`](file:///packages/integrations/src/secondary/secondary.test.ts) | Container Blueprint |
 
 ---
 
 ## 1. Google Gemma / Google AI Studio
 
-- **Exact Feature Implemented:**
-  Automated qualitative synthesis of developer capabilities across six dimensions (code quality, architecture, testing, git discipline, security, problem-solving). Evaluates AST metrics and ground truth citations using structured JSON schema prompting and rate-limit guardrails.
-- **Source Code Paths:**
-  - `packages/integrations/src/gemma/client.ts`
-  - `packages/integrations/src/gemma/adapter.ts`
-  - `packages/integrations/src/gemma/quotaGuard.ts`
-  - `packages/integrations/src/gemma/assessmentPrompt.ts`
-  - `packages/integrations/src/gemma/types.ts`
-- **Environment Variables:**
-  - `AI_STUDIO_API_KEY`: API key for Google AI Studio / Gemini API.
-  - `MODEL_NAME`: Active model identifier (e.g. `gemini-3.5-flash-lite`, `gemini-flash-latest`, or `gemma-2-9b-it`).
-- **How to Test:**
+- **Architectural Role:**
+  Powers the core qualitative synthesis and structured requirement extraction. Evaluates AST metrics and candidate snippets using strict JSON schema prompting.
+- **Defensive Safeguards:**
+  - Temperature strictly clamped to `0.0 - 0.2` to eliminate hallucinated assertions.
+  - `QuotaGuard` implements exponential backoff with jitter and 800ms pacing for free-tier rate limits (15 RPM).
+  - Strict fallback to local deterministic AST scoring if the remote model times out or encounters network partitions.
+- **Source Code Locations:**
+  - Client & Adapter: [`packages/integrations/src/gemma/client.ts`](file:///packages/integrations/src/gemma/client.ts)
+  - Quota Guard: [`packages/integrations/src/gemma/quotaGuard.ts`](file:///packages/integrations/src/gemma/quotaGuard.ts)
+  - Assessment Prompts: [`packages/integrations/src/gemma/assessmentPrompt.ts`](file:///packages/integrations/src/gemma/assessmentPrompt.ts)
+- **Configuration:**
+  ```ini
+  AI_STUDIO_API_KEY=your_key_here
+  GEMMA_MODEL_ID=gemma-2-9b-it
+  ```
+- **Verification Command:**
   ```bash
   npx tsx --env-file=.env --test packages/integrations/src/gemma/quotaGuard.test.ts
   ```
-- **Proof of Real Usage:**
-  Live calls executed against Google AI Studio `v1beta` endpoint returning structured dimension scores and reasoning summaries.
-- **Architectural Limitations:**
-  Free-tier API keys enforce 15 RPM. Handled via `QuotaGuard` exponential backoff and 800ms throttle pacing.
 
 ---
 
-## 2. MongoDB Atlas
+## 2. Mastra (Agent Orchestration & Workflow Engine)
 
-- **Exact Feature Implemented:**
-  Production document database with TLS encryption, compound indexing, and automatic fallback to stateless in-memory storage when unconfigured. Stores candidate reports, opportunities, and evaluation evidence.
-- **Source Code Paths:**
-  - `apps/api/src/storage/mongodb.ts`
-  - `apps/api/src/storage/mongoStore.ts`
-  - `apps/api/src/storage/models/`
-  - `apps/api/src/storage/models/indexes.ts`
-- **Environment Variables:**
-  - `MONGODB_URI`: Production Atlas connection string with TLS and user credentials.
-  - `MONGODB_DATABASE`: Target database name (defaults to `parakh`).
-- **How to Test:**
+- **Architectural Role:**
+  Coordinates the multi-phase assessment workflow: parses the opportunity, orchestrates candidate retrieval, passes bounded chunks to the reasoning model, and hands raw assertions to the deterministic citation validator.
+- **Source Code Locations:**
+  - Orchestrator Engine: [`apps/api/src/mastra/index.ts`](file:///apps/api/src/mastra/index.ts)
+  - Typed Assessment Workflow: [`apps/api/src/mastra/workflows/assessmentWorkflow.ts`](file:///apps/api/src/mastra/workflows/assessmentWorkflow.ts)
+  - System Health Integration: [`apps/api/src/routes/health.ts`](file:///apps/api/src/routes/health.ts)
+- **Verification Command:**
+  ```bash
+  npx tsx --test apps/api/src/mastra/workflows/assessmentWorkflow.test.ts
+  ```
+
+---
+
+## 3. MongoDB Atlas
+
+- **Architectural Role:**
+  Production document store configured with TLS 1.3 encryption, compound index optimizations (`{ createdAt: -1 }`, `{ viewToken: 1 }`), and session fallback mode when running in ephemeral environments.
+- **Source Code Locations:**
+  - Client & Pool: [`apps/api/src/storage/mongodb.ts`](file:///apps/api/src/storage/mongodb.ts)
+  - Repository Store: [`apps/api/src/storage/mongoStore.ts`](file:///apps/api/src/storage/mongoStore.ts)
+  - Index Specifications: [`apps/api/src/storage/models/indexes.ts`](file:///apps/api/src/storage/models/indexes.ts)
+- **Configuration:**
+  ```ini
+  MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.mongodb.net
+  MONGODB_DB_NAME=parakh_dev
+  ```
+- **Verification Command:**
   ```bash
   npx tsx --env-file=.env --test apps/api/src/storage/mongodb.test.ts
   ```
-- **Proof of Real Usage:**
-  Verified TLS 1.3 encrypted ping to `ac-hoydk3a-shard-00-01.6sgehjh.mongodb.net` returning active connection and index verification.
-- **Architectural Limitations:**
-  Requires IP access list entry (or `0.0.0.0/0` with strong authentication) for container deployments.
 
 ---
 
-## 3. Sentry
+## 4. Sentry (Agent Tracing & Observability)
 
-- **Exact Feature Implemented:**
-  End-to-end telemetry and error tracking for both backend API and frontend React dashboard. Includes custom scrubbing filters that sanitize bearer tokens, database credentials, and GitHub PATs from stack frames and breadcrumbs.
-- **Source Code Paths:**
-  - `apps/api/src/observability/sentry.ts`
-  - `apps/web/src/observability/sentry.ts`
-  - `apps/api/src/observability/sentry.test.ts`
-- **Environment Variables:**
-  - `SENTRY_DSN`: Sentry project ingest DSN.
-  - `SENTRY_ENVIRONMENT`: Runtime environment label (`production`, `staging`, `development`).
-- **How to Test:**
-  ```bash
-  npx tsx --test apps/api/src/observability/sentry.test.ts
+- **Architectural Role:**
+  Full-stack distributed tracing across API workflows and frontend React state. Incorporates real-time PII and secret scrubbing (`scrubSecrets`) ensuring that database credentials, GitHub PATs, and bearer headers are never leaked to telemetry.
+- **Source Code Locations:**
+  - Backend Sentry Instrumentation: [`apps/api/src/observability/sentry.ts`](file:///apps/api/src/observability/sentry.ts)
+  - Sensitive Data Scrubber: [`apps/api/src/utils/scrubber.ts`](file:///apps/api/src/utils/scrubber.ts)
+  - Frontend Sentry Client: [`apps/web/src/observability/sentry.ts`](file:///apps/web/src/observability/sentry.ts)
+- **Configuration:**
+  ```ini
+  SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+  SENTRY_ENVIRONMENT=production
   ```
-- **Proof of Real Usage:**
-  Breadcrumb sanitizer verified to mask sensitive keys and authorization headers before transmission.
-- **Architectural Limitations:**
-  Sample rates capped at 1.0 in development and 0.2 in high-volume production to respect Sentry quota.
+- **Verification Command:**
+  ```bash
+  npx tsx --test apps/api/src/observability/sentry.test.ts tests/security/secretLeakAudit.test.ts
+  ```
 
 ---
 
-## 4. GitHub Copilot
+## 5. Render (Cloud Hosting & Infrastructure)
 
-- **Exact Feature Implemented:**
-  AI-assisted pair programming and boilerplates across AST traversal, schema synchronization, and test suite generation.
-- **Source Code Paths:**
-  - `docs/copilot-usage.md` (Concrete prompt logs, review cycles, and verification metrics).
-- **Environment Variables:** None (developer tooling).
-- **How to Test:**
-  Review detailed interaction records in `docs/copilot-usage.md`.
-- **Proof of Real Usage:**
-  Direct code assistance recorded for Babel AST visitors, Zod contract typing, and QuotaGuard test cases.
-- **Architectural Limitations:**
-  All AI-generated code was subjected to human review and TypeScript compilation checks to eliminate hallucinations.
+- **Architectural Role:**
+  Powers the automated deployment pipeline for both the Node.js Express backend and static React frontend, complete with automatic branch previews and HTTPS certificates.
+- **Source Code Locations:**
+  - Deployment Blueprint: [`render.yaml`](file:///render.yaml)
+  - Domain Routing Runbook: [`docs/domain-setup.md`](file:///docs/domain-setup.md)
 
 ---
 
-## 5. TigerData (PGVector)
+## 6. GitHub Copilot (AI-Assisted Pair Programming)
 
-- **Exact Feature Implemented:**
-  Semantic ground truth vector retrieval with cosine similarity scoring. Ingests rubric embeddings to match candidate code snippets against proven engineering benchmarks.
-- **Source Code Paths:**
-  - `packages/integrations/src/tigerdata/retrieval.ts`
-  - `packages/integrations/src/tigerdata/retrieval.test.ts`
-- **Environment Variables:**
-  - `TIGERDATA_DATABASE_URL`: PostgreSQL connection string with PGVector extension.
-- **How to Test:**
+- **Architectural Role:**
+  Accelerated the authoring of AST traversal scripts, Zod contract schemas, and adversarial security test cases.
+- **Evidence Documentation:**
+  Full transparency logs including prompt transcripts, code output examples, and developer reflections in [`docs/copilot-usage.md`](file:///docs/copilot-usage.md).
+
+---
+
+## 7. TigerData (PGVector Semantic Grounding)
+
+- **Architectural Role:**
+  Semantic vector retrieval matching extracted requirements to code candidates with cosine similarity ranking and deterministic in-memory fallback.
+- **Source Code Locations:**
+  - Retrieval Engine: [`packages/integrations/src/tigerdata/retrieval.ts`](file:///packages/integrations/src/tigerdata/retrieval.ts)
+- **Verification Command:**
   ```bash
   npx tsx --test packages/integrations/src/tigerdata/retrieval.test.ts
   ```
-- **Proof of Real Usage:**
-  Deterministic fallback vector retrieval engine operating seamlessly both with live database and mock fallback.
-- **Architectural Limitations:**
-  Falls back to in-memory cosine ranking when external database connection is unavailable.
 
 ---
 
-## 6. Temporal
+## 8. Temporal (Durable Execution)
 
-- **Exact Feature Implemented:**
-  Durable workflow scaffold and activity retry policies for long-running repository assessments, with architectural evaluation ADR.
-- **Source Code Paths:**
-  - `packages/integrations/src/temporal/workflow.ts`
-  - `packages/integrations/src/temporal/workflow.test.ts`
-  - `docs/temporal-evaluation.md`
-- **Environment Variables:**
-  - `TEMPORAL_API_KEY`: Temporal cloud client API key.
-- **How to Test:**
-  ```bash
-  npx tsx --test packages/integrations/src/temporal/workflow.test.ts
-  ```
-- **Proof of Real Usage:**
-  State machine transitions, retry backoff calculation, and activity failure handling validated in automated test runner.
-- **Architectural Limitations:**
-  Evaluated as an enterprise batch runner; interactive real-time scans default to fast-path in-process pipeline.
+- **Architectural Role:**
+  Scaffolded durable workflow activities and retry policies for long-running repository batch scans.
+- **Evidence Documentation:**
+  - Workflow Definition: [`packages/integrations/src/temporal/workflow.ts`](file:///packages/integrations/src/temporal/workflow.ts)
+  - Architecture Decision Record (ADR): [`docs/temporal-evaluation.md`](file:///docs/temporal-evaluation.md)
 
 ---
 
-## 7. SerpApi
+## 9. SerpApi (External Documentation Lookup)
 
-- **Exact Feature Implemented:**
-  External technical documentation search for discovered dependencies, strictly isolated from candidate evidence.
-- **Source Code Paths:**
-  - `packages/integrations/src/serpapi/client.ts`
-  - `packages/integrations/src/serpapi/client.test.ts`
-- **Environment Variables:**
-  - `SERPAPI_API_KEY`: SerpApi search token.
-- **How to Test:**
+- **Architectural Role:**
+  Provides external reference documentation search for unfamiliar dependencies. Enforces strict provenance boundary: external search results are strictly tagged `isCandidateEvidence: false` and never substantiate code claims.
+- **Source Code Locations:**
+  - Client Service: [`packages/integrations/src/serpapi/client.ts`](file:///packages/integrations/src/serpapi/client.ts)
+- **Verification Command:**
   ```bash
   npx tsx --test packages/integrations/src/serpapi/client.test.ts
   ```
-- **Proof of Real Usage:**
-  Results tagged with `isCandidateEvidence: false` and `sourceType: "external_reference_context"`.
-- **Architectural Limitations:**
-  Gracefully returns empty array when unconfigured or on network errors.
 
 ---
 
-## 8. .tech Domains
+## 10. Secondary Sponsors (ElevenLabs, Backboard, DigitalOcean)
 
-- **Exact Feature Implemented:**
-  Production DNS mapping, TLS 1.3 configuration, and HTTPS redirection for `parakh.tech` and `api.parakh.tech`.
-- **Source Code Paths:**
-  - `render.yaml`
-  - `docs/domain-setup.md`
-- **Environment Variables:** None (DNS / infrastructure level).
-- **How to Test:**
-  ```bash
-  dig api.parakh.tech CNAME +short
-  ```
-- **Proof of Real Usage:**
-  Architecture blueprints in `render.yaml` and TLS runbooks in `docs/domain-setup.md`.
-
----
-
-## 9. Secondary Sponsors: ElevenLabs, Backboard, & DigitalOcean
-
-- **Exact Feature Implemented:**
-  - **ElevenLabs:** Audio voice narration of candidate executive summaries (`packages/integrations/src/secondary/elevenlabs.ts`).
-  - **Backboard:** Longitudinal candidate context memory (`packages/integrations/src/secondary/backboard.ts`).
-  - **DigitalOcean:** Dedicated worker compute container specification (`packages/integrations/src/secondary/digitalocean.ts`).
-- **Feature Flags & Isolation:**
-  Managed via `getSecondaryFeatureFlags()` in `packages/integrations/src/secondary/index.ts`. All secondary adapters are strictly non-blocking.
-- **How to Test:**
+- **Implementations:**
+  - **ElevenLabs:** Text-to-speech audio narration synthesis of assessment summaries ([`packages/integrations/src/secondary/elevenlabs.ts`](file:///packages/integrations/src/secondary/elevenlabs.ts)).
+  - **Backboard:** Context memory store for candidate evaluation history ([`packages/integrations/src/secondary/backboard.ts`](file:///packages/integrations/src/secondary/backboard.ts)).
+  - **DigitalOcean:** Standalone worker container specification ([`packages/integrations/src/secondary/digitalocean.ts`](file:///packages/integrations/src/secondary/digitalocean.ts)).
+- **Verification Command:**
   ```bash
   npx tsx --test packages/integrations/src/secondary/secondary.test.ts
   ```
