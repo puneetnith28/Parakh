@@ -1,3 +1,5 @@
+import path from "node:path";
+import fs from "node:fs";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -61,6 +63,15 @@ app.use(repositoryRouter);
 app.use(reportsRouter);
 app.use(analysisRouter);
 app.use(integrationsRouter);
+
+// Serve static assets from apps/web/dist if present (e.g. Docker container)
+const distPath = path.resolve(process.cwd(), "apps/web/dist");
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get(/^(?!\/api|\/healthz).*/, (_req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
 
 // Centralized error handling middleware
 app.use(errorHandler);

@@ -66,6 +66,8 @@ reportsRouter.post("/api/reports", async (req, res): Promise<void> => {
       reportId: sanitizedReport.id,
       viewToken,
       accessUrl: `/api/reports/${sanitizedReport.id}?token=${viewToken}`,
+      storageMode: storage.getMode(),
+      persisted: storage.isPersistent(),
       message: "Verified report persisted successfully with cryptographic access token.",
     });
   } catch (err: any) {
@@ -87,6 +89,8 @@ reportsRouter.get(
     res.status(200).json({
       status: "success",
       report: req.reportRecord?.report,
+      storageMode: getStorage().getMode(),
+      persisted: getStorage().isPersistent(),
     });
   }
 );

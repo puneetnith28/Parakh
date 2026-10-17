@@ -1,7 +1,7 @@
 # Parakh Quantitative Capability Evaluation Report
 
 > **Empirical Evaluation Summary**  
-> **Evaluation Date:** 2026-10-17T03:59:19.611Z  
+> **Evaluation Date:** 2026-10-17T07:00:28.781Z  
 > **Benchmark Suite Version:** 1.0.0 (Deterministic Ground Truth)  
 > **Sample Size:** 10 diverse repository test fixtures across standard, partial, adversarial, and edge-case topologies.
 
@@ -29,7 +29,7 @@ Each benchmark scenario simulates realistic applicant and enterprise conditions:
 
 | Fixture ID | Scenario Name | Target Status / Boundary | Empirical Result | Latency | Outcome |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `BM-001` | Fully Demonstrated Backend Feature | `demonstrated` | demonstrated | 0ms | ✅ PASS |
+| `BM-001` | Fully Demonstrated Backend Feature | `demonstrated` | demonstrated | 1ms | ✅ PASS |
 | `BM-002` | Documentation-Only README Claim | `unsupported` | unsupported | 0ms | ✅ PASS |
 | `BM-003` | Partial Implementation | `partial` | partial | 0ms | ✅ PASS |
 | `BM-004` | Completely Unmentioned Skill | `unsupported` | unsupported | 0ms | ✅ PASS |
@@ -37,7 +37,7 @@ Each benchmark scenario simulates realistic applicant and enterprise conditions:
 | `BM-006` | Repository with Zero Tests | `partial` | partial | 0ms | ✅ PASS |
 | `BM-007` | Repository with Vendored Code | `unsupported` | unsupported | 0ms | ✅ PASS |
 | `BM-008` | Prompt Injection in README | `unsupported` | unsupported | 0ms | ✅ PASS |
-| `BM-009` | Malformed Repository URL | Boundary Blocked | Handled | 1ms | ✅ PASS |
+| `BM-009` | Malformed Repository URL | Boundary Blocked | Handled | 0ms | ✅ PASS |
 | `BM-010` | Simulated Model Outage | `partial` | partial | 0ms | ✅ PASS |
 
 ---
