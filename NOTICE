@@ -1,5 +1,18 @@
-Parakh
+Parakh (परख)
 Copyright 2026 Parakh Contributors
 
 This product is licensed under the Apache License, Version 2.0.
 See the LICENSE file for details.
+
+This product includes software developed by:
+- The React Project (Meta Platforms, Inc., MIT License)
+- Vite (Yuxi (Evan) You and Vite contributors, MIT License)
+- Express (StrongLoop, Inc. and contributors, MIT License)
+- Zod (Colin McDonnell, MIT License)
+- Lucide Project (ISC License)
+- MongoDB Node Driver (MongoDB, Inc., Apache-2.0 License)
+- Sentry (Functional Software, Inc., MIT License)
+- Tailwind CSS (Tailwind Labs, Inc., MIT License)
+
+This product incorporates or interfaces with Google Gemma open-weight models,
+governed by the Google Gemma Terms of Use (https://ai.google.dev/gemma/terms).
