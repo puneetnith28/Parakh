@@ -9,7 +9,7 @@ import {
 import {
   CandidateSelector,
   CitationValidator,
-  resolveAssessmentStatus,
+  CanonicalAssessmentEvaluator,
   UnifiedEvidenceRetriever,
   type RequirementCandidateUniverse,
 } from "@parakh/assessment";
@@ -20,8 +20,7 @@ import { GemmaClient, formatAssessmentPrompt, HARDENED_ASSESSMENT_SYSTEM_INSTRUC
  *
  * Coordinates requirement evaluation against repository candidate evidence.
  * Retries transient model failures (5xx, 429, timeouts) with bounded exponential backoff.
- * On persistent failure, gracefully degrades individual requirements to 'needs_review'
- * without crashing the overall analysis run.
+ * Delegates evaluation, citation validation, and status resolution to CanonicalAssessmentEvaluator.
  */
 
 export interface AssessmentServiceOptions {
@@ -31,6 +30,7 @@ export interface AssessmentServiceOptions {
   retriever?: UnifiedEvidenceRetriever;
   gemmaClient?: GemmaClient;
   citationValidator?: CitationValidator;
+  evaluator?: CanonicalAssessmentEvaluator;
 }
 
 export interface EvaluateRepositoryParams {
@@ -56,6 +56,7 @@ export class AssessmentService {
   private readonly retriever?: UnifiedEvidenceRetriever;
   private readonly gemmaClient: GemmaClient;
   private readonly citationValidator: CitationValidator;
+  private readonly evaluator: CanonicalAssessmentEvaluator;
 
   constructor(options: AssessmentServiceOptions = {}) {
     this.maxRetries = options.maxRetries ?? 1;
@@ -64,17 +65,20 @@ export class AssessmentService {
     this.retriever = options.retriever;
     this.gemmaClient = options.gemmaClient || new GemmaClient({ provider: "mock" });
     this.citationValidator = options.citationValidator || new CitationValidator();
+    this.evaluator = options.evaluator || new CanonicalAssessmentEvaluator({ maxCandidates: 5 });
   }
 
   /**
-   * Evaluate a single requirement with bounded retry and graceful degradation.
+   * Evaluate a single requirement with bounded retry and graceful degradation,
+   * delegating deterministic citation validation and conservative status resolution
+   * to the CanonicalAssessmentEvaluator.
    */
   async evaluateRequirement(
     requirement: Requirement,
     universe: RequirementCandidateUniverse,
     records: EvidenceRecord[]
   ): Promise<RequirementAssessment> {
-    // 1. Zero evidence short-circuit
+    // Zero evidence short-circuit
     if (universe.candidateCount === 0) {
       return {
         requirementId: requirement.id,
@@ -89,99 +93,86 @@ export class AssessmentService {
       };
     }
 
-    const prompt = formatAssessmentPrompt({
-      requirement,
-      candidates: universe.candidates,
-    });
+    const modelEvaluator = async (
+      req: Requirement,
+      uni: RequirementCandidateUniverse
+    ): Promise<{
+      status: EvidenceStatus;
+      rationale: string;
+      citedCandidateIds: string[];
+      limitations?: string;
+      nextActions?: string[];
+    }> => {
+      const prompt = formatAssessmentPrompt({
+        requirement: req,
+        candidates: uni.candidates,
+      });
 
-    // 2. Bounded model invocation with retry
-    let lastError: Error | null = null;
-    let rawResponse: string | null = null;
+      let lastError: Error | null = null;
+      let rawResponse: string | null = null;
 
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      try {
-        if (attempt > 0 && this.backoffMs > 0) {
-          await new Promise((resolve) => setTimeout(resolve, this.backoffMs * attempt));
+      for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+        try {
+          if (attempt > 0 && this.backoffMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, this.backoffMs * attempt));
+          }
+
+          const inference = await this.gemmaClient.executeConservativeReasoning(
+            prompt,
+            HARDENED_ASSESSMENT_SYSTEM_INSTRUCTION
+          );
+          rawResponse = inference.text;
+          break; // Success
+        } catch (err: unknown) {
+          lastError = err instanceof Error ? err : new Error(String(err));
         }
-
-        const inference = await this.gemmaClient.executeConservativeReasoning(
-          prompt,
-          HARDENED_ASSESSMENT_SYSTEM_INSTRUCTION
-        );
-        rawResponse = inference.text;
-        break; // Success
-      } catch (err: unknown) {
-        lastError = err instanceof Error ? err : new Error(String(err));
       }
-    }
 
-    // 3. Graceful degradation if model completely unavailable
-    if (!rawResponse) {
+      // Graceful degradation if model completely unavailable
+      if (!rawResponse) {
+        return {
+          status: "needs_review",
+          rationale: `Assessment service temporarily unavailable: ${lastError?.message || "Model failed to respond"}`,
+          citedCandidateIds: [],
+          limitations: "Model API communication failed",
+          nextActions: ["Retry assessment when model inference service is reachable"],
+          downgradeReason: "Degraded due to persistent model API failure",
+        };
+      }
+
+      // Parse model JSON response
+      try {
+        const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = ModelAssessmentOutputSchema.parse(JSON.parse(jsonMatch[0]));
+          return {
+            status: parsed.status,
+            rationale: parsed.rationale,
+            citedCandidateIds: parsed.citedCandidateIds,
+            limitations: parsed.limitations,
+            nextActions: parsed.nextActions,
+          };
+        }
+      } catch {
+        // Fall through
+      }
+
       return {
-        requirementId: requirement.id,
-        requirementText: requirement.text,
         status: "needs_review",
-        rationale: `Assessment service temporarily unavailable: ${lastError?.message || "Model failed to respond"}`,
+        rationale: "Model output could not be parsed into valid assessment JSON schema.",
         citedCandidateIds: [],
-        citations: [],
-        nextActions: ["Retry assessment when model inference service is reachable"],
-        confidence: "low",
-        manuallyOverridden: false,
-        downgradeReason: "Degraded due to persistent model API failure",
+        nextActions: ["Manual code inspection required"],
       };
-    }
+    };
 
-    // 4. Parse model JSON response
-    let proposedStatus: EvidenceStatus = "needs_review";
-    let proposedRationale = rawResponse;
-    let citedIds: string[] = [];
-    let limitations: string | undefined;
-    let nextActions: string[] = [];
-
-    try {
-      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = ModelAssessmentOutputSchema.parse(JSON.parse(jsonMatch[0]));
-        proposedStatus = parsed.status;
-        proposedRationale = parsed.rationale;
-        citedIds = parsed.citedCandidateIds;
-        limitations = parsed.limitations;
-        nextActions = parsed.nextActions;
-      }
-    } catch {
-      proposedStatus = "needs_review";
-      proposedRationale = "Model output could not be parsed into valid assessment JSON schema.";
-    }
-
-    // 5. Deterministic citation validation
-    const validationOutcome = this.citationValidator.validate(
-      citedIds,
-      universe.candidates,
+    return this.evaluator.evaluateRequirement(
+      {
+        requirement,
+        universe,
+        modelEvaluator,
+      },
       records
     );
-
-    // 6. Conservative status assignment and downgrade rules
-    const statusOutcome = resolveAssessmentStatus({
-      requirement,
-      proposedStatus,
-      proposedRationale,
-      validationOutcome,
-      candidateUniverseCount: universe.candidateCount,
-    });
-
-    return {
-      requirementId: requirement.id,
-      requirementText: requirement.text,
-      status: statusOutcome.finalStatus,
-      rationale: statusOutcome.finalRationale,
-      citedCandidateIds: citedIds,
-      citations: statusOutcome.verifiedCitations,
-      limitations,
-      nextActions,
-      confidence: statusOutcome.finalStatus === "demonstrated" ? "high" : "medium",
-      manuallyOverridden: false,
-      downgradeReason: statusOutcome.downgradeReason,
-    };
   }
 
   /**

@@ -30,6 +30,7 @@ export interface EvaluateRequirementInput {
     citedCandidateIds: string[];
     limitations?: string;
     nextActions?: string[];
+    downgradeReason?: string;
   }>;
 }
 
@@ -155,7 +156,7 @@ export class CanonicalAssessmentEvaluator {
       confidence: resolved.wasDowngraded ? "low" : "high",
       manuallyOverridden: false,
       originalStatus: resolved.wasDowngraded ? rawResult.status : undefined,
-      downgradeReason: resolved.downgradeReason,
+      downgradeReason: resolved.downgradeReason || rawResult.downgradeReason,
     };
   }
 
