@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X, User } from 'lucide-react';
 import { Sidebar, DashboardNavTab } from './Sidebar';
+export type { DashboardNavTab };
 
 export interface DashboardShellProps {
   title?: string;

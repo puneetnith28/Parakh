@@ -1,35 +1,45 @@
-import { useState, useEffect, useRef } from "react";
-import { Requirement, AssessmentReport, Citation, RequirementAssessment } from "@parakh/contracts";
-import { Header } from "./components/Header.tsx";
-import { InputSection } from "./components/InputSection.tsx";
-import { RequirementsEditor } from "./components/RequirementsEditor.tsx";
-import { AnalysisProgress } from "./components/AnalysisProgress.tsx";
-import { EvidenceMap } from "./components/EvidenceMap/EvidenceMap.tsx";
-import { CoverageSummary } from "./components/EvidenceMap/CoverageSummary.tsx";
-import { FilterBar, type FilterStatus } from "./components/EvidenceMap/FilterBar.tsx";
-import { CitationDrawer } from "./components/EvidenceMap/CitationDrawer.tsx";
-import { ReportSummary } from "./components/ReportSummary.tsx";
-import { GapChecklist } from "./components/GapChecklist.tsx";
-import { ProposalKit } from "./components/ProposalKit.tsx";
-import { ReportExport } from "./components/ReportExport.tsx";
-import { PredictiveArc } from "./components/PredictiveArc.tsx";
-import { TactileButton } from "./components/TactileButton.tsx";
-import { getApiUrl } from "./config/api.ts";
-import { extractRequirementsFromText, runAssessmentAnalysis, fetchReportById } from "./services/api.ts";
+import { useState, useEffect, useRef } from 'react';
+import { Requirement, AssessmentReport, Citation, RequirementAssessment } from '@parakh/contracts';
+import { Navbar } from './components/layout/Navbar';
+import { LandingPage } from './components/landing/LandingPage';
+import { DashboardShell, DashboardNavTab } from './components/dashboard/DashboardShell';
+import { DashboardEmptyState } from './components/dashboard/DashboardEmptyState';
+import { DashboardAssessmentList, AssessmentSummaryItem } from './components/dashboard/DashboardAssessmentList';
+import { EvaluationModeModal, EvaluationMode } from './components/onboarding/EvaluationModeModal';
+import { InputSection } from './components/InputSection';
+import { RequirementsEditor } from './components/RequirementsEditor';
+import { AnalysisProgress } from './components/AnalysisProgress';
+import { EvidenceMap } from './components/EvidenceMap/EvidenceMap';
+import { CitationDrawer } from './components/EvidenceMap/CitationDrawer';
+import { ReportSummary } from './components/ReportSummary';
+import { GapChecklist } from './components/GapChecklist';
+import { ProposalKit } from './components/ProposalKit';
+import { ReportExport } from './components/ReportExport';
+import { getApiUrl } from './config/api';
+import { extractRequirementsFromText, runAssessmentAnalysis, fetchReportById } from './services/api';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from './components/ui/Button';
 
 export default function App() {
   const abortControllerRef = useRef<AbortController | null>(null);
-  const [opportunityText, setOpportunityText] = useState("");
-  const [repoUrl, setRepoUrl] = useState("");
-  const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
+
+  // View state
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'assessment'>('landing');
+  const [dashboardTab, setDashboardTab] = useState<DashboardNavTab>('home');
+  const [isModeModalOpen, setIsModeModalOpen] = useState(false);
+
+  // Form input state
+  const [opportunityText, setOpportunityText] = useState('');
+  const [repoUrl, setRepoUrl] = useState('');
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [isLoading, setIsLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Requirements stage state
-  const [stage, setStage] = useState<"input" | "review_requirements" | "analyzing" | "results">("input");
+  // Assessment pipeline stage state
+  const [stage, setStage] = useState<'input' | 'review_requirements' | 'analyzing' | 'results'>('input');
   const [requirements, setRequirements] = useState<Requirement[]>([]);
-  const [analysisStatus, setAnalysisStatus] = useState<string>("");
+  const [analysisStatus, setAnalysisStatus] = useState<string>('');
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [report, setReport] = useState<AssessmentReport | null>(null);
   const [viewToken, setViewToken] = useState<string | null>(null);
@@ -39,32 +49,32 @@ export default function App() {
     citation: Citation;
     assessment: RequirementAssessment;
   } | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [activeResultsTab, setActiveResultsTab] = useState<"map" | "gaps" | "proposal" | "export">("map");
+  const [activeResultsTab, setActiveResultsTab] = useState<'map' | 'gaps' | 'proposal' | 'export'>('map');
+
+  // Stored recent assessments list
+  const [recentAssessments, setRecentAssessments] = useState<AssessmentSummaryItem[]>([]);
 
   useEffect(() => {
     let isMounted = true;
     async function checkApi() {
       try {
-        const res = await fetch(getApiUrl("/healthz"));
+        const res = await fetch(getApiUrl('/healthz'));
         if (res.ok && isMounted) {
-          setApiStatus("online");
+          setApiStatus('online');
         } else if (isMounted) {
-          setApiStatus("offline");
+          setApiStatus('offline');
         }
       } catch {
-        if (isMounted) setApiStatus("offline");
+        if (isMounted) setApiStatus('offline');
       }
     }
     checkApi();
-    const interval = setInterval(checkApi, 10000);
+    const interval = setInterval(checkApi, 15000);
 
     // Deep linking: load persisted report if reportId and token are present in URL
     const params = new URLSearchParams(window.location.search);
-    const reportId = params.get("reportId");
-    const token = params.get("token");
+    const reportId = params.get('reportId');
+    const token = params.get('token');
     if (reportId && token) {
       setIsLoading(true);
       fetchReportById(reportId, token)
@@ -72,13 +82,15 @@ export default function App() {
           if (isMounted) {
             setReport(loadedReport);
             setViewToken(loadedToken);
-            setStage("results");
-            setSuccessMessage("Persisted assessment report loaded successfully via secure token.");
+            setStage('results');
+            setCurrentView('dashboard');
+            setDashboardTab('assessments');
+            setSuccessMessage('Persisted assessment report loaded successfully via secure token.');
           }
         })
         .catch((err: any) => {
           if (isMounted) {
-            setValidationError(err.message || "Failed to load shared report.");
+            setValidationError(err.message || 'Failed to load shared report.');
           }
         })
         .finally(() => {
@@ -95,35 +107,71 @@ export default function App() {
     };
   }, []);
 
+  // Update recent assessments list when a report finishes
+  useEffect(() => {
+    if (report) {
+      const summary: AssessmentSummaryItem = {
+        id: report.id,
+        opportunityTitle: report.opportunityTitle || 'Technical Capability Assessment',
+        repositoryUrl: report.repositoryUrl,
+        commitSha: report.resolvedCommitSha,
+        createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        demonstratedCount: report.coverageSummary.demonstrated,
+        partiallyDemonstratedCount: report.coverageSummary.partiallyDemonstrated,
+        notDemonstratedCount: report.coverageSummary.notDemonstrated,
+        needsReviewCount: report.coverageSummary.needsReview,
+        totalRequirements: report.coverageSummary.total,
+        provenanceVerified: Boolean(report.resolvedCommitSha),
+      };
+      setRecentAssessments((prev) => {
+        const exists = prev.some((a) => a.id === summary.id);
+        if (exists) return prev.map((a) => (a.id === summary.id ? summary : a));
+        return [summary, ...prev];
+      });
+    }
+  }, [report]);
+
+  const handleStartNewAssessment = () => {
+    setValidationError(null);
+    setSuccessMessage(null);
+    setIsModeModalOpen(true);
+  };
+
+  const handleSelectMode = (_mode: EvaluationMode) => {
+    setIsModeModalOpen(false);
+    setCurrentView('assessment');
+    setStage('input');
+  };
+
   const handleAnalyze = async () => {
     setValidationError(null);
     setSuccessMessage(null);
 
     if (!opportunityText.trim()) {
-      setValidationError("Please paste a client opportunity brief or RFP description.");
+      setValidationError('Please paste a client opportunity brief or RFP description.');
       return;
     }
 
     if (!repoUrl.trim()) {
-      setValidationError("Please provide a valid GitHub repository URL.");
+      setValidationError('Please provide a valid GitHub repository URL.');
       return;
     }
 
     const githubRegex = /^https?:\/\/(www\.)?github\.com\/[\w-]+\/[\w.-]+\/?$/i;
     if (!githubRegex.test(repoUrl.trim())) {
-      setValidationError("Invalid repository URL. Must be in the format: https://github.com/owner/repo");
+      setValidationError('Invalid repository URL. Must be in the format: https://github.com/owner/repo');
       return;
     }
 
     setIsLoading(true);
     try {
-      const result = await extractRequirementsFromText(opportunityText, "Opportunity Brief");
+      const result = await extractRequirementsFromText(opportunityText, 'Opportunity Brief');
       setRequirements(result.requirements);
-      setStage("review_requirements");
-      const mockNotice = result.isMock ? " (Mock Engine)" : "";
+      setStage('review_requirements');
+      const mockNotice = result.isMock ? ' (Deterministic Engine)' : '';
       setSuccessMessage(`Extracted ${result.requirements.length} structured requirements${mockNotice}! Review and refine them below.`);
     } catch (err: any) {
-      setValidationError(err.message || "Failed to process opportunity brief.");
+      setValidationError(err.message || 'Failed to process opportunity brief.');
     } finally {
       setIsLoading(false);
     }
@@ -131,19 +179,19 @@ export default function App() {
 
   const handleConfirmRequirements = async () => {
     if (requirements.length === 0) {
-      setValidationError("At least one requirement must be approved for analysis.");
+      setValidationError('At least one requirement must be approved for analysis.');
       return;
     }
-    setStage("analyzing");
+    setStage('analyzing');
     setAnalysisError(null);
-    setAnalysisStatus("Connecting to repository and resolving commit snapshot...");
+    setAnalysisStatus('Connecting to repository and resolving commit snapshot...');
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
       const { report: resultReport, viewToken: token } = await runAssessmentAnalysis({
-        title: "Technical Capability Assessment",
+        title: 'Technical Capability Assessment',
         repositoryUrl: repoUrl.trim(),
         requirements,
         signal: controller.signal,
@@ -152,16 +200,18 @@ export default function App() {
       if (token) {
         setViewToken(token);
         const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set("reportId", resultReport.id);
-        newUrl.searchParams.set("token", token);
-        window.history.replaceState({}, "", newUrl.toString());
+        newUrl.searchParams.set('reportId', resultReport.id);
+        newUrl.searchParams.set('token', token);
+        window.history.replaceState({}, '', newUrl.toString());
       }
-      setStage("results");
+      setStage('results');
+      setCurrentView('dashboard');
+      setDashboardTab('assessments');
     } catch (err: any) {
-      if (err.name === "AbortError" || controller.signal.aborted) {
+      if (err.name === 'AbortError' || controller.signal.aborted) {
         return;
       }
-      setAnalysisError(err.message || "Failed to complete capability analysis.");
+      setAnalysisError(err.message || 'Failed to complete capability analysis.');
     } finally {
       abortControllerRef.current = null;
     }
@@ -169,281 +219,341 @@ export default function App() {
 
   const handleReportDeleted = () => {
     const newUrl = new URL(window.location.href);
-    newUrl.searchParams.delete("reportId");
-    newUrl.searchParams.delete("token");
-    window.history.replaceState({}, "", newUrl.toString());
+    newUrl.searchParams.delete('reportId');
+    newUrl.searchParams.delete('token');
+    window.history.replaceState({}, '', newUrl.toString());
     setReport(null);
     setViewToken(null);
-    setStage("input");
-    setSuccessMessage("Report has been permanently deleted.");
+    setStage('input');
+    setSuccessMessage('Report has been permanently deleted.');
   };
 
   return (
-    <div className="relative min-h-screen bg-[#030303] text-zinc-100 flex flex-col w-full selection:bg-red-500/30 selection:text-red-200">
-      {/* Predictive Arc Background Layer */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-95">
-        <PredictiveArc
-          background="#030303"
-          baseColor="#FF0000"
-          accentColor="#FF9898"
-          highlight="#FF0000"
-        />
-      </div>
+    <div className="min-h-screen bg-white text-[#111111] flex flex-col w-full selection:bg-[#9FE870] selection:text-[#163300]">
+      {/* 1. PUBLIC LANDING VIEW (Reference 1) */}
+      {currentView === 'landing' && (
+        <>
+          <Navbar
+            apiStatus={apiStatus}
+            onStartAssessment={handleStartNewAssessment}
+            onNavigateHome={() => setCurrentView('landing')}
+            onNavigateDashboard={() => {
+              setCurrentView('dashboard');
+              setDashboardTab('home');
+            }}
+            currentView={currentView}
+          />
+          <LandingPage
+            onStartAssessment={handleStartNewAssessment}
+            onExploreDemo={() => {
+              setCurrentView('assessment');
+              setStage('input');
+            }}
+          />
+        </>
+      )}
 
-      <div className="relative z-10 flex flex-col flex-1 w-full">
-        <Header apiStatus={apiStatus} />
+      {/* 2. DASHBOARD VIEW (Reference 2) */}
+      {currentView === 'dashboard' && (
+        <DashboardShell
+          title={
+            dashboardTab === 'home'
+              ? 'Home'
+              : dashboardTab === 'assessments'
+              ? 'Assessments'
+              : dashboardTab === 'evidence'
+              ? 'Evidence Map'
+              : 'Action Plan'
+          }
+          activeTab={dashboardTab}
+          onSelectTab={(tab) => {
+            if (tab === 'home') {
+              setCurrentView('landing');
+            } else {
+              setDashboardTab(tab);
+            }
+          }}
+          onNewAssessment={handleStartNewAssessment}
+          headerRight={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentView('landing')}
+              className="text-xs font-semibold"
+            >
+              Public Home
+            </Button>
+          }
+        >
+          {/* Dashboard Home / Assessments tab */}
+          {(dashboardTab === 'home' || dashboardTab === 'assessments') && (
+            <>
+              {report ? (
+                <div className="space-y-8 max-w-5xl mx-auto">
+                  {/* Results Sub-Navigation */}
+                  <div className="flex flex-wrap items-center gap-2 border-b border-[#E2E5DE] pb-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveResultsTab('map')}
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeResultsTab === 'map'
+                          ? 'bg-[#163300] text-white shadow-sm'
+                          : 'bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111]'
+                      }`}
+                    >
+                      Report & Evidence Map
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveResultsTab('gaps')}
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeResultsTab === 'gaps'
+                          ? 'bg-[#163300] text-white shadow-sm'
+                          : 'bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111]'
+                      }`}
+                    >
+                      Gap Checklist
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveResultsTab('proposal')}
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeResultsTab === 'proposal'
+                          ? 'bg-[#163300] text-white shadow-sm'
+                          : 'bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111]'
+                      }`}
+                    >
+                      Proposal Kit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveResultsTab('export')}
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeResultsTab === 'export'
+                          ? 'bg-[#163300] text-white shadow-sm'
+                          : 'bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111]'
+                      }`}
+                    >
+                      Export Center
+                    </button>
+                  </div>
 
-        <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full space-y-8">
-          <div className="text-center space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/40 border border-red-500/30 text-rose-300 text-xs font-mono uppercase tracking-wider backdrop-blur-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              OriginKit Predictive Arc Engine
-            </div>
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-rose-200 bg-clip-text text-transparent">
-              Developer Capability Assessment
-            </h1>
-            <p className="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto">
-              Extract requirements from your client brief and verify them against inspectable code, tests, and documentation from your GitHub repository.
-            </p>
-          </div>
+                  {/* Active Sub-tab View */}
+                  {activeResultsTab === 'map' && (
+                    <div className="space-y-8">
+                      <ReportSummary report={report} />
+                      <EvidenceMap
+                        assessments={report.assessments}
+                        onSelectCitation={(citation, assessment) => {
+                          setSelectedCitation({ citation, assessment });
+                        }}
+                      />
+                    </div>
+                  )}
 
-          {stage === "input" && (
-            <InputSection
-              opportunityText={opportunityText}
-              setOpportunityText={setOpportunityText}
-              repoUrl={repoUrl}
-              setRepoUrl={setRepoUrl}
-              onAnalyze={handleAnalyze}
-              isLoading={isLoading}
-              validationError={validationError}
-              successMessage={successMessage}
-            />
-          )}
+                  {activeResultsTab === 'gaps' && (
+                    <div className="bg-[#F2F4F0] p-6 sm:p-10 rounded-[28px] border border-[#E2E5DE]">
+                      <h3 className="text-xl font-bold text-[#111111] mb-2">Technical Gap Checklist</h3>
+                      <p className="text-xs text-[#5F625E] mb-6">
+                        Concrete remediation steps for requirements not fully demonstrated.
+                      </p>
+                      <GapChecklist assessments={report.assessments} />
+                    </div>
+                  )}
 
-          {stage === "review_requirements" && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStage("input")}
-                  className="text-xs text-zinc-400 hover:text-rose-400 transition"
-                >
-                  &larr; Back to Brief Input
-                </button>
-                <span className="text-xs font-mono text-rose-400">Target Repo: {repoUrl}</span>
-              </div>
+                  {activeResultsTab === 'proposal' && (
+                    <div className="bg-[#F2F4F0] p-6 sm:p-10 rounded-[28px] border border-[#E2E5DE]">
+                      <h3 className="text-xl font-bold text-[#111111] mb-2">Proposal & Client Response Kit</h3>
+                      <p className="text-xs text-[#5F625E] mb-6">
+                        Auto-generated draft response emphasizing proven architectural strengths.
+                      </p>
+                      <ProposalKit
+                        assessments={report.assessments}
+                        repositoryUrl={report.repositoryUrl}
+                        opportunityTitle={report.opportunityTitle}
+                      />
+                    </div>
+                  )}
 
-              <RequirementsEditor
-                requirements={requirements}
-                onChange={setRequirements}
-                onConfirm={handleConfirmRequirements}
-              />
-            </div>
-          )}
-
-          {stage === "analyzing" && (
-            <AnalysisProgress
-              repoUrl={repoUrl}
-              requirementsCount={requirements.length}
-              statusMessage={analysisStatus}
-              error={analysisError}
-              onRetry={handleConfirmRequirements}
-              onCancel={() => {
-                if (abortControllerRef.current) {
-                  abortControllerRef.current.abort();
-                  abortControllerRef.current = null;
-                }
-                setAnalysisError(null);
-                setStage("review_requirements");
-              }}
-              onChangeTarget={() => {
-                setAnalysisError(null);
-                setStage("input");
-              }}
-            />
-          )}
-
-          {stage === "results" && report && (() => {
-            const filteredAssessments = (report.assessments || []).filter((item) => {
-              if (searchQuery.trim()) {
-                const q = searchQuery.toLowerCase();
-                const match =
-                  item.requirementText.toLowerCase().includes(q) ||
-                  item.rationale.toLowerCase().includes(q) ||
-                  item.requirementId.toLowerCase().includes(q);
-                if (!match) return false;
-              }
-              if (statusFilter === "gaps_only") {
-                if (item.status === "demonstrated") return false;
-              } else if (statusFilter !== "all") {
-                if (item.status !== statusFilter) return false;
-              }
-              if (selectedCategory !== "all") {
-                const req = requirements.find((r) => r.id === item.requirementId);
-                if (req && req.category && req.category.toLowerCase() !== selectedCategory.toLowerCase()) {
-                  return false;
-                }
-              }
-              return true;
-            });
-
-            return (
-              <div className="space-y-8">
-                {/* Executive Report Summary */}
-                <ReportSummary
-                  report={report}
-                  onExportPrint={() => window.print()}
-                  onExportJson={() => {
-                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
-                    const downloadAnchor = document.createElement("a");
-                    downloadAnchor.setAttribute("href", dataStr);
-                    downloadAnchor.setAttribute("download", `parakh-assessment-${report.id}.json`);
-                    document.body.appendChild(downloadAnchor);
-                    downloadAnchor.click();
-                    downloadAnchor.remove();
+                  {activeResultsTab === 'export' && (
+                    <ReportExport
+                      report={report}
+                      viewToken={viewToken}
+                      onDelete={handleReportDeleted}
+                    />
+                  )}
+                </div>
+              ) : recentAssessments.length > 0 ? (
+                <DashboardAssessmentList
+                  assessments={recentAssessments}
+                  onSelectAssessment={() => {}}
+                  onNewAssessment={handleStartNewAssessment}
+                />
+              ) : (
+                /* Reference 2 Centered Empty State with 3D Origami Airplane */
+                <DashboardEmptyState
+                  onStartAssessment={handleStartNewAssessment}
+                  onExploreDemo={() => {
+                    setCurrentView('assessment');
+                    setStage('input');
                   }}
                 />
+              )}
+            </>
+          )}
 
-                {/* Navigation Tabs */}
-                <div className="flex items-center gap-2 border-b border-red-950/60 pb-2 overflow-x-auto">
-                  <button
-                    type="button"
-                    onClick={() => setActiveResultsTab("map")}
-                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                      activeResultsTab === "map"
-                        ? "bg-red-950/60 border border-red-500/50 text-rose-200 shadow-[0_0_15px_rgba(255,0,0,0.15)]"
-                        : "text-zinc-400 hover:text-zinc-200 border border-transparent"
-                    }`}
+          {/* Evidence Map Dedicated View */}
+          {dashboardTab === 'evidence' && (
+            <div className="max-w-5xl mx-auto space-y-6">
+              {report ? (
+                <EvidenceMap
+                  assessments={report.assessments}
+                  onSelectCitation={(citation, assessment) => {
+                    setSelectedCitation({ citation, assessment });
+                  }}
+                />
+              ) : (
+                <div className="text-center py-20 bg-[#F2F4F0] rounded-[28px] border border-[#E2E5DE]">
+                  <p className="text-[#5F625E] text-sm mb-4">
+                    No active evidence map. Run an assessment to generate code citations.
+                  </p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleStartNewAssessment}
+                    className="font-bold text-xs"
                   >
-                    Evidence Map ({report.assessments.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveResultsTab("gaps")}
-                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                      activeResultsTab === "gaps"
-                        ? "bg-red-950/60 border border-red-500/50 text-rose-200 shadow-[0_0_15px_rgba(255,0,0,0.15)]"
-                        : "text-zinc-400 hover:text-zinc-200 border border-transparent"
-                    }`}
-                  >
-                    Gap Plan & Actions ({report.coverageSummary.partiallyDemonstrated + report.coverageSummary.notDemonstrated + report.coverageSummary.needsReview})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveResultsTab("proposal")}
-                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                      activeResultsTab === "proposal"
-                        ? "bg-red-950/60 border border-red-500/50 text-rose-200 shadow-[0_0_15px_rgba(255,0,0,0.15)]"
-                        : "text-zinc-400 hover:text-zinc-200 border border-transparent"
-                    }`}
-                  >
-                    Proposal Response Kit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveResultsTab("export")}
-                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                      activeResultsTab === "export"
-                        ? "bg-red-950/60 border border-red-500/50 text-rose-200 shadow-[0_0_15px_rgba(255,0,0,0.15)]"
-                        : "text-zinc-400 hover:text-zinc-200 border border-transparent"
-                    }`}
-                  >
-                    Export & Share
-                  </button>
+                    Start an Assessment
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
-                  <div className="ml-auto flex items-center gap-2">
-                    <TactileButton
-                      onClick={() => setStage("review_requirements")}
-                      variant="secondary"
-                      size="sm"
-                      rounded={14}
-                    >
-                      Refine Requirements
-                    </TactileButton>
-                    <TactileButton
-                      onClick={() => {
-                        setStage("input");
-                        setReport(null);
-                      }}
-                      variant="secondary"
-                      size="sm"
-                      rounded={14}
-                    >
-                      New Assessment
-                    </TactileButton>
+          {/* Action Plan Dedicated View */}
+          {dashboardTab === 'action-plan' && (
+            <div className="max-w-5xl mx-auto space-y-6">
+              {report ? (
+                <div className="space-y-6">
+                  <div className="bg-[#F2F4F0] p-6 sm:p-10 rounded-[28px] border border-[#E2E5DE]">
+                    <h3 className="text-xl font-bold text-[#111111] mb-2">Remediation Action Plan</h3>
+                    <GapChecklist assessments={report.assessments} />
+                  </div>
+                  <div className="bg-[#F2F4F0] p-6 sm:p-10 rounded-[28px] border border-[#E2E5DE]">
+                    <h3 className="text-xl font-bold text-[#111111] mb-2">Client Response Kit</h3>
+                    <ProposalKit
+                      assessments={report.assessments}
+                      repositoryUrl={report.repositoryUrl}
+                      opportunityTitle={report.opportunityTitle}
+                    />
                   </div>
                 </div>
+              ) : (
+                <div className="text-center py-20 bg-[#F2F4F0] rounded-[28px] border border-[#E2E5DE]">
+                  <p className="text-[#5F625E] text-sm mb-4">
+                    No action plan available. Run an assessment to generate gap closures.
+                  </p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleStartNewAssessment}
+                    className="font-bold text-xs"
+                  >
+                    Start an Assessment
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DashboardShell>
+      )}
 
-                {/* Tab 1: Interactive Evidence Map */}
-                {activeResultsTab === "map" && (
-                  <div className="space-y-6">
-                    <CoverageSummary summary={report.coverageSummary} />
-                    <FilterBar
-                      searchQuery={searchQuery}
-                      onSearchChange={setSearchQuery}
-                      statusFilter={statusFilter}
-                      onStatusFilterChange={setStatusFilter}
-                      selectedCategory={selectedCategory}
-                      onCategoryChange={setSelectedCategory}
-                      counts={{
-                        total: report.coverageSummary.total,
-                        demonstrated: report.coverageSummary.demonstrated,
-                        partially_demonstrated: report.coverageSummary.partiallyDemonstrated,
-                        not_demonstrated: report.coverageSummary.notDemonstrated,
-                        needs_review: report.coverageSummary.needsReview,
-                      }}
-                    />
+      {/* 3. ASSESSMENT SETUP WORKFLOW */}
+      {currentView === 'assessment' && (
+        <div className="min-h-screen bg-white flex flex-col">
+          <header className="border-b border-[#E2E5DE] py-4 px-6 flex items-center justify-between sticky top-0 bg-white z-40">
+            <button
+              type="button"
+              onClick={() => setCurrentView('dashboard')}
+              className="inline-flex items-center gap-2 text-xs font-bold text-[#163300] hover:underline"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
+            </button>
+            <div className="font-display text-xl text-[#111111]">
+              PARAKH<span className="text-[#9FE870] font-black">.</span>
+            </div>
+            <div className="text-xs font-mono text-[#5F625E]">
+              API: <span className="text-[#163300] font-bold uppercase">{apiStatus}</span>
+            </div>
+          </header>
 
-                    <EvidenceMap
-                      assessments={filteredAssessments}
-                      onSelectCitation={(citation, assessment) => {
-                        setSelectedCitation({ citation, assessment });
-                      }}
-                    />
-                  </div>
-                )}
+          <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-10 w-full space-y-8">
+            {stage === 'input' && (
+              <InputSection
+                opportunityText={opportunityText}
+                setOpportunityText={setOpportunityText}
+                repoUrl={repoUrl}
+                setRepoUrl={setRepoUrl}
+                onAnalyze={handleAnalyze}
+                isLoading={isLoading}
+                validationError={validationError}
+                successMessage={successMessage}
+              />
+            )}
 
-                {/* Tab 2: Gap Plan & Action Checklist */}
-                {activeResultsTab === "gaps" && (
-                  <GapChecklist assessments={report.assessments} />
-                )}
+            {stage === 'review_requirements' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setStage('input')}
+                    className="text-xs font-bold text-[#163300] hover:underline transition flex items-center gap-1"
+                  >
+                    &larr; Edit Brief & Repository Target
+                  </button>
+                  <span className="text-xs font-mono text-[#5F625E]">
+                    Target: <strong className="text-[#111111]">{repoUrl}</strong>
+                  </span>
+                </div>
 
-                {/* Tab 3: Proposal Response Kit */}
-                {activeResultsTab === "proposal" && (
-                  <ProposalKit
-                    assessments={report.assessments}
-                    repositoryUrl={report.repositoryUrl}
-                    opportunityTitle={report.opportunityTitle}
-                  />
-                )}
-
-                {/* Tab 4: Export Center */}
-                {activeResultsTab === "export" && (
-                  <ReportExport
-                    report={report}
-                    viewToken={viewToken}
-                    onDelete={handleReportDeleted}
-                  />
-                )}
-
-                {/* Citation Inspection Drawer */}
-                {selectedCitation && (
-                  <CitationDrawer
-                    isOpen={!!selectedCitation}
-                    onClose={() => setSelectedCitation(null)}
-                    citation={selectedCitation.citation}
-                    requirementTitle={selectedCitation.assessment.requirementText}
-                  />
-                )}
+                <RequirementsEditor
+                  requirements={requirements}
+                  onChange={setRequirements}
+                  onConfirm={handleConfirmRequirements}
+                />
               </div>
-            );
-          })()}
-        </main>
+            )}
 
-        <footer className="border-t border-red-950/40 py-6 text-center text-xs text-zinc-500 backdrop-blur-md bg-black/40">
-          Parakh &copy; 2026 Parakh Contributors &bull; Predictive Arc Visual Architecture &bull; Apache-2.0
-        </footer>
-      </div>
+            {stage === 'analyzing' && (
+              <AnalysisProgress
+                repoUrl={repoUrl}
+                requirementsCount={requirements.length}
+                statusMessage={analysisStatus}
+                error={analysisError}
+                onRetry={handleConfirmRequirements}
+                onCancel={() => setStage('review_requirements')}
+                onChangeTarget={() => setStage('input')}
+              />
+            )}
+          </main>
+        </div>
+      )}
+
+      {/* Reference 3: Evaluation Mode Selection Modal */}
+      <EvaluationModeModal
+        isOpen={isModeModalOpen}
+        onClose={() => setIsModeModalOpen(false)}
+        onSelectMode={handleSelectMode}
+      />
+
+      {/* Citation Inspector Drawer */}
+      <CitationDrawer
+        isOpen={Boolean(selectedCitation)}
+        citation={selectedCitation ? selectedCitation.citation : null}
+        requirementTitle={selectedCitation?.assessment.requirementText}
+        onClose={() => setSelectedCitation(null)}
+      />
     </div>
   );
 }
