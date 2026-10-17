@@ -8,6 +8,10 @@ import { EvidenceMap } from "./components/EvidenceMap/EvidenceMap.tsx";
 import { CoverageSummary } from "./components/EvidenceMap/CoverageSummary.tsx";
 import { FilterBar, type FilterStatus } from "./components/EvidenceMap/FilterBar.tsx";
 import { CitationDrawer } from "./components/EvidenceMap/CitationDrawer.tsx";
+import { ReportSummary } from "./components/ReportSummary.tsx";
+import { GapChecklist } from "./components/GapChecklist.tsx";
+import { ProposalKit } from "./components/ProposalKit.tsx";
+import { ReportExport } from "./components/ReportExport.tsx";
 import { getApiUrl } from "./config/api.ts";
 import { extractRequirementsFromText, runAssessmentAnalysis } from "./services/api.ts";
 
@@ -34,6 +38,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [activeResultsTab, setActiveResultsTab] = useState<"map" | "gaps" | "proposal" | "export">("map");
 
   useEffect(() => {
     let isMounted = true;
@@ -199,42 +204,75 @@ export default function App() {
 
           return (
             <div className="space-y-8">
-              {/* Executive Header Strip */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                      Assessment Verified
-                    </span>
-                    <span className="text-xs text-slate-500 font-mono">ID: {report.id}</span>
-                  </div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">
-                    {report.opportunityTitle || "Capability Assessment Report"}
-                  </h2>
-                  <div className="flex items-center gap-3 text-xs text-slate-400 font-mono flex-wrap">
-                    <span>
-                      Repo:{" "}
-                      <a
-                        href={report.repositoryUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-emerald-400 hover:underline"
-                      >
-                        {report.repositoryUrl.replace(/^https?:\/\/github\.com\//, "")}
-                      </a>
-                    </span>
-                    <span>SHA: <span className="text-slate-300">{report.resolvedCommitSha?.slice(0, 7)}</span></span>
-                    <span>Files Scanned: <span className="text-slate-300">{report.scannedFilesCount}</span></span>
-                  </div>
-                </div>
+              {/* Executive Report Summary */}
+              <ReportSummary
+                report={report}
+                onExportPrint={() => window.print()}
+                onExportJson={() => {
+                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
+                  const downloadAnchor = document.createElement("a");
+                  downloadAnchor.setAttribute("href", dataStr);
+                  downloadAnchor.setAttribute("download", `parakh-assessment-${report.id}.json`);
+                  document.body.appendChild(downloadAnchor);
+                  downloadAnchor.click();
+                  downloadAnchor.remove();
+                }}
+              />
 
-                <div className="flex items-center gap-2">
+              {/* Navigation Tabs */}
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveResultsTab("map")}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
+                    activeResultsTab === "map"
+                      ? "bg-slate-800 text-white shadow"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Evidence Map ({report.assessments.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveResultsTab("gaps")}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
+                    activeResultsTab === "gaps"
+                      ? "bg-slate-800 text-white shadow"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Gap Plan & Actions ({report.coverageSummary.partiallyDemonstrated + report.coverageSummary.notDemonstrated + report.coverageSummary.needsReview})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveResultsTab("proposal")}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
+                    activeResultsTab === "proposal"
+                      ? "bg-slate-800 text-white shadow"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Proposal Response Kit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveResultsTab("export")}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
+                    activeResultsTab === "export"
+                      ? "bg-slate-800 text-white shadow"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Export & Share
+                </button>
+
+                <div className="ml-auto flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setStage("review_requirements")}
-                    className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                    className="text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition whitespace-nowrap"
                   >
-                    Edit Requirements
+                    Refine Requirements
                   </button>
                   <button
                     type="button"
@@ -242,40 +280,60 @@ export default function App() {
                       setStage("input");
                       setReport(null);
                     }}
-                    className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition"
+                    className="text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition whitespace-nowrap"
                   >
-                    New Analysis
+                    New Assessment
                   </button>
                 </div>
               </div>
 
-              {/* Coverage Summary Counters */}
-              <CoverageSummary summary={report.coverageSummary} />
+              {/* Tab 1: Interactive Evidence Map */}
+              {activeResultsTab === "map" && (
+                <div className="space-y-6">
+                  <CoverageSummary summary={report.coverageSummary} />
+                  <FilterBar
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    statusFilter={statusFilter}
+                    onStatusFilterChange={setStatusFilter}
+                    selectedCategory={selectedCategory}
+                    onCategoryChange={setSelectedCategory}
+                    counts={{
+                      total: report.coverageSummary.total,
+                      demonstrated: report.coverageSummary.demonstrated,
+                      partially_demonstrated: report.coverageSummary.partiallyDemonstrated,
+                      not_demonstrated: report.coverageSummary.notDemonstrated,
+                      needs_review: report.coverageSummary.needsReview,
+                    }}
+                  />
 
-              {/* Interactive Filter Bar */}
-              <FilterBar
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                statusFilter={statusFilter}
-                onStatusFilterChange={setStatusFilter}
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-                counts={{
-                  total: report.coverageSummary.total,
-                  demonstrated: report.coverageSummary.demonstrated,
-                  partially_demonstrated: report.coverageSummary.partiallyDemonstrated,
-                  not_demonstrated: report.coverageSummary.notDemonstrated,
-                  needs_review: report.coverageSummary.needsReview,
-                }}
-              />
+                  <EvidenceMap
+                    assessments={filteredAssessments}
+                    onSelectCitation={(citation, assessment) => {
+                      setSelectedCitation({ citation, assessment });
+                    }}
+                  />
+                </div>
+              )}
 
-              {/* Evidence Map */}
-              <EvidenceMap
-                assessments={filteredAssessments}
-                onSelectCitation={(citation, assessment) => {
-                  setSelectedCitation({ citation, assessment });
-                }}
-              />
+              {/* Tab 2: Gap Plan & Action Checklist */}
+              {activeResultsTab === "gaps" && (
+                <GapChecklist assessments={report.assessments} />
+              )}
+
+              {/* Tab 3: Proposal Response Kit */}
+              {activeResultsTab === "proposal" && (
+                <ProposalKit
+                  assessments={report.assessments}
+                  repositoryUrl={report.repositoryUrl}
+                  opportunityTitle={report.opportunityTitle}
+                />
+              )}
+
+              {/* Tab 4: Export Center */}
+              {activeResultsTab === "export" && (
+                <ReportExport report={report} />
+              )}
 
               {/* Citation Inspection Drawer */}
               {selectedCitation && (

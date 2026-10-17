@@ -1,4 +1,15 @@
-import { createHash } from "node:crypto";
+/**
+ * Fast, deterministic 32-bit FNV-1a hash for token projection without node:crypto dependency.
+ */
+function fnv1a32(str: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
 import type { Requirement } from "@parakh/contracts";
 import type {
   IEvidenceRetriever,
@@ -65,8 +76,7 @@ export class DeterministicHashEmbeddingProvider implements IEmbeddingProvider {
     }
 
     for (const token of tokens) {
-      const hash = createHash("md5").update(token).digest();
-      const idx = hash.readUInt32BE(0) % this.dimensions;
+      const idx = fnv1a32(token) % this.dimensions;
       vector[idx] += 1.0;
     }
 
