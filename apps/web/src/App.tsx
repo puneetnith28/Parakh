@@ -4,6 +4,7 @@ import { Header } from "./components/Header.tsx";
 import { InputSection } from "./components/InputSection.tsx";
 import { RequirementsEditor } from "./components/RequirementsEditor.tsx";
 import { getApiUrl } from "./config/api.ts";
+import { extractRequirementsFromText } from "./services/api.ts";
 
 export default function App() {
   const [opportunityText, setOpportunityText] = useState("");
@@ -61,51 +62,13 @@ export default function App() {
 
     setIsLoading(true);
     try {
-      const res = await fetch(getApiUrl("/api/opportunity/text"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: opportunityText, title: "Opportunity Brief" }),
-      });
-
-      if (res.ok) {
-        // Extract basic criteria from paragraphs/lines for review
-        const lines = opportunityText
-          .split("\n")
-          .map((l) => l.trim())
-          .filter((l) => l.length > 5 && !l.startsWith("#"));
-
-        const initialRequirements: Requirement[] = (lines.length > 0 ? lines : [opportunityText])
-          .slice(0, 6)
-          .map((line, idx) => ({
-            id: `req_${String(idx + 1).padStart(3, "0")}`,
-            text: line.replace(/^[-*•\d.]+\s*/, ""),
-            category: line.toLowerCase().includes("database")
-              ? "database"
-              : line.toLowerCase().includes("react") || line.toLowerCase().includes("front")
-                ? "frontend"
-                : line.toLowerCase().includes("test")
-                  ? "testing"
-                  : line.toLowerCase().includes("docker") || line.toLowerCase().includes("ci")
-                    ? "devops"
-                    : "general",
-            priority: line.toLowerCase().includes("must") || line.toLowerCase().includes("require")
-              ? "mandatory"
-              : "preferred",
-            sourceLocation: {
-              pageNumber: 1,
-              sourceSnippet: line,
-            },
-          }));
-
-        setRequirements(initialRequirements);
-        setStage("review_requirements");
-        setSuccessMessage("Brief ingested successfully! Review and refine extracted requirements below.");
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        setValidationError(errorData.message || "Failed to process opportunity text.");
-      }
-    } catch {
-      setValidationError("Could not connect to Parakh backend API. Please run 'npm run dev' to start both services.");
+      const result = await extractRequirementsFromText(opportunityText, "Opportunity Brief");
+      setRequirements(result.requirements);
+      setStage("review_requirements");
+      const mockNotice = result.isMock ? " (Mock Engine)" : "";
+      setSuccessMessage(`Extracted ${result.requirements.length} structured requirements${mockNotice}! Review and refine them below.`);
+    } catch (err: any) {
+      setValidationError(err.message || "Failed to process opportunity brief.");
     } finally {
       setIsLoading(false);
     }
