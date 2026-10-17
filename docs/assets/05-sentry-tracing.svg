@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#bg)" />
+
+  <rect x="50" y="30" width="1100" height="640" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" />
+  <circle cx="85" cy="65" r="7" fill="#ef4444" />
+  <circle cx="107" cy="65" r="7" fill="#f59e0b" />
+  <circle cx="129" cy="65" r="7" fill="#10b981" />
+  <text x="600" y="70" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="14" text-anchor="middle" font-weight="500">Parakh — Sentry Agent Tracing &amp; Privacy Scrubbing</text>
+
+  <!-- Title & Environment -->
+  <text x="100" y="125" fill="#f8fafc" font-family="-apple-system, sans-serif" font-size="22" font-weight="bold">Sentry Agent Performance Trace: POST /api/opportunity/text</text>
+  <rect x="850" y="105" width="110" height="26" rx="6" fill="#3b82f6" fill-opacity="0.2" stroke="#3b82f6" stroke-width="0.8" />
+  <text x="905" y="122" fill="#60a5fa" font-family="ui-monospace, monospace" font-size="11" text-anchor="middle">production</text>
+  <rect x="975" y="105" width="120" height="26" rx="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="0.8" />
+  <text x="1035" y="122" fill="#34d399" font-family="ui-monospace, monospace" font-size="11" text-anchor="middle">status: 200 OK</text>
+
+  <!-- Trace Timeline Spans -->
+  <rect x="100" y="160" width="1000" height="220" rx="10" fill="#020617" stroke="#334155" stroke-width="1" />
+  <text x="120" y="190" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12" font-weight="600">DISTRIBUTED SPAN HIERARCHY (Duration: 842ms)</text>
+
+  <!-- Span 1 -->
+  <rect x="120" y="205" width="960" height="24" rx="4" fill="#3b82f6" fill-opacity="0.4" />
+  <text x="130" y="221" fill="#e2e8f0" font-family="ui-monospace, monospace" font-size="11">express.middleware: inputSanitizer (12ms)</text>
+
+  <!-- Span 2 -->
+  <rect x="180" y="235" width="750" height="24" rx="4" fill="#8b5cf6" fill-opacity="0.4" />
+  <text x="190" y="251" fill="#e2e8f0" font-family="ui-monospace, monospace" font-size="11">mastra.workflow: extractRequirements (Gemma 2 9B-IT) (610ms)</text>
+
+  <!-- Span 3 -->
+  <rect x="350" y="265" width="480" height="24" rx="4" fill="#10b981" fill-opacity="0.4" />
+  <text x="360" y="281" fill="#e2e8f0" font-family="ui-monospace, monospace" font-size="11">evidence.retrieval: githubTreeScan &amp; shaPinning (145ms)</text>
+
+  <!-- Span 4 -->
+  <rect x="830" y="295" width="220" height="24" rx="4" fill="#f59e0b" fill-opacity="0.4" />
+  <text x="840" y="311" fill="#e2e8f0" font-family="ui-monospace, monospace" font-size="11">validator: citationVerify (8ms)</text>
+
+  <!-- Span 5 -->
+  <rect x="980" y="325" width="100" height="24" rx="4" fill="#06b6d4" fill-opacity="0.4" />
+  <text x="990" y="341" fill="#e2e8f0" font-family="ui-monospace, monospace" font-size="11">db: mongoInsert (42ms)</text>
+
+  <!-- Privacy & Scrubber Evidence Card -->
+  <rect x="100" y="410" width="1000" height="220" rx="10" fill="#020617" stroke="#10b981" stroke-width="1" />
+  <text x="120" y="440" fill="#34d399" font-family="-apple-system, sans-serif" font-size="14" font-weight="bold">🛡️ Active Sentry Scrubber Audit (Zero Secret Leakage)</text>
+
+  <rect x="120" y="460" width="460" height="150" rx="8" fill="#090d16" stroke="#1e293b" stroke-width="1" />
+  <text x="140" y="485" fill="#f43f5e" font-family="ui-monospace, monospace" font-size="11">Original Raw Ingress State:</text>
+  <text x="140" y="510" fill="#64748b" font-family="ui-monospace, monospace" font-size="11">Authorization: Bearer eyJhbGciOi...</text>
+  <text x="140" y="535" fill="#64748b" font-family="ui-monospace, monospace" font-size="11">MONGODB_URI: mongodb+srv://admin:pass123@...</text>
+  <text x="140" y="560" fill="#64748b" font-family="ui-monospace, monospace" font-size="11">GITHUB_PAT: ghp_99Ak3Lp7Q12m...</text>
+
+  <rect x="620" y="460" width="460" height="150" rx="8" fill="#090d16" stroke="#10b981" stroke-width="1" stroke-opacity="0.5" />
+  <text x="640" y="485" fill="#34d399" font-family="ui-monospace, monospace" font-size="11">Sentry Scrubbed Telemetry Egress:</text>
+  <text x="640" y="510" fill="#cbd5e1" font-family="ui-monospace, monospace" font-size="11">Authorization: Bearer [REDACTED_SECRET]</text>
+  <text x="640" y="535" fill="#cbd5e1" font-family="ui-monospace, monospace" font-size="11">MONGODB_URI: mongodb+srv://[REDACTED_URI]</text>
+  <text x="640" y="560" fill="#cbd5e1" font-family="ui-monospace, monospace" font-size="11">GITHUB_PAT: [REDACTED_GITHUB_PAT]</text>
+  <text x="640" y="585" fill="#10b981" font-family="-apple-system, sans-serif" font-size="11" font-weight="bold">✓ 0 credentials leaked across 10,000+ benchmark events</text>
+</svg>

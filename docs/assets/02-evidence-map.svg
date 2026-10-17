@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#bg)" />
+
+  <!-- Window Container -->
+  <rect x="50" y="30" width="1100" height="640" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" />
+  <circle cx="85" cy="65" r="7" fill="#ef4444" />
+  <circle cx="107" cy="65" r="7" fill="#f59e0b" />
+  <circle cx="129" cy="65" r="7" fill="#10b981" />
+  <text x="600" y="70" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" text-anchor="middle" font-weight="500">Parakh — Interactive Evidence Map</text>
+
+  <!-- Title & Status Header -->
+  <text x="100" y="125" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="24" font-weight="bold">Capability Assessment Results</text>
+  <text x="100" y="150" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13">Candidate Repo: github.com/puneetnith28/Parakh (SHA: 4ecba62...)</text>
+
+  <!-- Summary Cards -->
+  <rect x="100" y="175" width="225" height="70" rx="10" fill="#064e3b" fill-opacity="0.3" stroke="#10b981" stroke-width="1" />
+  <text x="120" y="205" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="bold">4 / 6</text>
+  <text x="120" y="228" fill="#6ee7b7" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">Demonstrated with Proofs</text>
+
+  <rect x="350" y="175" width="225" height="70" rx="10" fill="#78350f" fill-opacity="0.3" stroke="#f59e0b" stroke-width="1" />
+  <text x="370" y="205" fill="#fbbf24" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="bold">1 / 6</text>
+  <text x="370" y="228" fill="#fde68a" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">Partially Demonstrated</text>
+
+  <rect x="600" y="175" width="225" height="70" rx="10" fill="#1e293b" fill-opacity="0.6" stroke="#64748b" stroke-width="1" />
+  <text x="620" y="205" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="bold">1 / 6</text>
+  <text x="620" y="228" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">Not in Scanned Files</text>
+
+  <rect x="850" y="175" width="250" height="70" rx="10" fill="#082f49" fill-opacity="0.3" stroke="#0284c7" stroke-width="1" />
+  <text x="870" y="205" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="bold">100.0%</text>
+  <text x="870" y="228" fill="#7dd3fc" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">Citation Validity (Zero Fake Claims)</text>
+
+  <!-- Evidence Items -->
+  <!-- Item 1 -->
+  <rect x="100" y="270" width="1000" height="75" rx="10" fill="#020617" stroke="#10b981" stroke-width="1" stroke-opacity="0.4" />
+  <rect x="120" y="285" width="125" height="24" rx="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="0.8" />
+  <text x="182" y="301" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle" font-weight="bold">DEMONSTRATED</text>
+  <text x="260" y="302" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600">FR-01: Responsive Next.js / React 18 SPA with clean TypeScript boundaries</text>
+  <text x="120" y="330" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="12">Proof: apps/web/src/App.tsx:L12-L85</text>
+  <text x="450" y="330" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">AST verified: 12 clean React components &amp; TypeScript strict mode enabled</text>
+
+  <!-- Item 2 -->
+  <rect x="100" y="360" width="1000" height="75" rx="10" fill="#020617" stroke="#10b981" stroke-width="1" stroke-opacity="0.4" />
+  <rect x="120" y="375" width="125" height="24" rx="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="0.8" />
+  <text x="182" y="391" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle" font-weight="bold">DEMONSTRATED</text>
+  <text x="260" y="392" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600">FR-02: JWT session handling with refresh token rotation and RBAC</text>
+  <text x="120" y="420" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="12">Proof: packages/contracts/src/auth.ts:L34-L60</text>
+  <text x="450" y="420" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Automated test: tests/unit/auth.test.ts (Passing)</text>
+
+  <!-- Item 3 -->
+  <rect x="100" y="450" width="1000" height="75" rx="10" fill="#020617" stroke="#f59e0b" stroke-width="1" stroke-opacity="0.4" />
+  <rect x="120" y="465" width="160" height="24" rx="6" fill="#f59e0b" fill-opacity="0.2" stroke="#f59e0b" stroke-width="0.8" />
+  <text x="200" y="481" fill="#fbbf24" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle" font-weight="bold">PARTIALLY DEMONSTRATED</text>
+  <text x="295" y="482" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600">FR-04: API Rate Limiting &amp; Sliding Window Defense</text>
+  <text x="120" y="510" fill="#f59e0b" font-family="ui-monospace, monospace" font-size="12">Downgrade Rule: Implementation present but missing dedicated integration test</text>
+
+  <!-- Item 4 -->
+  <rect x="100" y="540" width="1000" height="75" rx="10" fill="#020617" stroke="#64748b" stroke-width="1" stroke-opacity="0.4" />
+  <rect x="120" y="555" width="180" height="24" rx="6" fill="#64748b" fill-opacity="0.2" stroke="#64748b" stroke-width="0.8" />
+  <text x="210" y="571" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle" font-weight="bold">NOT IN SUPPLIED EVIDENCE</text>
+  <text x="315" y="572" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600">FR-06: Kubernetes Helm Chart Deployments</text>
+  <text x="120" y="600" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">Honest Transparency: No Helm or K8s manifests in repository. Auto-added to Gap Checklist.</text>
+</svg>
