@@ -13,6 +13,8 @@ export interface IAssessmentReportDocument extends Document {
   coverageSummary: AssessmentReport["coverageSummary"];
   scannedFilesCount: number;
   skippedFilesCount: number;
+  limitations?: AssessmentReport["limitations"];
+  gapRecommendations?: AssessmentReport["gapRecommendations"];
   expiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -86,6 +88,8 @@ const ReportMongooseSchema = new Schema<IAssessmentReportDocument>(
     },
     scannedFilesCount: { type: Number, default: 0 },
     skippedFilesCount: { type: Number, default: 0 },
+    limitations: [{ type: String }],
+    gapRecommendations: [{ type: String }],
     expiresAt: { type: Date },
   },
   {

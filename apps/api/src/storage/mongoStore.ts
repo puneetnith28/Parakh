@@ -37,6 +37,8 @@ export class MongoReportStorage implements ReportStorage {
         coverageSummary: report.coverageSummary,
         scannedFilesCount: report.scannedFilesCount,
         skippedFilesCount: report.skippedFilesCount,
+        limitations: report.limitations || [],
+        gapRecommendations: report.gapRecommendations || [],
         expiresAt,
       },
       { upsert: true, new: true }
@@ -59,6 +61,8 @@ export class MongoReportStorage implements ReportStorage {
       coverageSummary: doc.coverageSummary as any,
       scannedFilesCount: doc.scannedFilesCount,
       skippedFilesCount: doc.skippedFilesCount,
+      limitations: (doc as any).limitations || [],
+      gapRecommendations: (doc as any).gapRecommendations || [],
       createdAt: (doc as any).createdAt ? (doc as any).createdAt.toISOString() : new Date().toISOString(),
     };
 
@@ -82,6 +86,8 @@ export class MongoReportStorage implements ReportStorage {
       coverageSummary: doc.coverageSummary as any,
       scannedFilesCount: doc.scannedFilesCount,
       skippedFilesCount: doc.skippedFilesCount,
+      limitations: (doc as any).limitations || [],
+      gapRecommendations: (doc as any).gapRecommendations || [],
       createdAt: (doc as any).createdAt ? (doc as any).createdAt.toISOString() : new Date().toISOString(),
     };
   }

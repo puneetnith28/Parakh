@@ -14,6 +14,7 @@ import { UnifiedEvidenceRetriever } from "@parakh/assessment";
 import { AssessmentService } from "../services/assessmentService.js";
 import { GemmaClient } from "@parakh/integrations";
 import { config } from "../config.js";
+import { getStorage } from "../storage/index.js";
 
 export const analysisRouter = Router();
 
@@ -89,14 +90,22 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
     // Validate output report strictly conforms to AssessmentReportSchema contract
     const validatedReport = AssessmentReportSchema.parse(report);
 
+    // Persist verified report server-side with 256-bit secure viewToken
+    const viewToken = crypto.randomBytes(32).toString("hex");
+    const storage = getStorage();
+    await storage.saveReport(validatedReport, viewToken);
+
     res.status(200).json({
       status: "success",
       report: validatedReport,
+      viewToken,
       metadata: {
         opportunityTitle: title || "Technical Capability Assessment",
         modelProvider: config.MODEL_PROVIDER,
         isMock: config.MODEL_PROVIDER === "mock" || (!config.MODEL_API_KEY && !config.AI_STUDIO_API_KEY),
         filesScanned: records.length,
+        storageMode: storage.getMode(),
+        persisted: storage.isPersistent(),
       },
     });
   } catch (err: unknown) {
