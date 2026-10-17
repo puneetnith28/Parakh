@@ -107,7 +107,8 @@ export class ExtractionService {
         provider = "deterministic-fallback";
         rawRequirements = this.fallbackExtraction(sanitized.sanitizedText);
       }
-    } catch {
+    } catch (err: any) {
+      console.warn("[ExtractionService] Live model extraction failed or threw:", err?.message || err);
       latencyMs = Date.now() - startTime;
       fallbackActive = true;
       isMock = true;

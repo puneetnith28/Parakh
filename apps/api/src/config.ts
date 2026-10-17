@@ -1,7 +1,20 @@
 import { z } from "zod";
 import dotenv from "dotenv";
+import path from "node:path";
+import fs from "node:fs";
 
+// Load environment variables from cwd or parent directories in monorepo
 dotenv.config();
+const candidateEnvPaths = [
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "../.env"),
+  path.resolve(process.cwd(), "../../.env"),
+];
+for (const envPath of candidateEnvPaths) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

@@ -101,9 +101,14 @@ app.use(reportsRouter);
 app.use(analysisRouter);
 app.use(integrationsRouter);
 
-// Serve static assets from apps/web/dist if present (e.g. Docker container)
-const distPath = path.resolve(process.cwd(), "apps/web/dist");
-if (fs.existsSync(distPath)) {
+// Serve static assets from apps/web/dist if present (e.g. Docker container or monorepo root)
+const candidateDistPaths = [
+  path.resolve(process.cwd(), "apps/web/dist"),
+  path.resolve(process.cwd(), "../web/dist"),
+  path.resolve(process.cwd(), "../../apps/web/dist"),
+];
+const distPath = candidateDistPaths.find((p) => fs.existsSync(p));
+if (distPath) {
   app.use(express.static(distPath));
   app.get(/^(?!\/api|\/healthz).*/, (_req, res) => {
     res.sendFile(path.join(distPath, "index.html"));
