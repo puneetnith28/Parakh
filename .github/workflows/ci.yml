@@ -1,0 +1,40 @@
+name: Parakh CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Build, Lint, and Verify Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build monorepo packages
+        run: npm run build
+
+      - name: Code quality and lint verification
+        run: npm run lint
+
+      - name: Execute monorepo workspace tests
+        run: npm run test:workspaces
+
+      - name: Execute unit test suite
+        run: npm run test:unit
+
+      - name: Execute security and boundary audit tests
+        run: npm run test:security
