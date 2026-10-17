@@ -3,22 +3,27 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
-  --bg-primary: #030303;
-  --bg-surface: #0a0a0c;
-  --bg-card: rgba(13, 13, 16, 0.75);
-  --border-subtle: rgba(255, 50, 50, 0.18);
-  --border-focus: #ff3333;
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --accent-red: #ff0000;
-  --accent-rose: #ff7070;
-  --accent-glow: rgba(255, 0, 0, 0.25);
-  --status-demonstrated: #10b981;
-  --status-partial: #f59e0b;
-  --status-unsupported: #ef4444;
-  --status-review: #a855f7;
+  color-scheme: light;
+  --bg-primary: #FFFFFF;
+  --bg-surface: #F2F4F0;
+  --bg-card: #ECEFEA;
+  --color-lime: #9FE870;
+  --color-lime-hover: #8EE05B;
+  --color-forest: #163300;
+  --color-forest-hover: #1E4202;
+  --border-subtle: #E2E5DE;
+  --border-focus: #163300;
+  --text-primary: #111111;
+  --text-secondary: #5F625E;
+  --text-muted: #828580;
+  --status-demonstrated: #163300;
+  --status-demonstrated-bg: #9FE870;
+  --status-partial: #B45309;
+  --status-partial-bg: #FEF3C7;
+  --status-unsupported: #B91C1C;
+  --status-unsupported-bg: #FEE2E2;
+  --status-review: #4338CA;
+  --status-review-bg: #E0E7FF;
 }
 
 html {
@@ -32,7 +37,7 @@ body {
   min-height: 100vh;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
