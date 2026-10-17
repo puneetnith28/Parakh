@@ -6,7 +6,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![TypeScript: 5.4+](https://img.shields.io/badge/TypeScript-5.4+-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![Node.js: 20+ LTS](https://img.shields.io/badge/Node.js-20+_LTS-339933.svg?logo=nodedotjs)](https://nodejs.org/)
-[![Tests: 73 Passed](https://img.shields.io/badge/Tests-73_Passed-success.svg)](file:///tests/)
+[![Tests: 100% Passing](https://img.shields.io/badge/Tests-100%25_Passing-success.svg)](tests/)
 [![Citation Validity: 100%](https://img.shields.io/badge/Citation_Validity-100%25-brightgreen.svg)](docs/evaluation-results.md)
 [![Accessibility: WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA-blueviolet.svg)](apps/web/src/index.css)
 
