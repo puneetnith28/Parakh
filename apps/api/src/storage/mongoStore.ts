@@ -39,7 +39,7 @@ export class MongoReportStorage implements ReportStorage {
         gapRecommendations: report.gapRecommendations || [],
         expiresAt,
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     return report;
@@ -104,7 +104,7 @@ export class MongoReportStorage implements ReportStorage {
         title: opp.title,
         schemaVersion: 1,
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
   }
 

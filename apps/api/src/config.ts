@@ -14,7 +14,7 @@ const envSchema = z.object({
 
   // Model provider
   MODEL_PROVIDER: z.string().default("google"),
-  MODEL_NAME: z.string().default("gemini-2.5-flash"),
+  MODEL_NAME: z.string().default("gemini-3.8-flash"),
   MODEL_API_KEY: z.string().optional(),
   AI_STUDIO_API_KEY: z.string().optional(),
   MODEL_BASE_URL: z.string().url().optional(),
