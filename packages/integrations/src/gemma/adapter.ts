@@ -45,7 +45,7 @@ export class GemmaModelAdapter {
         : rawProvider === "ollama"
         ? "ollama"
         : "mock";
-    this.modelName = config.modelName || process.env.MODEL_NAME || "gemma-2-9b-it";
+    this.modelName = config.modelName || process.env.MODEL_NAME || "gemini-3.8-flash";
     this.baseUrl = config.baseUrl || this.getDefaultBaseUrl(this.provider);
     this.fetch = config.fetchFn || globalThis.fetch;
   }
@@ -166,7 +166,10 @@ export class GemmaModelAdapter {
           }),
           usage: { promptTokens: 120, completionTokens: 80, totalTokens: 200 },
           provider: "mock",
-          model: this.modelName === "gemma-2-9b-it" ? "mock-extractor" : this.modelName,
+          model:
+            this.modelName === "gemini-3.8-flash" || this.modelName === "gemma-2-9b-it"
+              ? "mock-extractor"
+              : this.modelName,
           latencyMs: Date.now() - startTime,
           isMock: true,
         };
@@ -185,7 +188,10 @@ export class GemmaModelAdapter {
         }),
         usage: { promptTokens: 50, completionTokens: 30, totalTokens: 80 },
         provider: "mock",
-        model: this.modelName === "gemma-2-9b-it" ? "mock-evaluator" : this.modelName,
+        model:
+          this.modelName === "gemini-3.8-flash" || this.modelName === "gemma-2-9b-it"
+            ? "mock-evaluator"
+            : this.modelName,
         latencyMs: Date.now() - startTime,
         isMock: true,
       };

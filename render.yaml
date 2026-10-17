@@ -22,7 +22,7 @@ services:
       - key: MODEL_PROVIDER
         value: google
       - key: MODEL_NAME
-        value: gemini-3.5-flash-lite
+        value: gemini-3.8-flash
       - key: MONGODB_DATABASE
         value: parakh
       - key: SENTRY_ENVIRONMENT

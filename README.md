@@ -120,16 +120,17 @@ Configure your environment variables in `.env`:
 PORT=3000
 NODE_ENV=development
 
-# Google AI Studio (Gemma 2)
-AI_STUDIO_API_KEY=your_gemini_or_gemma_api_key_here
-GEMMA_MODEL_ID=gemma-2-9b-it
+# Google AI Studio / Gemini Inference
+MODEL_PROVIDER=google
+MODEL_NAME=gemini-3.8-flash
+MODEL_API_KEY=your_gemini_api_key_here
 
 # Database (MongoDB Atlas)
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net
-MONGODB_DB_NAME=parakh_dev
+MONGODB_DATABASE=parakh
 
-# GitHub Integration (Optional: unauthenticated rate limit is 60 req/hr)
-GITHUB_PERSONAL_ACCESS_TOKEN=your_github_token_here
+# GitHub Integration (Optional for development: 60 req/hr, recommended for production: 5,000 req/hr)
+GITHUB_TOKEN=your_github_token_here
 
 # Observability (Optional)
 SENTRY_DSN=

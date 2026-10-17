@@ -56,4 +56,27 @@ describe("Configuration and Model Provider Mode Validation", () => {
     assert.equal(cfg.MODEL_PROVIDER, "google");
     assert.equal(cfg.MODEL_API_KEY, "valid_production_key_12345");
   });
+
+  test("rejects invalid or unsupported model provider with actionable error", () => {
+    assert.throws(
+      () => {
+        loadConfig({
+          MODEL_PROVIDER: "unsupported_ai_vendor_xyz",
+        });
+      },
+      (err: Error) => {
+        assert.match(err.message, /Unsupported MODEL_PROVIDER 'unsupported_ai_vendor_xyz'/);
+        assert.match(err.message, /Supported providers are:/);
+        return true;
+      }
+    );
+  });
+
+  test("defaults model identifier consistently to gemini-3.8-flash", () => {
+    const cfg = loadConfig({
+      NODE_ENV: "development",
+      MODEL_PROVIDER: "mock",
+    });
+    assert.equal(cfg.MODEL_NAME, "gemini-3.8-flash");
+  });
 });

@@ -74,6 +74,13 @@ export function loadConfig(rawEnv: Record<string, string | undefined> = process.
     throw new Error(`[Configuration Error] Invalid environment configuration: ${errorDetails}`);
   }
 
+  const SUPPORTED_PROVIDERS = ["google", "google-ai", "huggingface", "ollama", "mock", "gemini", "openai"];
+  if (!SUPPORTED_PROVIDERS.includes(result.data.MODEL_PROVIDER.toLowerCase())) {
+    throw new Error(
+      `[Configuration Error] Unsupported MODEL_PROVIDER '${result.data.MODEL_PROVIDER}'. Supported providers are: ${SUPPORTED_PROVIDERS.join(", ")}`
+    );
+  }
+
   // In production, do not silently present mock mode or run without credentials
   if (
     result.data.NODE_ENV === "production" &&
