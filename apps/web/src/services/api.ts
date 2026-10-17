@@ -116,11 +116,14 @@ export async function runAssessmentAnalysis(params: {
       throw new Error(errData.message || `Analysis request failed with HTTP ${res.status}`);
     }
 
-    const data = (await res.json()) as AnalysisApiResponse;
+    const data = (await res.json()) as AnalysisApiResponse & { viewToken?: string };
     if (!data.report) {
       throw new Error(data.message || "Analysis completed but no assessment report was returned.");
     }
-    return data.report;
+    return {
+      report: data.report,
+      viewToken: data.viewToken,
+    };
   } catch (err: any) {
     if (err.name === "AbortError") {
       throw new Error("Repository analysis request timed out. Please check repository size or try again.");
@@ -129,5 +132,54 @@ export async function runAssessmentAnalysis(params: {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+/**
+ * Fetch a persisted report by ID and secure 256-bit viewToken.
+ */
+export async function fetchReportById(
+  id: string,
+  token: string
+): Promise<{ report: any; viewToken: string }> {
+  const url = getApiUrl(`/api/reports/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`);
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      throw new Error("Unauthorized: Invalid or expired report view token.");
+    }
+    if (res.status === 404) {
+      throw new Error("Report not found or expired retention period.");
+    }
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Failed to fetch report: HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  return {
+    report: data.report,
+    viewToken: token,
+  };
+}
+
+/**
+ * Permanently delete a persisted report.
+ */
+export async function deleteReportById(id: string, token: string): Promise<boolean> {
+  const url = getApiUrl(`/api/reports/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`);
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.status === 204 || res.ok;
 }
 

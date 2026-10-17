@@ -1,15 +1,46 @@
 import { useState } from "react";
-import { Download, Printer, FileJson, FileCode, Check } from "lucide-react";
+import { Download, Printer, FileJson, FileCode, Check, Share2, Trash2 } from "lucide-react";
 import { AssessmentReport } from "@parakh/contracts";
+import { deleteReportById } from "../services/api";
 
 interface ReportExportProps {
   report: AssessmentReport;
+  viewToken?: string | null;
+  onDelete?: () => void;
   className?: string;
 }
 
-export function ReportExport({ report, className = "" }: ReportExportProps) {
+export function ReportExport({ report, viewToken, onDelete, className = "" }: ReportExportProps) {
   const [downloadedJson, setDownloadedJson] = useState(false);
   const [downloadedHtml, setDownloadedHtml] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleCopyShareLink = async () => {
+    if (!viewToken) return;
+    const shareUrl = `${window.location.origin}/?reportId=${encodeURIComponent(report.id)}&token=${encodeURIComponent(viewToken)}`;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleDelete = async () => {
+    if (!viewToken) return;
+    if (!window.confirm("Are you sure you want to permanently delete this report and purge all associated records?")) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      const ok = await deleteReportById(report.id, viewToken);
+      if (ok && onDelete) {
+        onDelete();
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to delete report.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleDownloadJson = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
@@ -138,6 +169,37 @@ export function ReportExport({ report, className = "" }: ReportExportProps) {
           <Printer className="w-3.5 h-3.5" />
           <span>Print / PDF</span>
         </button>
+
+        {/* Share Link (if viewToken present) */}
+        {viewToken && (
+          <button
+            type="button"
+            onClick={handleCopyShareLink}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition text-xs font-medium"
+            title="Copy shareable link with secure view token"
+          >
+            {copiedLink ? (
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Share2 className="w-3.5 h-3.5 text-indigo-400" />
+            )}
+            <span>{copiedLink ? "Link Copied!" : "Share Link"}</span>
+          </button>
+        )}
+
+        {/* Delete Report */}
+        {viewToken && onDelete && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition text-xs font-medium disabled:opacity-50"
+            title="Permanently delete this report and purge records"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>{isDeleting ? "Deleting..." : "Delete"}</span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ import { GapChecklist } from "./components/GapChecklist.tsx";
 import { ProposalKit } from "./components/ProposalKit.tsx";
 import { ReportExport } from "./components/ReportExport.tsx";
 import { getApiUrl } from "./config/api.ts";
-import { extractRequirementsFromText, runAssessmentAnalysis } from "./services/api.ts";
+import { extractRequirementsFromText, runAssessmentAnalysis, fetchReportById } from "./services/api.ts";
 
 export default function App() {
   const [opportunityText, setOpportunityText] = useState("");
@@ -29,6 +29,7 @@ export default function App() {
   const [analysisStatus, setAnalysisStatus] = useState<string>("");
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [report, setReport] = useState<AssessmentReport | null>(null);
+  const [viewToken, setViewToken] = useState<string | null>(null);
 
   // Results filtering & citation state
   const [selectedCitation, setSelectedCitation] = useState<{
@@ -56,6 +57,32 @@ export default function App() {
     }
     checkApi();
     const interval = setInterval(checkApi, 10000);
+
+    // Deep linking: load persisted report if reportId and token are present in URL
+    const params = new URLSearchParams(window.location.search);
+    const reportId = params.get("reportId");
+    const token = params.get("token");
+    if (reportId && token) {
+      setIsLoading(true);
+      fetchReportById(reportId, token)
+        .then(({ report: loadedReport, viewToken: loadedToken }) => {
+          if (isMounted) {
+            setReport(loadedReport);
+            setViewToken(loadedToken);
+            setStage("results");
+            setSuccessMessage("Persisted assessment report loaded successfully via secure token.");
+          }
+        })
+        .catch((err: any) => {
+          if (isMounted) {
+            setValidationError(err.message || "Failed to load shared report.");
+          }
+        })
+        .finally(() => {
+          if (isMounted) setIsLoading(false);
+        });
+    }
+
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -106,16 +133,34 @@ export default function App() {
     setAnalysisStatus("Connecting to repository and resolving commit snapshot...");
 
     try {
-      const resultReport = await runAssessmentAnalysis({
+      const { report: resultReport, viewToken: token } = await runAssessmentAnalysis({
         title: "Technical Capability Assessment",
         repositoryUrl: repoUrl.trim(),
         requirements,
       });
       setReport(resultReport);
+      if (token) {
+        setViewToken(token);
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set("reportId", resultReport.id);
+        newUrl.searchParams.set("token", token);
+        window.history.replaceState({}, "", newUrl.toString());
+      }
       setStage("results");
     } catch (err: any) {
       setAnalysisError(err.message || "Failed to complete capability analysis.");
     }
+  };
+
+  const handleReportDeleted = () => {
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete("reportId");
+    newUrl.searchParams.delete("token");
+    window.history.replaceState({}, "", newUrl.toString());
+    setReport(null);
+    setViewToken(null);
+    setStage("input");
+    setSuccessMessage("Report has been permanently deleted.");
   };
 
   return (
@@ -332,7 +377,11 @@ export default function App() {
 
               {/* Tab 4: Export Center */}
               {activeResultsTab === "export" && (
-                <ReportExport report={report} />
+                <ReportExport
+                  report={report}
+                  viewToken={viewToken}
+                  onDelete={handleReportDeleted}
+                />
               )}
 
               {/* Citation Inspection Drawer */}
