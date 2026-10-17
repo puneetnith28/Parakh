@@ -11,9 +11,22 @@ describe("Integration: Model Adapter Resilience and Fallbacks", () => {
     const result = await adapter.generateText("Assess Fastify capability");
 
     assert.equal(result.provider, "mock");
+    assert.equal(result.isMock, true);
+    assert.equal(result.model, "mock-evaluator");
     assert.ok(typeof result.latencyMs === "number");
     const parsed = JSON.parse(result.text);
     assert.equal(parsed.status, "demonstrated");
+  });
+
+  it("transparently returns isMock: true and mock-extractor model for requirement extraction prompts", async () => {
+    const adapter = new GemmaModelAdapter({ provider: "mock" });
+    const result = await adapter.generateText("<opportunity_brief>Build a React app</opportunity_brief>");
+
+    assert.equal(result.provider, "mock");
+    assert.equal(result.isMock, true);
+    assert.equal(result.model, "mock-extractor");
+    const parsed = JSON.parse(result.text);
+    assert.ok(Array.isArray(parsed.requirements));
   });
 
   it("enforces timeout boundaries and throws normalized ModelProviderError on hang", async () => {

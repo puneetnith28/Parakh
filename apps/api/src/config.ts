@@ -79,8 +79,8 @@ export function validateConfigAtStartup(cfg: AppConfig = config): void {
   console.log(
     `[Parakh Config] Resource Caps: Max Files=${cfg.MAX_REPOSITORY_FILES}, Max File Bytes=${cfg.MAX_FILE_BYTES}, Max Upload=${cfg.MAX_UPLOAD_MB}MB, Max Pages=${cfg.MAX_PDF_PAGES}`
   );
-  if (!cfg.MODEL_API_KEY && !cfg.AI_STUDIO_API_KEY) {
-    console.warn("[Parakh Config] Warning: No AI_STUDIO_API_KEY / MODEL_API_KEY configured. Running in Mock Mode.");
+  if (cfg.MODEL_PROVIDER === "mock" || (!cfg.MODEL_API_KEY && !cfg.AI_STUDIO_API_KEY)) {
+    console.warn(`[Parakh Config] Notice: Running in Mock Provider Mode (provider: mock, model: ${cfg.MODEL_NAME}). Simulated responses will be returned.`);
   } else {
     console.log(`[Parakh Config] Model Provider: ${cfg.MODEL_PROVIDER} (${cfg.MODEL_NAME})`);
   }

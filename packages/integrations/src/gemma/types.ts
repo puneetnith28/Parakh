@@ -24,6 +24,7 @@ export interface ModelGenerationResult {
   provider: GemmaProviderType;
   model: string;
   latencyMs: number;
+  isMock: boolean;
 }
 
 export class ModelProviderError extends Error {

@@ -160,8 +160,9 @@ export class GemmaModelAdapter {
           }),
           usage: { promptTokens: 120, completionTokens: 80, totalTokens: 200 },
           provider: "mock",
-          model: this.modelName,
+          model: this.modelName === "gemma-2-9b-it" ? "mock-extractor" : this.modelName,
           latencyMs: Date.now() - startTime,
+          isMock: true,
         };
       }
 
@@ -175,8 +176,9 @@ export class GemmaModelAdapter {
         }),
         usage: { promptTokens: 50, completionTokens: 30, totalTokens: 80 },
         provider: "mock",
-        model: this.modelName,
+        model: this.modelName === "gemma-2-9b-it" ? "mock-evaluator" : this.modelName,
         latencyMs: Date.now() - startTime,
+        isMock: true,
       };
     }
 
@@ -271,6 +273,7 @@ export class GemmaModelAdapter {
       provider: "google-ai",
       model: this.modelName,
       latencyMs: Date.now() - startTime,
+      isMock: false,
     };
   }
 
@@ -319,6 +322,7 @@ export class GemmaModelAdapter {
       provider: "huggingface",
       model: this.modelName,
       latencyMs: Date.now() - startTime,
+      isMock: false,
     };
   }
 
@@ -356,6 +360,7 @@ export class GemmaModelAdapter {
       provider: "ollama",
       model: this.modelName,
       latencyMs: Date.now() - startTime,
+      isMock: false,
     };
   }
 }
