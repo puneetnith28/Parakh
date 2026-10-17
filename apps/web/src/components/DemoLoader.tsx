@@ -1,5 +1,5 @@
-import { Sparkles } from "lucide-react";
-import { TactileButton } from "./TactileButton.tsx";
+import { Sparkles } from 'lucide-react';
+import { Button } from './ui/Button';
 
 export const SAMPLE_BRIEF_TEXT = `# Project Brief: Modern Full-Stack Enterprise Billing & Subscription Engine
 
@@ -19,9 +19,9 @@ We are seeking a senior full-stack engineer to build an enterprise SaaS billing 
 - Verified test reports demonstrating API reliability.
 - Initial MVP delivery within 4 weeks.`;
 
-export const SAMPLE_REPO_URL = "https://github.com/puneetnith28/Parakh";
+export const SAMPLE_REPO_URL = 'https://github.com/puneetnith28/Parakh';
 
-interface DemoLoaderProps {
+export interface DemoLoaderProps {
   onLoadDemo: (brief: string, repo: string) => void;
 }
 
@@ -31,28 +31,29 @@ export function DemoLoader({ onLoadDemo }: DemoLoaderProps) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl bg-red-950/20 border border-red-900/30 gap-3">
+    <div className="flex flex-col sm:flex-row items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-white border border-[#E2E5DE] shadow-sm gap-3">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
-          <Sparkles className="w-5 h-5 text-rose-400" />
+        <div className="w-8 h-8 rounded-full bg-[#163300] text-[#9FE870] flex items-center justify-center shrink-0">
+          <Sparkles className="w-4 h-4 text-[#9FE870]" />
         </div>
         <div>
-          <h4 className="text-sm font-semibold text-rose-200">Instant Demo Scenario</h4>
-          <p className="text-xs text-rose-300/70">
-            Pre-populate a realistic SaaS client brief & repository with one click.
+          <h4 className="text-xs sm:text-sm font-bold text-[#111111]">Instant Demo Scenario</h4>
+          <p className="text-[11px] text-[#5F625E]">
+            Pre-populate a realistic SaaS brief & repository with one click.
           </p>
         </div>
       </div>
-      <TactileButton
+      <Button
         onClick={handleLoad}
-        variant="primary"
+        variant="secondary"
         size="sm"
-        rounded={16}
-        className="w-full sm:w-auto shrink-0"
+        icon={<Sparkles className="w-3.5 h-3.5 text-[#163300]" />}
+        className="w-full sm:w-auto shrink-0 font-bold text-xs"
       >
-        <Sparkles className="w-3.5 h-3.5 mr-1.5 inline" />
-        Load Sample Demo
-      </TactileButton>
+        Load Demo Brief
+      </Button>
     </div>
   );
 }
+
+export default DemoLoader;
