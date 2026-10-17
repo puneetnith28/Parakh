@@ -162,7 +162,7 @@ export function InputSection({
 
             <div className="flex items-center justify-between text-xs text-[#5F625E] pt-1">
               <span>{opportunityText.length > 0 ? `${opportunityText.split(/\s+/).filter(Boolean).length} words` : 'Awaiting brief input'}</span>
-              <span>Deconstructed via Gemini-3.8-Flash schema</span>
+              <span>Deconstructed via Structured JSON Schema & AST Analysis</span>
             </div>
           </div>
 
@@ -383,7 +383,7 @@ export function InputSection({
 
             <div className="pt-2 flex items-center justify-between text-xs text-[#5F625E]">
               <span>Deterministic AST analysis • Zero prompt hallucination</span>
-              <span className="font-mono text-[#163300] font-bold">gemini-3.8-flash engine</span>
+              <span className="font-mono text-[#163300] font-bold">Google Gemini AI Engine</span>
             </div>
           </div>
         </div>

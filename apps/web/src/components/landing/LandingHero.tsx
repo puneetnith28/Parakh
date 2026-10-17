@@ -5,11 +5,13 @@ import { Button } from '../ui/Button';
 export interface LandingHeroProps {
   onStartAssessment?: () => void;
   onExploreDemo?: () => void;
+  latestCommitSha?: string;
 }
 
 export const LandingHero: React.FC<LandingHeroProps> = ({
   onStartAssessment,
   onExploreDemo,
+  latestCommitSha,
 }) => {
   return (
     <section className="relative overflow-hidden bg-white pt-24 pb-20 sm:pt-32 sm:pb-28">
@@ -86,7 +88,9 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
               </div>
               <div className="text-left">
                 <div className="text-xs font-bold text-[#111111]">Pinned Commit</div>
-                <div className="text-[10px] font-mono text-[#5F625E]">sha:848ce1d</div>
+                <div className="text-[10px] font-mono text-[#5F625E]">
+                  sha:{latestCommitSha ? latestCommitSha.slice(0, 7) : 'head'}
+                </div>
               </div>
             </div>
 

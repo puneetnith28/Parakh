@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Clock,
   Plus,
+  Trash2,
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
@@ -21,18 +22,21 @@ export interface AssessmentSummaryItem {
   needsReviewCount: number;
   totalRequirements: number;
   provenanceVerified: boolean;
+  viewToken?: string;
 }
 
 export interface DashboardAssessmentListProps {
   assessments: AssessmentSummaryItem[];
   onSelectAssessment: (id: string) => void;
   onNewAssessment: () => void;
+  onDeleteAssessment?: (id: string) => void;
 }
 
 export const DashboardAssessmentList: React.FC<DashboardAssessmentListProps> = ({
   assessments,
   onSelectAssessment,
   onNewAssessment,
+  onDeleteAssessment,
 }) => {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -115,8 +119,21 @@ export const DashboardAssessmentList: React.FC<DashboardAssessmentListProps> = (
                 </div>
               </div>
 
-              {/* Right Arrow Action */}
-              <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+              {/* Right Action buttons */}
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                {onDeleteAssessment && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteAssessment(item.id);
+                    }}
+                    className="p-2 rounded-full text-[#828580] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                    title="Remove from history"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
                 <span className="text-xs font-bold text-[#163300] hidden sm:inline-block group-hover:underline">
                   View Report
                 </span>

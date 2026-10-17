@@ -198,3 +198,85 @@ export async function deleteReportById(id: string, token: string): Promise<boole
   return res.status === 204 || res.ok;
 }
 
+export interface RepositoryInspectionResult {
+  canonicalUrl: string;
+  metadata: {
+    owner: string;
+    repo: string;
+    fullName: string;
+    description: string | null;
+    defaultBranch: string;
+    isPrivate: boolean;
+    stars: number;
+    forks: number;
+    openIssues: number;
+    language: string;
+    languages: Record<string, number>;
+    updatedAt: string;
+  };
+  pinnedRevision: {
+    owner: string;
+    repo: string;
+    ref: string;
+    commitSha: string;
+    resolvedAt: string;
+  };
+}
+
+/**
+ * Inspect a GitHub repository URL: validates against SSRF and resolves pinned revision metadata.
+ */
+export async function inspectRepository(
+  url: string,
+  ref?: string
+): Promise<RepositoryInspectionResult> {
+  const res = await fetch(getApiUrl("/api/repository/inspect"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: url.trim(), ref: ref?.trim() }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || errorData.message || `Failed to inspect repository: HTTP ${res.status}`);
+  }
+
+  return (await res.json()) as RepositoryInspectionResult;
+}
+
+export interface HealthDiagnosticsResult {
+  status: string;
+  service: string;
+  version: string;
+  environment: string;
+  truthfulReporting: boolean;
+  modelProvider: string;
+  isMockModel: boolean;
+  mastra?: {
+    initialized: boolean;
+    provider: string;
+  };
+  storage?: {
+    connected: boolean;
+    isPersistent: boolean;
+    storageMode: string;
+    durableStorageAvailable: boolean;
+  };
+}
+
+/**
+ * Fetch full component health and diagnostics telemetry from backend.
+ */
+export async function fetchHealthDiagnostics(): Promise<HealthDiagnosticsResult> {
+  const res = await fetch(getApiUrl("/api/health"), {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Health diagnostics endpoint returned HTTP ${res.status}`);
+  }
+
+  return (await res.json()) as HealthDiagnosticsResult;
+}
+

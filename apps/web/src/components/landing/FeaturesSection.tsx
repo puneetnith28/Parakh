@@ -10,9 +10,10 @@ import { Badge } from '../ui/Badge';
 
 export interface FeaturesSectionProps {
   onTryFeature?: (feature: string) => void;
+  pinnedCommitSha?: string;
 }
 
-export const FeaturesSection: React.FC<FeaturesSectionProps> = () => {
+export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ pinnedCommitSha }) => {
   const [activeTab, setActiveTab] = useState<'extraction' | 'grounding' | 'calibration' | 'export'>('extraction');
 
   const tabs = [
@@ -127,7 +128,7 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = () => {
               <div className="bg-[#163300] text-emerald-100 rounded-2xl p-6 font-mono text-xs shadow-inner">
                 <div className="text-emerald-400 mb-2">// Pinned Tree Search</div>
                 <div>repo: <span className="text-white">puneetnith28/Parakh</span></div>
-                <div>sha: <span className="text-[#9FE870]">848ce1d9f01bb431b643724acb6d5b537518d559</span></div>
+                <div>sha: <span className="text-[#9FE870]">{pinnedCommitSha || '55ee071eeec225a32b853dfab31f5ac142c3a9d0'}</span></div>
                 <div className="mt-3 text-emerald-300">Found 18 evidence citations across 12 files.</div>
                 <div className="mt-1 text-white/70">Exact line match: apps/api/src/services/provenance.ts#L48</div>
               </div>

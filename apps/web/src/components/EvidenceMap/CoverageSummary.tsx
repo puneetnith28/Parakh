@@ -42,32 +42,32 @@ export function CoverageSummary({ summary, className = "" }: CoverageSummaryProp
 
   return (
     <div
-      className={`p-5 rounded-2xl bg-neutral-950/75 border border-red-950/40 backdrop-blur-md space-y-4 shadow-xl ${className}`}
+      className={`p-5 rounded-2xl bg-white border border-[#E2E5DE] space-y-4 shadow-xs ${className}`}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-red-500/10 text-rose-400 border border-red-500/20">
-            <BarChart3 className="w-4 h-4" />
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-[#163300] text-[#9FE870]">
+            <BarChart3 className="w-4 h-4 text-[#9FE870]" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-zinc-100">Capability Evidence Coverage</h3>
-            <p className="text-xs text-zinc-400">
+            <h3 className="text-sm font-bold text-[#111111]">Capability Evidence Coverage</h3>
+            <p className="text-xs text-[#5F625E]">
               Verified ground truth from repository scan ({total} total criteria)
             </p>
           </div>
         </div>
 
-        <span className="text-xs font-mono font-medium text-rose-300 bg-black/60 px-2.5 py-1 rounded-lg border border-red-950/60">
+        <span className="text-xs font-mono font-bold text-[#163300] bg-[#9FE870]/30 px-3 py-1 rounded-full border border-[#9FE870]/60">
           {demonstrated + partiallyDemonstrated}/{total} addressed
         </span>
       </div>
 
       {/* Segmented Stacked Bar */}
-      <div className="h-3 w-full rounded-full bg-slate-950 overflow-hidden flex border border-slate-800/60">
+      <div className="h-3 w-full rounded-full bg-[#F2F4F0] overflow-hidden flex border border-[#E2E5DE]">
         {demonstrated > 0 && (
           <div
             style={{ width: `${(demonstrated / total) * 100}%` }}
-            className="bg-emerald-500 transition-all duration-300"
+            className="bg-[#163300] transition-all duration-300"
             title={`Demonstrated: ${demonstrated} (${demonstratedPct}%)`}
           />
         )}
@@ -81,14 +81,14 @@ export function CoverageSummary({ summary, className = "" }: CoverageSummaryProp
         {needsReview > 0 && (
           <div
             style={{ width: `${(needsReview / total) * 100}%` }}
-            className="bg-indigo-400 transition-all duration-300"
+            className="bg-sky-400 transition-all duration-300"
             title={`Needs Review: ${needsReview} (${needsReviewPct}%)`}
           />
         )}
         {notDemonstrated > 0 && (
           <div
             style={{ width: `${(notDemonstrated / total) * 100}%` }}
-            className="bg-slate-700 transition-all duration-300"
+            className="bg-slate-300 transition-all duration-300"
             title={`Not Demonstrated: ${notDemonstrated} (${notDemonstratedPct}%)`}
           />
         )}
@@ -97,50 +97,50 @@ export function CoverageSummary({ summary, className = "" }: CoverageSummaryProp
       {/* Breakdown Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
         {/* Demonstrated */}
-        <div className="p-3 rounded-xl bg-slate-950/50 border border-emerald-500/20 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-emerald-400 mb-1">
-            <span className="text-xs font-medium">Demonstrated</span>
-            <CheckCircle2 className="w-3.5 h-3.5" />
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-emerald-900 mb-1">
+            <span className="text-xs font-bold">Demonstrated</span>
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-bold font-mono text-emerald-300">{demonstrated}</span>
-            <span className="text-xs text-emerald-400/80 font-mono">({demonstratedPct}%)</span>
+            <span className="text-xl font-bold font-mono text-emerald-950">{demonstrated}</span>
+            <span className="text-xs text-emerald-700 font-mono">({demonstratedPct}%)</span>
           </div>
         </div>
 
         {/* Partially Demonstrated */}
-        <div className="p-3 rounded-xl bg-slate-950/50 border border-amber-500/20 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-amber-400 mb-1">
-            <span className="text-xs font-medium">Partial</span>
-            <AlertTriangle className="w-3.5 h-3.5" />
+        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-amber-900 mb-1">
+            <span className="text-xs font-bold">Partial</span>
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-bold font-mono text-amber-300">{partiallyDemonstrated}</span>
-            <span className="text-xs text-amber-400/80 font-mono">({partiallyDemonstratedPct}%)</span>
+            <span className="text-xl font-bold font-mono text-amber-950">{partiallyDemonstrated}</span>
+            <span className="text-xs text-amber-700 font-mono">({partiallyDemonstratedPct}%)</span>
           </div>
         </div>
 
         {/* Needs Review */}
-        <div className="p-3 rounded-xl bg-slate-950/50 border border-indigo-500/20 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-indigo-400 mb-1">
-            <span className="text-xs font-medium">Needs Review</span>
-            <AlertCircle className="w-3.5 h-3.5" />
+        <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-sky-900 mb-1">
+            <span className="text-xs font-bold">Needs Review</span>
+            <AlertCircle className="w-3.5 h-3.5 text-sky-700" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-bold font-mono text-indigo-300">{needsReview}</span>
-            <span className="text-xs text-indigo-400/80 font-mono">({needsReviewPct}%)</span>
+            <span className="text-xl font-bold font-mono text-sky-950">{needsReview}</span>
+            <span className="text-xs text-sky-700 font-mono">({needsReviewPct}%)</span>
           </div>
         </div>
 
         {/* Not Demonstrated */}
-        <div className="p-3 rounded-xl bg-slate-950/50 border border-slate-700/40 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-medium">Not Found</span>
+        <div className="p-3.5 rounded-2xl bg-[#F2F4F0] border border-[#E2E5DE] flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[#5F625E] mb-1">
+            <span className="text-xs font-bold">Not Found</span>
             <HelpCircle className="w-3.5 h-3.5" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-bold font-mono text-slate-200">{notDemonstrated}</span>
-            <span className="text-xs text-slate-400 font-mono">({notDemonstratedPct}%)</span>
+            <span className="text-xl font-bold font-mono text-[#111111]">{notDemonstrated}</span>
+            <span className="text-xs text-[#5F625E] font-mono">({notDemonstratedPct}%)</span>
           </div>
         </div>
       </div>

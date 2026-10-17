@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Home,
   FileCheck,
@@ -11,6 +11,7 @@ import {
   PanelLeftOpen,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { fetchHealthDiagnostics, HealthDiagnosticsResult } from '../../services/api';
 
 export type DashboardNavTab = 'home' | 'assessments' | 'evidence' | 'action-plan' | 'manage';
 
@@ -21,6 +22,7 @@ export interface SidebarProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   className?: string;
+  diagnostics?: HealthDiagnosticsResult | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -30,7 +32,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed = false,
   onToggleCollapse,
   className = '',
+  diagnostics: propDiagnostics,
 }) => {
+  const [diagnostics, setDiagnostics] = useState<HealthDiagnosticsResult | null>(propDiagnostics || null);
+
+  useEffect(() => {
+    if (propDiagnostics) {
+      setDiagnostics(propDiagnostics);
+      return;
+    }
+    let isMounted = true;
+    fetchHealthDiagnostics()
+      .then((data) => {
+        if (isMounted) setDiagnostics(data);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [propDiagnostics]);
+
   const navItems = [
     { id: 'home' as const, label: 'Home', icon: <Home className="w-5 h-5" /> },
     { id: 'assessments' as const, label: 'Assessments', icon: <FileCheck className="w-5 h-5" /> },
@@ -139,33 +160,66 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Bottom Metadata */}
+      {/* Bottom Telemetry & Metadata */}
       <div className={`pt-4 border-t border-[#E2E5DE] ${isCollapsed ? 'text-center' : ''}`}>
         {isCollapsed ? (
           <a
             href="https://github.com/puneetnith28/Parakh"
             target="_blank"
             rel="noreferrer"
-            className="w-10 h-10 mx-auto rounded-xl flex items-center justify-center text-[#5F625E] hover:text-[#111111] hover:bg-[#F2F4F0] transition-colors"
-            title="Repository docs — gemini-3.8-flash"
+            className="w-10 h-10 mx-auto rounded-xl flex items-center justify-center text-[#5F625E] hover:text-[#111111] hover:bg-[#F2F4F0] transition-colors relative group"
+            title={
+              diagnostics
+                ? `Engine: ${diagnostics.isMockModel ? 'Deterministic Rule Engine' : 'Google Gemini (Live)'} • Storage: ${diagnostics.storage?.storageMode || 'persistent'}`
+                : 'Repository docs — Parakh'
+            }
           >
+            <span
+              className={`w-2 h-2 rounded-full absolute top-2 right-2 ${
+                diagnostics?.status === 'ok'
+                  ? diagnostics.isMockModel
+                    ? 'bg-amber-400'
+                    : 'bg-[#9FE870]'
+                  : 'bg-[#828580]'
+              }`}
+            />
             <ExternalLink className="w-4 h-4" />
           </a>
         ) : (
-          <>
-            <div className="text-[11px] font-mono text-[#828580] mb-2 truncate">
-              ENGINE: gemini-3.8-flash
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-[11px] font-mono text-[#5F625E]">
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  diagnostics?.status === 'ok'
+                    ? diagnostics.isMockModel
+                      ? 'bg-amber-500'
+                      : 'bg-[#163300] ring-2 ring-[#9FE870]'
+                    : 'bg-[#828580]'
+                }`}
+              />
+              <span className="font-semibold truncate text-[#111111]">
+                {diagnostics
+                  ? diagnostics.isMockModel
+                    ? 'RULE ENGINE (MOCK)'
+                    : 'GEMINI 1.5 PRO / FLASH'
+                  : 'ENGINE: CONNECTING...'}
+              </span>
             </div>
-            <a
-              href="https://github.com/puneetnith28/Parakh"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-[#5F625E] hover:text-[#111111] transition-colors"
-            >
-              <span>Repository docs</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </>
+            <div className="flex items-center justify-between text-[11px] text-[#5F625E]">
+              <span className="font-mono text-[10px] truncate">
+                {diagnostics?.storage?.storageMode === 'mongodb' ? 'Mongo Durable' : 'Memory Cache'}
+              </span>
+              <a
+                href="https://github.com/puneetnith28/Parakh"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-[#163300] hover:underline font-semibold"
+              >
+                <span>Docs</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
         )}
       </div>
     </div>

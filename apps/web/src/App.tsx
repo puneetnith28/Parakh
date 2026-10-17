@@ -52,8 +52,15 @@ export default function App() {
   } | null>(null);
   const [activeResultsTab, setActiveResultsTab] = useState<'map' | 'gaps' | 'proposal' | 'export'>('map');
 
-  // Stored recent assessments list
-  const [recentAssessments, setRecentAssessments] = useState<AssessmentSummaryItem[]>([]);
+  // Stored recent assessments list with localStorage persistence
+  const [recentAssessments, setRecentAssessments] = useState<AssessmentSummaryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('parakh_recent_assessments');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -108,7 +115,7 @@ export default function App() {
     };
   }, []);
 
-  // Update recent assessments list when a report finishes
+  // Update recent assessments list and persist to localStorage when a report finishes
   useEffect(() => {
     if (report) {
       const summary: AssessmentSummaryItem = {
@@ -123,24 +130,73 @@ export default function App() {
         needsReviewCount: report.coverageSummary.needsReview,
         totalRequirements: report.coverageSummary.total,
         provenanceVerified: Boolean(report.resolvedCommitSha),
+        viewToken: viewToken || undefined,
       };
       setRecentAssessments((prev) => {
         const exists = prev.some((a) => a.id === summary.id);
-        if (exists) return prev.map((a) => (a.id === summary.id ? summary : a));
-        return [summary, ...prev];
+        const next = exists ? prev.map((a) => (a.id === summary.id ? summary : a)) : [summary, ...prev];
+        try {
+          localStorage.setItem('parakh_recent_assessments', JSON.stringify(next));
+        } catch {}
+        return next;
       });
     }
-  }, [report]);
+  }, [report, viewToken]);
 
   // Reset window scroll position on view transitions
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [currentView]);
 
-  const handleStartNewAssessment = () => {
+  const handleStartNewAssessment = (customRepoUrl?: unknown) => {
+    if (typeof customRepoUrl === 'string') {
+      setRepoUrl(customRepoUrl);
+    }
     setValidationError(null);
     setSuccessMessage(null);
     setIsModeModalOpen(true);
+  };
+
+  const handleSelectRecentAssessment = async (id: string) => {
+    const item = recentAssessments.find((a) => a.id === id);
+    if (!item) return;
+
+    if (report && report.id === id) {
+      setStage('results');
+      setCurrentView('dashboard');
+      setDashboardTab('assessments');
+      return;
+    }
+
+    if (item.viewToken) {
+      setIsLoading(true);
+      try {
+        const { report: loadedReport, viewToken: loadedToken } = await fetchReportById(item.id, item.viewToken);
+        setReport(loadedReport);
+        setViewToken(loadedToken);
+        setStage('results');
+        setCurrentView('dashboard');
+        setDashboardTab('assessments');
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('reportId', loadedReport.id);
+        newUrl.searchParams.set('token', loadedToken);
+        window.history.replaceState({}, '', newUrl.toString());
+      } catch (err: any) {
+        setValidationError(err.message || 'Failed to load report from storage.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleDeleteAssessmentFromHistory = (id: string) => {
+    setRecentAssessments((prev) => {
+      const next = prev.filter((a) => a.id !== id);
+      try {
+        localStorage.setItem('parakh_recent_assessments', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   };
 
   const handleSelectMode = (mode: EvaluationMode) => {
@@ -400,7 +456,8 @@ export default function App() {
               ) : recentAssessments.length > 0 ? (
                 <DashboardAssessmentList
                   assessments={recentAssessments}
-                  onSelectAssessment={() => {}}
+                  onSelectAssessment={handleSelectRecentAssessment}
+                  onDeleteAssessment={handleDeleteAssessmentFromHistory}
                   onNewAssessment={handleStartNewAssessment}
                 />
               ) : (

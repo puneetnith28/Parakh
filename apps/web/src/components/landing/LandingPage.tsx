@@ -1,21 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ArrowRight,
   ShieldCheck,
   FileSearch,
   Lock,
-  GitBranch,
   ExternalLink,
   Terminal,
 } from 'lucide-react';
 import { LandingHero } from './LandingHero';
 import { HowItWorksSteps } from './HowItWorksSteps';
+import { LiveRepositoryInspector } from './LiveRepositoryInspector';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 
 export interface LandingPageProps {
-  onStartAssessment?: () => void;
+  onStartAssessment?: (repoUrl?: string) => void;
   onExploreDemo?: () => void;
   onOpenReport?: (id: string) => void;
 }
@@ -24,12 +24,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onStartAssessment,
   onExploreDemo,
 }) => {
+  const [resolvedCommitSha, setResolvedCommitSha] = useState<string>('');
+
   return (
     <div className="w-full bg-white flex flex-col">
       {/* 1. Hero Section (White background) */}
       <LandingHero
         onStartAssessment={onStartAssessment}
         onExploreDemo={onExploreDemo}
+        latestCommitSha={resolvedCommitSha}
       />
 
       {/* 2. White Section: Interactive Animated Evaluation Steps */}
@@ -56,40 +59,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            {/* Inspection Metrics Card */}
-            <div className="bg-white rounded-3xl p-6 sm:p-8 text-[#111111] shadow-xl border border-black/5">
-              <div className="flex items-center justify-between pb-4 border-b border-[#E2E5DE]">
-                <div className="flex items-center gap-2">
-                  <GitBranch className="w-5 h-5 text-[#163300]" />
-                  <span className="font-mono text-sm font-bold">puneetnith28/Parakh</span>
-                </div>
-                <Badge variant="dark" size="sm">PINNED</Badge>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 my-6">
-                <div className="bg-[#F2F4F0] p-4 rounded-2xl">
-                  <div className="text-2xl font-bold font-display text-[#163300]">150</div>
-                  <div className="text-xs text-[#5F625E] font-medium mt-1">Files Scanned</div>
-                </div>
-                <div className="bg-[#F2F4F0] p-4 rounded-2xl">
-                  <div className="text-2xl font-bold font-display text-[#163300]">100%</div>
-                  <div className="text-xs text-[#5F625E] font-medium mt-1">Evidence Grounded</div>
-                </div>
-                <div className="bg-[#F2F4F0] p-4 rounded-2xl">
-                  <div className="text-2xl font-bold font-display text-[#163300]">0</div>
-                  <div className="text-xs text-[#5F625E] font-medium mt-1">Ungrounded Claims</div>
-                </div>
-                <div className="bg-[#F2F4F0] p-4 rounded-2xl">
-                  <div className="text-2xl font-bold font-display text-[#163300]">SHA-256</div>
-                  <div className="text-xs text-[#5F625E] font-medium mt-1">Provenance Hash</div>
-                </div>
-              </div>
-
-              <div className="text-xs font-mono text-[#5F625E] bg-[#F2F4F0] p-3 rounded-xl flex items-center justify-between">
-                <span>commit: 848ce1d9f01bb431b643724a...</span>
-                <span className="text-[#163300] font-bold">VERIFIED</span>
-              </div>
-            </div>
+            {/* Dynamic Live Repository Inspector */}
+            <LiveRepositoryInspector
+              onStartAssessment={onStartAssessment}
+              onCommitResolved={(sha) => setResolvedCommitSha(sha)}
+            />
           </div>
         </div>
       </section>
@@ -124,7 +98,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             {/* Code Snippet Box */}
             <div className="mt-6 bg-[#163300] text-emerald-100 p-6 rounded-2xl font-mono text-xs sm:text-sm overflow-x-auto leading-relaxed shadow-inner">
-              <div className="text-white/60 mb-2">// Pinned commit 848ce1d — Canonical HMAC-SHA256 signature generation</div>
+              <div className="text-white/60 mb-2">
+                // Pinned commit {resolvedCommitSha ? resolvedCommitSha.slice(0, 7) : 'head'} — Canonical HMAC-SHA256 signature generation
+              </div>
               <div className="text-white"><span className="text-[#9FE870]">export function</span> generateReportProvenanceHash(canonicalJson: string): string {'{'}</div>
               <div className="pl-4 text-emerald-300">const hash = crypto.createHash('sha256');</div>
               <div className="pl-4 text-emerald-300">hash.update(canonicalJson, 'utf8');</div>
@@ -261,7 +237,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <Button
               variant="primary"
               size="lg"
-              onClick={onStartAssessment}
+              onClick={() => onStartAssessment?.()}
               icon={<ArrowRight className="w-5 h-5" />}
               iconPosition="right"
               className="font-bold text-base px-9 py-4 shadow-md"
