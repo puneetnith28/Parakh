@@ -30,6 +30,23 @@ const envSchema = z.object({
   // Tiger Data
   TIGERDATA_DATABASE_URL: z.string().optional(),
 
+  // Temporal Workflow Engine (Phase 8 - Optional)
+  TEMPORAL_ADDRESS: z.string().optional(),
+  TEMPORAL_NAMESPACE: z.string().optional(),
+  TEMPORAL_API_KEY: z.string().optional(),
+
+  // SerpApi Search (Phase 8 - Optional)
+  SERPAPI_API_KEY: z.string().optional(),
+
+  // Backboard Developer Memory (Phase 8 - Optional)
+  BACKBOARD_API_KEY: z.string().optional(),
+
+  // ElevenLabs Audio Narration (Phase 8 - Optional)
+  ELEVENLABS_API_KEY: z.string().optional(),
+
+  // DigitalOcean Worker (Phase 8 - Optional)
+  DIGITALOCEAN_ACCESS_TOKEN: z.string().optional(),
+
   // Resource caps
   MAX_UPLOAD_MB: z.coerce.number().default(8),
   MAX_PDF_PAGES: z.coerce.number().default(40),

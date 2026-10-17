@@ -15,6 +15,7 @@ out/
 *.tsbuildinfo
 
 # Environment variables & secrets
+tiger-cloud-parakh-credentials.env
 atlas-credentials.env
 .env
 .env.local
