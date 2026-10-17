@@ -10,9 +10,11 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { mongoConnection } from "./storage/mongodb.js";
 import { ensureDatabaseIndexes } from "./storage/models/indexes.js";
 import { initSentry } from "./observability/sentry.js";
+import { validateConfigAtStartup } from "./config.js";
 
 // Initialize Sentry agent tracing
 initSentry();
+validateConfigAtStartup();
 
 const app = express();
 const PORT = process.env.PORT || 3000;

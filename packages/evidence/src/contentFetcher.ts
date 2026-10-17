@@ -10,8 +10,8 @@ import type { ScannedFileEntry } from "./treeScanner.js";
  */
 
 export interface ContentFetcherOptions {
-  maxFiles?: number; // default: 150
-  maxBytesPerFile?: number; // default: 200 KB (204,800 bytes)
+  maxFiles?: number; // default: 200
+  maxBytesPerFile?: number; // default: 256 KB (262,144 bytes)
   maxAggregateBytes?: number; // default: 10 MB (10,485,760 bytes)
   concurrency?: number; // default: 5
   lowRateLimitThreshold?: number; // default: 10
@@ -81,8 +81,8 @@ export class ContentFetcher {
     files: ScannedFileEntry[],
     options: ContentFetcherOptions = {}
   ): Promise<BatchFetchResult> {
-    const maxFiles = options.maxFiles ?? 150;
-    const maxBytesPerFile = options.maxBytesPerFile ?? 200 * 1024;
+    const maxFiles = options.maxFiles ?? 200;
+    const maxBytesPerFile = options.maxBytesPerFile ?? 256 * 1024;
     const maxAggregateBytes = options.maxAggregateBytes ?? 10 * 1024 * 1024;
     const lowRateLimitThreshold = options.lowRateLimitThreshold ?? 10;
 

@@ -48,10 +48,10 @@ const envSchema = z.object({
   DIGITALOCEAN_ACCESS_TOKEN: z.string().optional(),
 
   // Resource caps
-  MAX_UPLOAD_MB: z.coerce.number().default(8),
-  MAX_PDF_PAGES: z.coerce.number().default(40),
-  MAX_REPOSITORY_FILES: z.coerce.number().default(150),
-  MAX_FILE_BYTES: z.coerce.number().default(200000),
+  MAX_UPLOAD_MB: z.coerce.number().default(10),
+  MAX_PDF_PAGES: z.coerce.number().default(30),
+  MAX_REPOSITORY_FILES: z.coerce.number().default(200),
+  MAX_FILE_BYTES: z.coerce.number().default(256 * 1024),
   MAX_ANALYSIS_REQUIREMENTS: z.coerce.number().default(40),
   ANALYSIS_TIMEOUT_SECONDS: z.coerce.number().default(120),
 });
@@ -74,3 +74,20 @@ export function loadConfig(rawEnv: Record<string, string | undefined> = process.
 }
 
 export const config = loadConfig();
+
+export function validateConfigAtStartup(cfg: AppConfig = config): void {
+  console.log(
+    `[Parakh Config] Resource Caps: Max Files=${cfg.MAX_REPOSITORY_FILES}, Max File Bytes=${cfg.MAX_FILE_BYTES}, Max Upload=${cfg.MAX_UPLOAD_MB}MB, Max Pages=${cfg.MAX_PDF_PAGES}`
+  );
+  if (!cfg.MODEL_API_KEY && !cfg.AI_STUDIO_API_KEY) {
+    console.warn("[Parakh Config] Warning: No AI_STUDIO_API_KEY / MODEL_API_KEY configured. Running in Mock Mode.");
+  } else {
+    console.log(`[Parakh Config] Model Provider: ${cfg.MODEL_PROVIDER} (${cfg.MODEL_NAME})`);
+  }
+  if (!cfg.MONGODB_URI) {
+    console.warn("[Parakh Config] Warning: MONGODB_URI not provided. Running with In-Memory fallback storage.");
+  } else {
+    console.log("[Parakh Config] MongoDB Atlas URI configured.");
+  }
+}
+
