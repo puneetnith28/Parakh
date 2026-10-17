@@ -51,8 +51,8 @@ export function validateGitHubUrl(rawInput: string): GitHubUrlValidationResult {
 
   const trimmed = rawInput.trim();
 
-  // Guard against encoded traversal or control chars
-  if (/[\x00-\x1F\x7F]/.test(trimmed) || /%2e%2e/i.test(trimmed)) {
+  // Guard against encoded or literal traversal or control chars
+  if (/[\x00-\x1F\x7F]/.test(trimmed) || /\.\./.test(trimmed) || /%2e%2e/i.test(trimmed)) {
     return { valid: false, error: "URL contains forbidden control characters or traversal sequences" };
   }
 
