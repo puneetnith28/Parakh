@@ -12,6 +12,17 @@ interface RequirementsEditorProps {
 export function RequirementsEditor({ requirements, onChange, onConfirm }: RequirementsEditorProps) {
   const [newText, setNewText] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  const mandatoryCount = requirements.filter((r) => r.priority === "mandatory").length;
+  const preferredCount = requirements.filter((r) => r.priority === "preferred").length;
+  const userAddedCount = requirements.filter(
+    (r) => r.sourceLocation?.origin === "user_added" || r.id.includes("custom")
+  ).length;
+
+  const filteredRequirements = selectedCategory === "all"
+    ? requirements
+    : requirements.filter((r) => r.category === selectedCategory);
 
   const handleUpdate = (updated: Requirement) => {
     onChange(requirements.map((r) => (r.id === updated.id ? updated : r)));
@@ -43,14 +54,24 @@ export function RequirementsEditor({ requirements, onChange, onConfirm }: Requir
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span>Review & Edit Requirements</span>
+            <span>Review & Refine Requirements</span>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
               {requirements.length} total
             </span>
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Review the extracted technical requirements. You can edit descriptions, adjust priorities, or add missing criteria before analysis.
-          </p>
+          <div className="flex items-center gap-2 mt-2 text-xs">
+            <span className="px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400 font-mono">
+              {mandatoryCount} mandatory
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 font-mono">
+              {preferredCount} preferred
+            </span>
+            {userAddedCount > 0 && (
+              <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono">
+                {userAddedCount} user added
+              </span>
+            )}
+          </div>
         </div>
 
         <button
@@ -61,6 +82,24 @@ export function RequirementsEditor({ requirements, onChange, onConfirm }: Requir
           <Plus className="w-4 h-4 mr-1.5" />
           Add Requirement
         </button>
+      </div>
+
+      {/* Category Filter Pills */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+        {["all", "frontend", "backend", "database", "devops", "architecture", "security", "testing", "general"].map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-3 py-1 rounded-lg capitalize whitespace-nowrap transition ${
+              selectedCategory === cat
+                ? "bg-emerald-500 text-slate-950 font-bold"
+                : "bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
       {/* Add Custom Requirement Input */}
@@ -86,12 +125,14 @@ export function RequirementsEditor({ requirements, onChange, onConfirm }: Requir
 
       {/* Requirements List */}
       <div className="space-y-3">
-        {requirements.length === 0 ? (
+        {filteredRequirements.length === 0 ? (
           <div className="text-center py-10 text-slate-500 text-sm">
-            No requirements extracted. Click "Add Requirement" to create one manually.
+            {requirements.length === 0
+              ? 'No requirements extracted. Click "Add Requirement" to create one manually.'
+              : `No requirements in category "${selectedCategory}". Click "All" to view all requirements.`}
           </div>
         ) : (
-          requirements.map((req) => (
+          filteredRequirements.map((req) => (
             <RequirementCard
               key={req.id}
               requirement={req}

@@ -15,8 +15,9 @@ export default function App() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Requirements stage state
-  const [stage, setStage] = useState<"input" | "review_requirements">("input");
+  const [stage, setStage] = useState<"input" | "review_requirements" | "analyzing" | "results">("input");
   const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [analysisStatus, setAnalysisStatus] = useState<string>("");
 
   useEffect(() => {
     let isMounted = true;
@@ -75,7 +76,8 @@ export default function App() {
   };
 
   const handleConfirmRequirements = () => {
-    alert(`Confirmed ${requirements.length} requirements. Ready to initiate repository evidence matching!`);
+    setStage("analyzing");
+    setAnalysisStatus("Requirements confirmed. Preparing repository inspection...");
   };
 
   return (
@@ -123,6 +125,27 @@ export default function App() {
               onChange={setRequirements}
               onConfirm={handleConfirmRequirements}
             />
+          </div>
+        )}
+
+        {stage === "analyzing" && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 sm:p-12 text-center space-y-6 max-w-xl mx-auto shadow-2xl">
+            <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto" />
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-white">Analyzing Repository Evidence</h3>
+              <p className="text-sm text-slate-400 font-mono">Target: {repoUrl}</p>
+              <p className="text-xs text-emerald-400 mt-2">{analysisStatus}</p>
+            </div>
+            <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+              <span>{requirements.length} requirements verified</span>
+              <button
+                type="button"
+                onClick={() => setStage("review_requirements")}
+                className="text-slate-400 hover:text-slate-200 transition underline"
+              >
+                Cancel & Review
+              </button>
+            </div>
           </div>
         )}
       </main>
