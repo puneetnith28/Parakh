@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
 import { getStorage } from "../storage/index.js";
+import { config } from "../config.js";
 
 /**
  * Generates a cryptographically secure 256-bit access token.
@@ -65,6 +66,16 @@ export async function requireReportToken(
   }
 
   const storage = getStorage();
+
+  if (config.NODE_ENV === "production" && !storage.isPersistent() && process.env.STORAGE_MODE !== "memory") {
+    res.status(503).json({
+      status: "error",
+      code: "DURABLE_STORAGE_UNAVAILABLE",
+      message: "Durable database persistence is unavailable in production. Cannot retrieve report.",
+    });
+    return;
+  }
+
   const record = await storage.getReportById(reportId);
 
   if (!record) {

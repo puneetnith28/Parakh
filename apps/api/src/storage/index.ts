@@ -5,32 +5,38 @@ import mongoose from "mongoose";
 export * from "./memoryStore.js";
 export * from "./mongoStore.js";
 
-let storageInstance: ReportStorage | null = null;
+let customStorage: ReportStorage | null = null;
+const mongoStorage = new MongoReportStorage();
+const memoryStorage = new MemoryReportStorage();
 
 /**
  * Returns the configured storage adapter.
- * Uses MongoReportStorage if MongoDB is connected, otherwise MemoryReportStorage.
+ * - If an explicit custom storage is set via setStorage(), returns it (used for test isolation).
+ * - If STORAGE_MODE is explicitly set to 'memory', returns in-memory storage.
+ * - If MongoDB is connected and ready (readyState === 1), dynamically returns MongoReportStorage.
+ * - Otherwise dynamically returns MemoryReportStorage without caching, so that subsequent
+ *   requests immediately transition to MongoReportStorage when connection completes.
  */
 export function getStorage(): ReportStorage {
-  if (storageInstance) {
-    return storageInstance;
+  if (customStorage) {
+    return customStorage;
   }
 
-  const mongoUri = process.env.MONGODB_URI;
-
-  if (mongoUri && mongoUri.trim().startsWith("mongodb") && mongoose.connection.readyState === 1) {
-    storageInstance = new MongoReportStorage();
-  } else {
-    // Stateless fallback mode
-    storageInstance = new MemoryReportStorage();
+  if (process.env.STORAGE_MODE === "memory") {
+    return memoryStorage;
   }
 
-  return storageInstance;
+  if (mongoose.connection.readyState === 1) {
+    return mongoStorage;
+  }
+
+  // Fallback to in-memory store dynamically without permanently caching it
+  return memoryStorage;
 }
 
 /**
- * Resets storage instance (useful for test isolation).
+ * Explicitly sets or resets the storage instance (for test isolation).
  */
 export function setStorage(storage: ReportStorage | null): void {
-  storageInstance = storage;
+  customStorage = storage;
 }

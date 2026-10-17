@@ -16,6 +16,8 @@ import { ensureDatabaseIndexes } from "./storage/models/indexes.js";
 import { initSentry } from "./observability/sentry.js";
 import { config, validateConfigAtStartup } from "./config.js";
 import { analysisRateLimiter } from "./middleware/rateLimiter.js";
+import { getStorage } from "./storage/index.js";
+import type { Server } from "node:http";
 
 // Initialize Sentry agent tracing
 initSentry();
@@ -55,8 +57,38 @@ app.use("/api/analysis", analysisRateLimiter);
 app.use("/api/assessment/analyze", analysisRateLimiter);
 app.use("/api/repository/inspect", analysisRateLimiter);
 
-// Mount routes
+// 1. Mount health and readiness routes first (always accessible for liveness/readiness probes)
 app.use(healthRouter);
+
+/**
+ * Production storage readiness traffic guard:
+ * Blocks normal application traffic if durable storage is disconnected in production.
+ */
+export function productionStorageGuard(
+  _req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+): void {
+  if (config.NODE_ENV === "production" && process.env.STORAGE_MODE !== "memory") {
+    const storage = getStorage();
+    if (!storage.isPersistent()) {
+      res.status(503).json({
+        status: "error",
+        code: "DURABLE_STORAGE_UNAVAILABLE",
+        message:
+          "Durable database persistence is unavailable in production. Normal application traffic is suspended until database readiness is restored.",
+        ready: false,
+        persisted: false,
+      });
+      return;
+    }
+  }
+  next();
+}
+
+app.use(productionStorageGuard);
+
+// 2. Mount normal application routes (guarded by storage readiness in production)
 app.use(opportunityRouter);
 app.use(uploadRouter);
 app.use(repositoryRouter);
@@ -76,17 +108,68 @@ if (fs.existsSync(distPath)) {
 // Centralized error handling middleware
 app.use(errorHandler);
 
-if (process.env.NODE_ENV !== "test" && !process.env.NODE_TEST_CONTEXT) {
+let activeServer: Server | null = null;
+
+export async function startServer(port: number = Number(PORT)): Promise<Server> {
+  const isProduction = config.NODE_ENV === "production";
+  const isExplicitMemory = process.env.STORAGE_MODE === "memory";
+
   if (process.env.MONGODB_URI) {
-    mongoConnection.connect(process.env.MONGODB_URI).then(() => {
-      ensureDatabaseIndexes().catch((err) =>
-        console.warn("[Parakh API] Index registration warning:", err.message)
-      );
-    });
+    console.log("[Parakh API] Initializing MongoDB connection...");
+    const connected = await mongoConnection.connect(process.env.MONGODB_URI);
+    if (connected) {
+      try {
+        await ensureDatabaseIndexes();
+        console.log("[Parakh API] Database indexes verified.");
+      } catch (err: any) {
+        console.warn("[Parakh API] Index registration warning:", err.message);
+      }
+    } else if (isProduction && !isExplicitMemory) {
+      console.error("[Parakh API] FATAL: Failed to connect to required MongoDB in production.");
+    }
+  } else if (isProduction && !isExplicitMemory) {
+    console.warn("[Parakh API] WARNING: MONGODB_URI is not set in production mode.");
   }
-  app.listen(PORT, () => {
-    console.log(`[Parakh API] Listening on port ${PORT}`);
+
+  return new Promise((resolve) => {
+    activeServer = app.listen(port, () => {
+      console.log(`[Parakh API] Listening on port ${port} (env: ${config.NODE_ENV})`);
+      resolve(activeServer!);
+    });
   });
+}
+
+export async function shutdownServer(server?: Server): Promise<void> {
+  const targetServer = server || activeServer;
+  if (targetServer) {
+    await new Promise<void>((resolve, reject) => {
+      targetServer.close((err) => (err ? reject(err) : resolve()));
+    });
+    activeServer = null;
+  }
+  await mongoConnection.disconnect();
+}
+
+if (process.env.NODE_ENV !== "test" && !process.env.NODE_TEST_CONTEXT) {
+  startServer().catch((err) => {
+    console.error("[Parakh API] Unhandled startup error:", err);
+    process.exit(1);
+  });
+
+  const handleTermination = async (signal: string) => {
+    console.log(`[Parakh API] Received ${signal}. Gracefully shutting down...`);
+    try {
+      await shutdownServer();
+      console.log("[Parakh API] Shutdown complete.");
+      process.exit(0);
+    } catch (err) {
+      console.error("[Parakh API] Error during shutdown:", err);
+      process.exit(1);
+    }
+  };
+
+  process.on("SIGTERM", () => handleTermination("SIGTERM"));
+  process.on("SIGINT", () => handleTermination("SIGINT"));
 }
 
 export default app;

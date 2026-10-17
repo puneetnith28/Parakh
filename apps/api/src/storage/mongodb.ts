@@ -10,7 +10,7 @@ export interface MongoHealthStatus {
 
 export class MongoConnectionManager {
   private static instance: MongoConnectionManager;
-  private isConnecting = false;
+  private connectPromise: Promise<boolean> | null = null;
 
   private constructor() {
     this.setupListeners();
@@ -40,6 +40,7 @@ export class MongoConnectionManager {
   /**
    * Attempts connection to MongoDB Atlas. If uri is omitted or empty,
    * gracefully skips without error, enabling stateless memory mode.
+   * If a connection attempt is already in flight, awaits and returns the existing promise.
    */
   public async connect(uri?: string, retries: number = 2): Promise<boolean> {
     const targetUri = uri !== undefined ? uri : process.env.MONGODB_URI;
@@ -52,16 +53,15 @@ export class MongoConnectionManager {
       return true; // Already connected
     }
 
-    if (this.isConnecting) {
-      return false;
+    if (this.connectPromise) {
+      return this.connectPromise;
     }
 
-    this.isConnecting = true;
-    const maxAttempts = retries + 1;
-    const isLocal = targetUri.includes("localhost") || targetUri.includes("127.0.0.1");
-    const useTls = !isLocal || targetUri.includes("+srv:") || targetUri.includes("tls=true") || targetUri.includes("ssl=true");
+    this.connectPromise = (async () => {
+      const maxAttempts = retries + 1;
+      const isLocal = targetUri.includes("localhost") || targetUri.includes("127.0.0.1");
+      const useTls = !isLocal || targetUri.includes("+srv:") || targetUri.includes("tls=true") || targetUri.includes("ssl=true");
 
-    try {
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
           await mongoose.connect(targetUri, {
@@ -79,17 +79,25 @@ export class MongoConnectionManager {
             );
             await new Promise((resolve) => setTimeout(resolve, 1000));
           } else {
-            console.warn(
-              `[Parakh Storage] MongoDB connection failed (${err.message}). Falling back to stateless memory store.`
-            );
+            if (process.env.NODE_ENV === "production" && process.env.STORAGE_MODE !== "memory") {
+              console.error(
+                `[Parakh Storage] CRITICAL: MongoDB connection failed (${err.message}). Ephemeral fallback is prohibited in production.`
+              );
+            } else {
+              console.warn(
+                `[Parakh Storage] MongoDB connection failed (${err.message}). Falling back to stateless memory store.`
+              );
+            }
             return false;
           }
         }
       }
       return false;
-    } finally {
-      this.isConnecting = false;
-    }
+    })().finally(() => {
+      this.connectPromise = null;
+    });
+
+    return this.connectPromise;
   }
 
   /**
@@ -125,6 +133,13 @@ export class MongoConnectionManager {
   }
 
   public async disconnect(): Promise<void> {
+    if (this.connectPromise) {
+      try {
+        await this.connectPromise;
+      } catch {
+        // Ignore connection errors on teardown
+      }
+    }
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }

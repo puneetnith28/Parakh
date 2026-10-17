@@ -8,6 +8,19 @@ import { getStorage } from "../storage/index.js";
 
 export const healthRouter = Router();
 
+// 1. Process Liveness: /healthz
+// Returns 200 OK as long as the process is alive and responsive (Render / container liveness probe)
+healthRouter.get("/healthz", (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: "ok",
+    service: "parakh-api",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+// 2. Component Diagnostics: /api/health
+// Comprehensive diagnostic reporting including model provider, mastra, and storage
 const getHealthStatus = (_req: Request, res: Response) => {
   const currentStorage = getStorage();
   const isDurable = currentStorage.isPersistent();
@@ -32,7 +45,6 @@ const getHealthStatus = (_req: Request, res: Response) => {
   });
 };
 
-healthRouter.get("/healthz", getHealthStatus);
 healthRouter.get("/api/health", getHealthStatus);
 
 healthRouter.get("/api/ready", (_req: Request, res: Response) => {

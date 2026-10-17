@@ -21,6 +21,7 @@
     "test": "npm run test:workspaces && npm run test:unit && npm run test:integration && npm run test:security && npm run test:e2e",
     "baseline:check": "npm run build && npm run test && npm run test:benchmark",
     "db:check": "node --env-file=.env --input-type=module -e 'import mongoose from \"mongoose\"; const uri = process.env.MONGODB_URI; if (!uri) { console.error(\"❌ No MONGODB_URI found in .env\"); process.exit(1); } console.log(\"Connecting to MongoDB...\"); const t = Date.now(); await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 }); console.log(\"✅ MongoDB Atlas Connected successfully!\"); console.log(\"   Host:    \", mongoose.connection.host); console.log(\"   Database:\", mongoose.connection.name); console.log(\"   Latency: \", (Date.now() - t) + \"ms\"); await mongoose.disconnect();'",
+    "test:db": "tsx --env-file=.env --test tests/integration/mongoRealPersistence.test.ts",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,html,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,html,css}\""

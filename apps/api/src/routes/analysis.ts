@@ -34,6 +34,16 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
 
     const { repositoryUrl, requirements, ref, opportunityId, title } = parsed.data;
 
+    const storage = getStorage();
+    if (config.NODE_ENV === "production" && !storage.isPersistent() && process.env.STORAGE_MODE !== "memory") {
+      res.status(503).json({
+        status: "error",
+        code: "DURABLE_STORAGE_UNAVAILABLE",
+        message: "Durable database persistence is unavailable in production. Analysis cannot proceed without durable storage.",
+      });
+      return;
+    }
+
     // Validate GitHub URL and enforce network boundaries (SSRF defense)
     const urlValidation = validateGitHubUrl(repositoryUrl);
     if (!urlValidation.valid) {
@@ -161,8 +171,8 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
     });
 
     // Persistence policy: Production must not silently fall back to ephemeral memory
-    const storage = getStorage();
-    const isPersistent = storage.isPersistent();
+    const currentStorage = getStorage();
+    const isPersistent = currentStorage.isPersistent();
 
     if (config.NODE_ENV === "production" && !isPersistent && process.env.STORAGE_MODE !== "memory") {
       res.status(503).json({

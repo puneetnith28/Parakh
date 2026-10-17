@@ -60,17 +60,6 @@ export async function ensureDatabaseIndexes(): Promise<{
   count: number;
   indexes: IndexDefinition[];
 }> {
-  // Apply schema indexes
-  AssessmentReportModel.schema.index({ reportId: 1 }, { unique: true });
-  AssessmentReportModel.schema.index({ viewToken: 1 }, { sparse: true });
-  AssessmentReportModel.schema.index({ opportunityId: 1, createdAt: -1 });
-  AssessmentReportModel.schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-
-  AnalysisRunModel.schema.index({ runId: 1, status: 1 });
-  AnalysisRunModel.schema.index({ idempotencyKey: 1 }, { sparse: true });
-
-  OpportunityModel.schema.index({ opportunityId: 1 }, { unique: true });
-
   if (mongoose.connection.readyState === 1) {
     try {
       await Promise.all([
