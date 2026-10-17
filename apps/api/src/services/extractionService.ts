@@ -31,6 +31,7 @@ export interface ExtractionResponse {
     model: string;
     latencyMs: number;
     isMock: boolean;
+    fallbackActive?: boolean;
     requirementCount: number;
   };
 }
@@ -67,7 +68,7 @@ export class ExtractionService {
 
     let rawRequirements: Requirement[] = [];
     let summary = "Extracted technical requirements from opportunity brief";
-    let provider = client.adapter.provider;
+    let provider: string = client.adapter.provider;
     let modelName = client.adapter.modelName;
     let latencyMs = 0;
     let isMock = provider === "mock";

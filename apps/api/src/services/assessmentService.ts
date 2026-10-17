@@ -102,6 +102,7 @@ export class AssessmentService {
       citedCandidateIds: string[];
       limitations?: string;
       nextActions?: string[];
+      downgradeReason?: string;
     }> => {
       const prompt = formatAssessmentPrompt({
         requirement: req,
