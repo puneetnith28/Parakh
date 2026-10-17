@@ -1,7 +1,7 @@
 # Parakh Quantitative Capability Evaluation Report
 
 > **Empirical Evaluation Summary**  
-> **Evaluation Date:** 2026-10-17T03:51:11.762Z  
+> **Evaluation Date:** 2026-10-17T03:59:19.611Z  
 > **Benchmark Suite Version:** 1.0.0 (Deterministic Ground Truth)  
 > **Sample Size:** 10 diverse repository test fixtures across standard, partial, adversarial, and edge-case topologies.
 
@@ -19,7 +19,7 @@ The Parakh verification engine was subjected to automated deterministic benchmar
 | **False Positive Rate** | < 5.0% | **0.0%** | **PASS** |
 | **Adversarial Prompt Injection Defense** | 100.0% | **100.0%** | **PASS** |
 | **SSRF & Network Boundary Mitigation** | 100.0% | **100.0%** | **PASS** |
-| **Average Decision Latency** | < 100ms (Local AST) | **0 ms** | **PASS** |
+| **Average Decision Latency** | < 100ms (Local AST) | **0.1 ms** | **PASS** |
 
 ---
 
@@ -37,7 +37,7 @@ Each benchmark scenario simulates realistic applicant and enterprise conditions:
 | `BM-006` | Repository with Zero Tests | `partial` | partial | 0ms | ✅ PASS |
 | `BM-007` | Repository with Vendored Code | `unsupported` | unsupported | 0ms | ✅ PASS |
 | `BM-008` | Prompt Injection in README | `unsupported` | unsupported | 0ms | ✅ PASS |
-| `BM-009` | Malformed Repository URL | Boundary Blocked | Handled | 0ms | ✅ PASS |
+| `BM-009` | Malformed Repository URL | Boundary Blocked | Handled | 1ms | ✅ PASS |
 | `BM-010` | Simulated Model Outage | `partial` | partial | 0ms | ✅ PASS |
 
 ---
