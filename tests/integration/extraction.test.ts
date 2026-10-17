@@ -152,3 +152,53 @@ test("Sanitizer rejects empty and oversized submissions", () => {
   assert.throws(() => TextSanitizer.sanitize(""), /empty or whitespace only/);
   assert.throws(() => TextSanitizer.sanitize("a".repeat(50001)), /exceeds maximum allowed limit/);
 });
+
+test("POST /api/opportunity/text extracts structured requirements matching schema", async () => {
+  const { default: app } = await import("../../apps/api/src/server.js");
+  const server = app.listen(0);
+  const address = server.address() as any;
+  const port = address.port;
+
+  try {
+    const briefText = `
+We need a Senior Fullstack Engineer to build a customer portal.
+Requirements:
+- Must develop responsive web pages using React and TypeScript.
+- Must provide Node.js REST API endpoints with robust input validation.
+- Must configure PostgreSQL database schemas and automated migrations.
+- Nice to have: Docker containerization and CI/CD pipelines.
+- Must implement unit tests with Jest.
+    `;
+
+    const res = await fetch(`http://127.0.0.1:${port}/api/opportunity/text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: briefText,
+        title: "Customer Portal RFP",
+      }),
+    });
+
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as any;
+
+    assert.equal(body.status, "success");
+    assert.ok(body.opportunity.id.startsWith("opp_"));
+    assert.equal(body.opportunity.title, "Customer Portal RFP");
+    assert.ok(body.opportunity.characterCount > 100);
+
+    // Verify extraction matches schema
+    const validatedExtraction = ExtractedRequirementsResultSchema.parse(body.extraction);
+    assert.ok(validatedExtraction.requirements.length >= 2);
+
+    for (const req of validatedExtraction.requirements) {
+      assert.ok(req.id.startsWith("req_"));
+      assert.ok(req.text.length >= 3);
+      assert.ok(["frontend", "backend", "database", "devops", "architecture", "security", "testing", "general"].includes(req.category));
+      assert.ok(["mandatory", "preferred"].includes(req.priority));
+    }
+  } finally {
+    server.close();
+  }
+});
+

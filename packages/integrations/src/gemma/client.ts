@@ -1,4 +1,5 @@
 import { GemmaModelAdapter, type ModelAdapterConfig } from "./adapter.js";
+import { buildExtractionPrompt } from "./prompts.js";
 import type { ModelGenerationResult } from "./types.js";
 
 /**
@@ -14,7 +15,7 @@ export interface GemmaClientConfig extends ModelAdapterConfig {
 }
 
 export class GemmaClient {
-  private readonly adapter: GemmaModelAdapter;
+  readonly adapter: GemmaModelAdapter;
   readonly temperature: number;
   readonly maxOutputTokens: number;
 
@@ -71,5 +72,13 @@ export class GemmaClient {
       maxOutputTokens: this.maxOutputTokens,
       systemInstruction,
     });
+  }
+
+  /**
+   * Extract verifiable technical requirements from raw opportunity brief text.
+   */
+  async extractRequirements(briefText: string): Promise<ModelGenerationResult> {
+    const { systemPrompt, userPrompt } = buildExtractionPrompt(briefText);
+    return this.executeConservativeReasoning(userPrompt, systemPrompt);
   }
 }

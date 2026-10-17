@@ -33,8 +33,19 @@ export class GemmaModelAdapter {
       process.env.MODEL_API_KEY ||
       process.env.AI_STUDIO_API_KEY ||
       process.env.GEMINI_API_KEY;
-    this.provider = config.provider || (this.apiKey ? "google-ai" : "mock");
-    this.modelName = config.modelName || "gemma-2-9b-it";
+    const rawProvider =
+      config.provider ||
+      process.env.MODEL_PROVIDER ||
+      (this.apiKey ? "google-ai" : "mock");
+    this.provider =
+      rawProvider === "google" || rawProvider === "google-ai"
+        ? "google-ai"
+        : rawProvider === "huggingface"
+        ? "huggingface"
+        : rawProvider === "ollama"
+        ? "ollama"
+        : "mock";
+    this.modelName = config.modelName || process.env.MODEL_NAME || "gemma-2-9b-it";
     this.baseUrl = config.baseUrl || this.getDefaultBaseUrl(this.provider);
     this.fetch = config.fetchFn || globalThis.fetch;
   }
@@ -66,6 +77,94 @@ export class GemmaModelAdapter {
 
     // Handle mock provider directly
     if (this.provider === "mock") {
+      const isExtraction =
+        prompt.includes("<opportunity_brief>") ||
+        Boolean(options.systemInstruction && /extraction|technical requirement/i.test(options.systemInstruction));
+
+      if (isExtraction) {
+        const briefMatch = prompt.match(/<opportunity_brief>([\s\S]*?)<\/opportunity_brief>/i);
+        const briefContent = briefMatch ? briefMatch[1].trim() : prompt;
+
+        const requirements = [];
+        let reqIdx = 1;
+
+        if (/react|frontend|ui|user interface|html|css|tailwind|vue/i.test(briefContent)) {
+          requirements.push({
+            id: `req_${String(reqIdx++).padStart(3, "0")}`,
+            text: "Develop responsive and accessible web frontend interface",
+            category: "frontend" as const,
+            priority: "mandatory" as const,
+            acceptanceCriteria: ["Frontend components render cleanly across viewports"],
+          });
+        }
+        if (/api|backend|node|express|endpoint|service|server|python|fastapi/i.test(briefContent)) {
+          requirements.push({
+            id: `req_${String(reqIdx++).padStart(3, "0")}`,
+            text: "Implement backend service endpoints with validation and error handling",
+            category: "backend" as const,
+            priority: "mandatory" as const,
+            acceptanceCriteria: ["Endpoints validate inputs and return structured error codes"],
+          });
+        }
+        if (/postgres|database|sql|mongo|storage|schema|migrations/i.test(briefContent)) {
+          requirements.push({
+            id: `req_${String(reqIdx++).padStart(3, "0")}`,
+            text: "Configure persistent database schema and data integrity constraints",
+            category: "database" as const,
+            priority: "mandatory" as const,
+            acceptanceCriteria: ["Schemas defined with migrations and primary keys"],
+          });
+        }
+        if (/docker|container|ci\/cd|deploy|render|devops|pipeline/i.test(briefContent)) {
+          requirements.push({
+            id: `req_${String(reqIdx++).padStart(3, "0")}`,
+            text: "Containerize application with Docker and configure CI/CD pipeline",
+            category: "devops" as const,
+            priority: "preferred" as const,
+            acceptanceCriteria: ["Dockerfile builds cleanly and CI executes test suites"],
+          });
+        }
+        if (/test|jest|playwright|e2e|unit test/i.test(briefContent)) {
+          requirements.push({
+            id: `req_${String(reqIdx++).padStart(3, "0")}`,
+            text: "Implement comprehensive automated unit and integration tests",
+            category: "testing" as const,
+            priority: "mandatory" as const,
+            acceptanceCriteria: ["Unit tests run without failure and cover critical paths"],
+          });
+        }
+
+        if (requirements.length === 0) {
+          requirements.push(
+            {
+              id: "req_001",
+              text: "Implement core system architecture and data processing logic",
+              category: "architecture" as const,
+              priority: "mandatory" as const,
+              acceptanceCriteria: ["Core processing pipeline executes end-to-end"],
+            },
+            {
+              id: "req_002",
+              text: "Provide automated test verification for business logic",
+              category: "testing" as const,
+              priority: "mandatory" as const,
+              acceptanceCriteria: ["Automated tests verify system behavior"],
+            }
+          );
+        }
+
+        return {
+          text: JSON.stringify({
+            summary: "Extracted technical requirements from client opportunity brief",
+            requirements,
+          }),
+          usage: { promptTokens: 120, completionTokens: 80, totalTokens: 200 },
+          provider: "mock",
+          model: this.modelName,
+          latencyMs: Date.now() - startTime,
+        };
+      }
+
       return {
         text: JSON.stringify({
           status: "demonstrated",
