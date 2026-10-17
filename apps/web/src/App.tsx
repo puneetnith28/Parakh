@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Requirement } from "@parakh/contracts";
+import { Requirement, AssessmentReport } from "@parakh/contracts";
 import { Header } from "./components/Header.tsx";
 import { InputSection } from "./components/InputSection.tsx";
 import { RequirementsEditor } from "./components/RequirementsEditor.tsx";
 import { getApiUrl } from "./config/api.ts";
-import { extractRequirementsFromText } from "./services/api.ts";
+import { extractRequirementsFromText, runAssessmentAnalysis } from "./services/api.ts";
 
 export default function App() {
   const [opportunityText, setOpportunityText] = useState("");
@@ -18,6 +18,8 @@ export default function App() {
   const [stage, setStage] = useState<"input" | "review_requirements" | "analyzing" | "results">("input");
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [analysisStatus, setAnalysisStatus] = useState<string>("");
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [report, setReport] = useState<AssessmentReport | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -75,9 +77,26 @@ export default function App() {
     }
   };
 
-  const handleConfirmRequirements = () => {
+  const handleConfirmRequirements = async () => {
+    if (requirements.length === 0) {
+      setValidationError("At least one requirement must be approved for analysis.");
+      return;
+    }
     setStage("analyzing");
-    setAnalysisStatus("Requirements confirmed. Preparing repository inspection...");
+    setAnalysisError(null);
+    setAnalysisStatus("Connecting to repository and resolving commit snapshot...");
+
+    try {
+      const resultReport = await runAssessmentAnalysis({
+        title: "Technical Capability Assessment",
+        repositoryUrl: repoUrl.trim(),
+        requirements,
+      });
+      setReport(resultReport);
+      setStage("results");
+    } catch (err: any) {
+      setAnalysisError(err.message || "Failed to complete capability analysis.");
+    }
   };
 
   return (
@@ -130,20 +149,73 @@ export default function App() {
 
         {stage === "analyzing" && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 sm:p-12 text-center space-y-6 max-w-xl mx-auto shadow-2xl">
-            <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto" />
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-white">Analyzing Repository Evidence</h3>
-              <p className="text-sm text-slate-400 font-mono">Target: {repoUrl}</p>
-              <p className="text-xs text-emerald-400 mt-2">{analysisStatus}</p>
-            </div>
-            <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-              <span>{requirements.length} requirements verified</span>
+            {analysisError ? (
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-400 text-xl font-bold">
+                  !
+                </div>
+                <h3 className="text-xl font-bold text-white">Analysis Interrupted</h3>
+                <p className="text-sm text-rose-300 bg-rose-950/40 border border-rose-800/40 rounded-xl p-3 text-left">
+                  {analysisError}
+                </p>
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleConfirmRequirements}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition"
+                  >
+                    Retry Analysis
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAnalysisError(null);
+                      setStage("review_requirements");
+                    }}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition"
+                  >
+                    Back to Requirements
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto" />
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-white">Analyzing Repository Evidence</h3>
+                  <p className="text-sm text-slate-400 font-mono">Target: {repoUrl}</p>
+                  <p className="text-xs text-emerald-400 mt-2">{analysisStatus}</p>
+                </div>
+                <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+                  <span>{requirements.length} requirements verified</span>
+                  <button
+                    type="button"
+                    onClick={() => setStage("review_requirements")}
+                    className="text-slate-400 hover:text-slate-200 transition underline"
+                  >
+                    Cancel & Review
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {stage === "results" && report && (
+          <div className="space-y-8">
+            <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6">
+              <div>
+                <h2 className="text-lg font-bold text-white">{report.opportunityTitle || "Capability Assessment Report"}</h2>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">
+                  Repo: {report.repositoryUrl} | Commit: {report.resolvedCommitSha?.slice(0, 7)}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setStage("review_requirements")}
-                className="text-slate-400 hover:text-slate-200 transition underline"
+                className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
               >
-                Cancel & Review
+                Refine Requirements
               </button>
             </div>
           </div>
