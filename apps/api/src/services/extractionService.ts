@@ -70,12 +70,15 @@ export class ExtractionService {
     let provider = client.adapter.provider;
     let modelName = client.adapter.modelName;
     let latencyMs = 0;
+    let isMock = provider === "mock";
+    let fallbackActive = false;
 
     try {
       const modelResult = await client.extractRequirements(sanitized.sanitizedText);
       latencyMs = modelResult.latencyMs;
       provider = modelResult.provider;
       modelName = modelResult.model;
+      isMock = Boolean(modelResult.isMock || provider === "mock");
 
       const parsed = ModelParser.parseWithSchema(
         modelResult.text,
@@ -98,10 +101,16 @@ export class ExtractionService {
           summary = parsed.data.summary;
         }
       } else {
+        fallbackActive = true;
+        isMock = true;
+        provider = "deterministic-fallback";
         rawRequirements = this.fallbackExtraction(sanitized.sanitizedText);
       }
     } catch {
       latencyMs = Date.now() - startTime;
+      fallbackActive = true;
+      isMock = true;
+      provider = "deterministic-fallback";
       rawRequirements = this.fallbackExtraction(sanitized.sanitizedText);
     }
 
@@ -137,7 +146,8 @@ export class ExtractionService {
         provider,
         model: modelName,
         latencyMs,
-        isMock: provider === "mock",
+        isMock,
+        fallbackActive,
         requirementCount: indexedRequirements.length,
       },
     };

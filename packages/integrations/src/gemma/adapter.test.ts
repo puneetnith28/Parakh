@@ -98,4 +98,54 @@ describe("Unified Gemma Model Adapter", () => {
       }
     );
   });
+
+  test("scrubs sensitive API keys from error messages", async () => {
+    const mockFetch: typeof fetch = async () => {
+      return new Response("API call failed with key=secret_api_key_12345", {
+        status: 400,
+        headers: { "Content-Type": "text/plain" },
+      });
+    };
+
+    const adapter = new GemmaModelAdapter({
+      provider: "google-ai",
+      apiKey: "secret_api_key_12345",
+      fetchFn: mockFetch,
+    });
+
+    await assert.rejects(
+      async () => adapter.generateText("prompt"),
+      (err: unknown) => {
+        assert.ok(err instanceof ModelProviderError);
+        assert.ok(!err.message.includes("secret_api_key_12345"), "API key must not appear in error message");
+        assert.ok(err.message.includes("key=***"), "API key must be masked with ***");
+        return true;
+      }
+    );
+  });
+
+  test("distinguishes mock provider from real provider with explicit isMock flag", async () => {
+    const mockAdapter = new GemmaModelAdapter({ provider: "mock" });
+    const mockRes = await mockAdapter.generateText("test");
+    assert.equal(mockRes.isMock, true);
+    assert.equal(mockRes.provider, "mock");
+
+    const realFetch: typeof fetch = async () => {
+      return new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: "{\"status\":\"demonstrated\"}" }] } }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    };
+
+    const realAdapter = new GemmaModelAdapter({
+      provider: "google-ai",
+      apiKey: "valid_key",
+      fetchFn: realFetch,
+    });
+    const realRes = await realAdapter.generateText("test");
+    assert.equal(realRes.isMock, false);
+    assert.equal(realRes.provider, "google-ai");
+  });
 });

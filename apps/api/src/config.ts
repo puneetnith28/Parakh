@@ -73,6 +73,18 @@ export function loadConfig(rawEnv: Record<string, string | undefined> = process.
       .join(", ");
     throw new Error(`[Configuration Error] Invalid environment configuration: ${errorDetails}`);
   }
+
+  // In production, do not silently present mock mode or run without credentials
+  if (
+    result.data.NODE_ENV === "production" &&
+    result.data.MODEL_PROVIDER !== "mock" &&
+    !result.data.MODEL_API_KEY
+  ) {
+    throw new Error(
+      "[Configuration Error] In production mode, MODEL_API_KEY (or AI_STUDIO_API_KEY) is required when MODEL_PROVIDER is not explicitly set to 'mock'."
+    );
+  }
+
   return result.data;
 }
 
@@ -82,8 +94,10 @@ export function validateConfigAtStartup(cfg: AppConfig = config): void {
   console.log(
     `[Parakh Config] Resource Caps: Max Files=${cfg.MAX_REPOSITORY_FILES}, Max File Bytes=${cfg.MAX_FILE_BYTES}, Max Upload=${cfg.MAX_UPLOAD_MB}MB, Max Pages=${cfg.MAX_PDF_PAGES}`
   );
-  if (cfg.MODEL_PROVIDER === "mock" || (!cfg.MODEL_API_KEY && !cfg.AI_STUDIO_API_KEY)) {
-    console.warn(`[Parakh Config] Notice: Running in Mock Provider Mode (provider: mock, model: ${cfg.MODEL_NAME}). Simulated responses will be returned.`);
+  if (cfg.MODEL_PROVIDER === "mock") {
+    console.warn(`[Parakh Config] Explicit Mock Provider Mode (provider: mock, model: ${cfg.MODEL_NAME}). Simulated responses will be returned.`);
+  } else if (!cfg.MODEL_API_KEY && !cfg.AI_STUDIO_API_KEY) {
+    console.warn(`[Parakh Config] Notice: No API key detected. Running in Fallback Mode (model: ${cfg.MODEL_NAME}).`);
   } else {
     console.log(`[Parakh Config] Model Provider: ${cfg.MODEL_PROVIDER} (${cfg.MODEL_NAME})`);
   }

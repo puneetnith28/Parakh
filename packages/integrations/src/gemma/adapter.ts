@@ -254,9 +254,10 @@ export class GemmaModelAdapter {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
+      const scrubbedError = errorText.replace(/key=[a-zA-Z0-9_\-]+/gi, "key=***");
       const isRetryable = response.status === 429 || response.status >= 500;
       throw new ModelProviderError(
-        `Google AI inference error HTTP ${response.status}: ${errorText}`,
+        `Google AI inference error HTTP ${response.status}: ${scrubbedError}`,
         "google-ai",
         response.status,
         isRetryable
