@@ -64,16 +64,41 @@ export function RequirementCard({ requirement, onUpdate, onDelete }: Requirement
               </button>
             </div>
           ) : (
-            <div className="flex items-start gap-2 group">
-              <p className="text-sm text-slate-200 font-medium leading-relaxed">{requirement.text}</p>
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-slate-200 transition"
-                title="Edit requirement"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
+            <div className="space-y-1.5">
+              <div className="flex items-start gap-2 group">
+                <p className="text-sm text-slate-200 font-medium leading-relaxed">{requirement.text}</p>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-slate-200 transition"
+                  title="Edit requirement text"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Provenance Badge */}
+              <div className="flex items-center gap-2">
+                {requirement.sourceLocation?.origin === "user_added" || requirement.id.includes("custom") ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    User Added
+                  </span>
+                ) : requirement.sourceLocation?.sourceSnippet ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Brief Sourced
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" title="Inferred requirement without direct brief citation">
+                    Inferred (No Direct Citation)
+                  </span>
+                )}
+
+                {requirement.sourceLocation?.documentTitle && (
+                  <span className="text-[11px] text-slate-400 truncate max-w-xs">
+                    {requirement.sourceLocation.documentTitle}
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -132,8 +157,16 @@ export function RequirementCard({ requirement, onUpdate, onDelete }: Requirement
           </button>
 
           {showSource && (
-            <div className="mt-2 p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-mono text-slate-400 italic">
-              "{requirement.sourceLocation.sourceSnippet}"
+            <div className="mt-2 p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-mono text-slate-400 space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800/40">
+                <span>{requirement.sourceLocation.documentTitle || "Opportunity Brief"}</span>
+                {requirement.sourceLocation.charStart !== undefined && requirement.sourceLocation.charEnd !== undefined && (
+                  <span>Offsets: {requirement.sourceLocation.charStart}–{requirement.sourceLocation.charEnd}</span>
+                )}
+              </div>
+              <div className="italic text-slate-300">
+                "{requirement.sourceLocation.sourceSnippet}"
+              </div>
             </div>
           )}
         </div>

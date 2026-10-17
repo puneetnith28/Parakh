@@ -8,18 +8,17 @@ export class SourceIndexer {
   public static indexRequirements(
     sourceText: string,
     requirements: Requirement[],
-    defaultPage = 1
+    defaultPage = 1,
+    documentTitle = "Opportunity Brief"
   ): Requirement[] {
     const normalizedSource = sourceText.toLowerCase();
 
     return requirements.map((req) => {
-      let loc: SourceLocation = req.sourceLocation || {
-        pageNumber: defaultPage,
-      };
-
       // Find best matching substring
       const keywords = this.extractSearchKeywords(req.text);
       const matchRange = this.findBestSubstringRange(normalizedSource, keywords);
+
+      let loc: SourceLocation;
 
       if (matchRange) {
         const charStart = matchRange.start;
@@ -30,11 +29,23 @@ export class SourceIndexer {
         const sourceSnippet = sourceText.slice(snippetStart, snippetEnd).trim();
 
         loc = {
-          pageNumber: loc.pageNumber || defaultPage,
+          documentTitle: req.sourceLocation?.documentTitle || documentTitle,
+          pageNumber: req.sourceLocation?.pageNumber || defaultPage,
           charStart,
           charEnd,
           snippetOffset: charStart,
           sourceSnippet,
+          origin: req.sourceLocation?.origin || "brief_extracted",
+        };
+      } else {
+        loc = {
+          documentTitle: req.sourceLocation?.documentTitle || documentTitle,
+          pageNumber: req.sourceLocation?.pageNumber || defaultPage,
+          origin: req.sourceLocation?.origin || (req.sourceLocation?.sourceSnippet ? "brief_extracted" : "inferred"),
+          sourceSnippet: req.sourceLocation?.sourceSnippet,
+          charStart: req.sourceLocation?.charStart,
+          charEnd: req.sourceLocation?.charEnd,
+          snippetOffset: req.sourceLocation?.snippetOffset,
         };
       }
 

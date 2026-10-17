@@ -17,12 +17,18 @@ export const RequirementPrioritySchema = z.enum(["mandatory", "preferred"]);
 
 export type RequirementPriority = z.infer<typeof RequirementPrioritySchema>;
 
+export const RequirementOriginSchema = z.enum(["brief_extracted", "user_added", "inferred"]);
+
+export type RequirementOrigin = z.infer<typeof RequirementOriginSchema>;
+
 export const SourceLocationSchema = z.object({
+  documentTitle: z.string().max(255).optional(),
   pageNumber: z.number().int().positive().optional(),
   snippetOffset: z.number().int().nonnegative().optional(),
   charStart: z.number().int().nonnegative().optional(),
   charEnd: z.number().int().nonnegative().optional(),
   sourceSnippet: z.string().max(2000).optional(),
+  origin: RequirementOriginSchema.default("brief_extracted"),
 });
 
 export type SourceLocation = z.infer<typeof SourceLocationSchema>;

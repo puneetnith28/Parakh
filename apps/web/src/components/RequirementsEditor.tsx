@@ -28,6 +28,9 @@ export function RequirementsEditor({ requirements, onChange, onConfirm }: Requir
         text: newText.trim(),
         category: "general",
         priority: "mandatory",
+        sourceLocation: {
+          origin: "user_added",
+        },
       };
       onChange([...requirements, newReq]);
       setNewText("");

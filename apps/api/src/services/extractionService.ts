@@ -87,6 +87,12 @@ export class ExtractionService {
           ...r,
           category: r.category || "general",
           priority: r.priority || "mandatory",
+          sourceLocation: r.sourceLocation
+            ? {
+                ...r.sourceLocation,
+                origin: r.sourceLocation.origin || "brief_extracted",
+              }
+            : undefined,
         }));
         if (parsed.data.summary) {
           summary = parsed.data.summary;
@@ -106,7 +112,8 @@ export class ExtractionService {
     const indexedRequirements = SourceIndexer.indexRequirements(
       sanitized.sanitizedText,
       dedupedRequirements,
-      options.pageNumber || 1
+      options.pageNumber || 1,
+      title
     );
 
     const extraction: ExtractedRequirementsResult = {
