@@ -1,44 +1,34 @@
-import { ShieldCheck, Activity } from "lucide-react";
+import { ShieldCheck, Activity } from 'lucide-react';
 
-interface HeaderProps {
-  apiStatus: "checking" | "online" | "offline";
+export interface HeaderProps {
+  apiStatus: 'checking' | 'online' | 'offline';
 }
 
 export function Header({ apiStatus }: HeaderProps) {
   return (
-    <header className="border-b border-red-950/40 bg-black/60 backdrop-blur-md sticky top-0 z-50 w-full">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header className="border-b border-[#E2E5DE] bg-white sticky top-0 z-50 w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 via-rose-600 to-red-400 flex items-center justify-center shadow-lg shadow-red-500/25 ring-1 ring-red-400/30">
-            <ShieldCheck className="w-6 h-6 text-white font-bold" />
+          <div className="w-10 h-10 rounded-full bg-[#163300] flex items-center justify-center text-[#9FE870] shadow-sm">
+            <ShieldCheck className="w-5 h-5 text-[#9FE870] font-bold" />
           </div>
-          <div>
-            <span className="text-xl font-bold tracking-tight text-white">Parakh</span>
-            <span className="text-xs text-rose-300 font-mono ml-2 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30">
-              ORIGINKIT ARC
-            </span>
+          <div className="flex items-baseline">
+            <span className="font-display text-2xl tracking-tight text-[#111111]">Parakh</span>
+            <span className="w-2 h-2 rounded-full bg-[#9FE870] ml-1 mb-1" />
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-xs font-mono">
+          <div className="flex items-center space-x-2 text-xs font-mono px-3 py-1 rounded-full bg-[#F2F4F0] text-[#5F625E]">
             <Activity
               className={`w-3.5 h-3.5 ${
-                apiStatus === "online"
-                  ? "text-red-400 animate-pulse"
-                  : apiStatus === "checking"
-                    ? "text-amber-400"
-                    : "text-rose-600"
+                apiStatus === 'online'
+                  ? 'text-[#163300]'
+                  : apiStatus === 'checking'
+                  ? 'text-amber-600 animate-pulse'
+                  : 'text-rose-600'
               }`}
             />
-            <span
-              className={
-                apiStatus === "online"
-                  ? "text-red-300"
-                  : apiStatus === "checking"
-                    ? "text-amber-400"
-                    : "text-rose-500"
-              }
-            >
+            <span className="font-bold">
               API: {apiStatus.toUpperCase()}
             </span>
           </div>
@@ -47,3 +37,5 @@ export function Header({ apiStatus }: HeaderProps) {
     </header>
   );
 }
+
+export default Header;
