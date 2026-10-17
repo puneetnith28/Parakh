@@ -3,8 +3,7 @@ import { Requirement } from "@parakh/contracts";
 import { Header } from "./components/Header.tsx";
 import { InputSection } from "./components/InputSection.tsx";
 import { RequirementsEditor } from "./components/RequirementsEditor.tsx";
-
-const API_BASE = "http://localhost:3000";
+import { getApiUrl } from "./config/api.ts";
 
 export default function App() {
   const [opportunityText, setOpportunityText] = useState("");
@@ -22,7 +21,7 @@ export default function App() {
     let isMounted = true;
     async function checkApi() {
       try {
-        const res = await fetch(`${API_BASE}/healthz`);
+        const res = await fetch(getApiUrl("/healthz"));
         if (res.ok && isMounted) {
           setApiStatus("online");
         } else if (isMounted) {
@@ -62,7 +61,7 @@ export default function App() {
 
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/opportunity/text`, {
+      const res = await fetch(getApiUrl("/api/opportunity/text"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: opportunityText, title: "Opportunity Brief" }),
