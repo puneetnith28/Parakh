@@ -10,9 +10,7 @@ import {
   type Requirement,
   type EvidenceRecord,
   type RequirementAssessment,
-  type Citation,
   type EvidenceStatus,
-  ModelAssessmentOutputSchema,
 } from "@parakh/contracts";
 import { CandidateSelector, type RequirementCandidateUniverse } from "./retrieval/candidateSelector.js";
 import { IndexManager } from "./retrieval/indexManager.js";
@@ -129,25 +127,6 @@ export class CanonicalAssessmentEvaluator {
     const evalFn = modelEvaluator || this.defaultLocalEvaluator.bind(this);
     const rawResult = await evalFn(requirement, universe);
 
-    // Validate cited candidate snippets
-    const rawCitations: Citation[] = rawResult.citedCandidateIds
-      .map((id) => {
-        const match = universe.candidates.find((c) => c.candidateId === id);
-        if (!match) return null;
-        return {
-          candidateId: match.candidateId,
-          repository: match.path.split("/")[0] || "repo",
-          commitSha: match.commitSha,
-          path: match.path,
-          canonicalUrl: match.canonicalUrl,
-          startLine: match.startLine,
-          endLine: match.endLine,
-          evidenceType: match.fileType === "test" ? "test_suite" : "source_code",
-          snippet: match.content,
-        };
-      })
-      .filter((c): c is Citation => c !== null);
-
     // Enforce deterministic citation validation against real repository records
     const validationOutcome = this.validator.validate(
       rawResult.citedCandidateIds,
@@ -192,11 +171,12 @@ export class CanonicalAssessmentEvaluator {
     const results: RequirementAssessment[] = [];
 
     for (const req of requirements) {
-      const universe = universes.get(req.id) || {
+      const universe: RequirementCandidateUniverse = universes.get(req.id) || {
         requirementId: req.id,
         requirementText: req.text,
         candidates: [],
-        retrievalDurationMs: 0,
+        totalTokensEstimated: 0,
+        candidateCount: 0,
       };
 
       const assessment = await this.evaluateRequirement(
