@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
-import { Requirement, AssessmentReport } from "@parakh/contracts";
+import { Requirement, AssessmentReport, Citation, RequirementAssessment } from "@parakh/contracts";
 import { Header } from "./components/Header.tsx";
 import { InputSection } from "./components/InputSection.tsx";
 import { RequirementsEditor } from "./components/RequirementsEditor.tsx";
 import { AnalysisProgress } from "./components/AnalysisProgress.tsx";
+import { EvidenceMap } from "./components/EvidenceMap/EvidenceMap.tsx";
+import { CoverageSummary } from "./components/EvidenceMap/CoverageSummary.tsx";
+import { FilterBar, type FilterStatus } from "./components/EvidenceMap/FilterBar.tsx";
+import { EvidenceDrawer } from "./components/EvidenceMap/EvidenceDrawer.tsx";
 import { getApiUrl } from "./config/api.ts";
 import { extractRequirementsFromText, runAssessmentAnalysis } from "./services/api.ts";
 
@@ -21,6 +25,15 @@ export default function App() {
   const [analysisStatus, setAnalysisStatus] = useState<string>("");
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [report, setReport] = useState<AssessmentReport | null>(null);
+
+  // Results filtering & citation state
+  const [selectedCitation, setSelectedCitation] = useState<{
+    citation: Citation;
+    assessment: RequirementAssessment;
+  } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     let isMounted = true;
@@ -166,25 +179,116 @@ export default function App() {
           />
         )}
 
-        {stage === "results" && report && (
-          <div className="space-y-8">
-            <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6">
-              <div>
-                <h2 className="text-lg font-bold text-white">{report.opportunityTitle || "Capability Assessment Report"}</h2>
-                <p className="text-xs text-slate-400 font-mono mt-0.5">
-                  Repo: {report.repositoryUrl} | Commit: {report.resolvedCommitSha?.slice(0, 7)}
-                </p>
+        {stage === "results" && report && (() => {
+          const filteredAssessments = (report.assessments || []).filter((item) => {
+            if (searchQuery.trim()) {
+              const q = searchQuery.toLowerCase();
+              const match =
+                item.requirementText.toLowerCase().includes(q) ||
+                item.rationale.toLowerCase().includes(q) ||
+                item.requirementId.toLowerCase().includes(q);
+              if (!match) return false;
+            }
+            if (statusFilter === "gaps_only") {
+              if (item.status === "demonstrated") return false;
+            } else if (statusFilter !== "all") {
+              if (item.status !== statusFilter) return false;
+            }
+            return true;
+          });
+
+          return (
+            <div className="space-y-8">
+              {/* Executive Header Strip */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                      Assessment Verified
+                    </span>
+                    <span className="text-xs text-slate-500 font-mono">ID: {report.id}</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">
+                    {report.opportunityTitle || "Capability Assessment Report"}
+                  </h2>
+                  <div className="flex items-center gap-3 text-xs text-slate-400 font-mono flex-wrap">
+                    <span>
+                      Repo:{" "}
+                      <a
+                        href={report.repositoryUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-emerald-400 hover:underline"
+                      >
+                        {report.repositoryUrl.replace(/^https?:\/\/github\.com\//, "")}
+                      </a>
+                    </span>
+                    <span>SHA: <span className="text-slate-300">{report.resolvedCommitSha?.slice(0, 7)}</span></span>
+                    <span>Files Scanned: <span className="text-slate-300">{report.scannedFilesCount}</span></span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStage("review_requirements")}
+                    className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                  >
+                    Edit Requirements
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStage("input");
+                      setReport(null);
+                    }}
+                    className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition"
+                  >
+                    New Analysis
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setStage("review_requirements")}
-                className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-              >
-                Refine Requirements
-              </button>
+
+              {/* Coverage Summary Counters */}
+              <CoverageSummary summary={report.coverageSummary} />
+
+              {/* Interactive Filter Bar */}
+              <FilterBar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                statusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                counts={{
+                  total: report.coverageSummary.total,
+                  demonstrated: report.coverageSummary.demonstrated,
+                  partially_demonstrated: report.coverageSummary.partiallyDemonstrated,
+                  not_demonstrated: report.coverageSummary.notDemonstrated,
+                  needs_review: report.coverageSummary.needsReview,
+                }}
+              />
+
+              {/* Evidence Map */}
+              <EvidenceMap
+                assessments={filteredAssessments}
+                onSelectCitation={(citation, assessment) => {
+                  setSelectedCitation({ citation, assessment });
+                }}
+              />
+
+              {/* Citation Inspection Drawer */}
+              {selectedCitation && (
+                <EvidenceDrawer
+                  isOpen={!!selectedCitation}
+                  onClose={() => setSelectedCitation(null)}
+                  citation={selectedCitation.citation}
+                  requirementTitle={selectedCitation.assessment.requirementText}
+                />
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
       </main>
 
       <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
