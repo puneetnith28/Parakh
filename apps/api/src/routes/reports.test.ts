@@ -40,11 +40,55 @@ test("Reports API: Authorization token lifecycle and security enforcement", asyn
       createdAt: new Date().toISOString(),
     };
 
-    // 1. Create Report via POST
-    const createRes = await fetch("http://localhost:3097/api/reports", {
+    // 1a. Fabricated report without provenance MUST return 403 Forbidden
+    const unprovenancedRes = await fetch("http://localhost:3097/api/reports", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(sampleReport),
+    });
+    assert.equal(unprovenancedRes.status, 403);
+    const unprovenancedJson = (await unprovenancedRes.json()) as any;
+    assert.equal(unprovenancedJson.code, "UNTRUSTED_REPORT_PROVENANCE");
+
+    // 1b. Fabricated report with invalid/tampered provenance token MUST return 403 Forbidden
+    const tamperedRes = await fetch("http://localhost:3097/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        report: sampleReport,
+        runId: "run_fake_123",
+        provenanceToken: "f".repeat(64),
+      }),
+    });
+    assert.equal(tamperedRes.status, 403);
+    const tamperedJson = (await tamperedRes.json()) as any;
+    assert.equal(tamperedJson.code, "INVALID_PROVENANCE_SIGNATURE");
+
+    // 1c. Valid server-provenanced report MUST succeed and return 201 Created
+    const { runManager } = await import("../services/runManager.js");
+    const { issueProvenanceToken } = await import("../services/provenance.js");
+    const runId = "run_auth_test_1";
+    runManager.createOrGetRun({
+      runId,
+      opportunityId: sampleReport.opportunityId,
+      repositoryUrl: sampleReport.repositoryUrl,
+    });
+    const provenanceToken = issueProvenanceToken({
+      runId,
+      reportId: sampleReport.id,
+      opportunityId: sampleReport.opportunityId,
+      repositoryUrl: sampleReport.repositoryUrl,
+      resolvedCommitSha: sampleReport.resolvedCommitSha,
+    });
+
+    const createRes = await fetch("http://localhost:3097/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        report: sampleReport,
+        runId,
+        provenanceToken,
+      }),
     });
 
     assert.equal(createRes.status, 201);

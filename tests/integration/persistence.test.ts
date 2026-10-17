@@ -5,7 +5,24 @@ import app from "../../apps/api/src/server.js";
 import { AssessmentReport } from "@parakh/contracts";
 import { setStorage, MemoryReportStorage } from "../../apps/api/src/storage/index.js";
 import { runManager } from "../../apps/api/src/services/runManager.js";
+import { issueProvenanceToken } from "../../apps/api/src/services/provenance.js";
 import { ensureDatabaseIndexes } from "../../apps/api/src/storage/models/indexes.js";
+
+function makeProvenancedBody(report: AssessmentReport, runId = `run_${report.id}`) {
+  runManager.createOrGetRun({
+    runId,
+    opportunityId: report.opportunityId,
+    repositoryUrl: report.repositoryUrl,
+  });
+  const provenanceToken = issueProvenanceToken({
+    runId,
+    reportId: report.id,
+    opportunityId: report.opportunityId,
+    repositoryUrl: report.repositoryUrl,
+    resolvedCommitSha: report.resolvedCommitSha,
+  });
+  return { report, runId, provenanceToken };
+}
 
 describe("Data Lifecycle, Authorization, and Persistence Test Suite", () => {
   let server: http.Server;
@@ -22,6 +39,31 @@ describe("Data Lifecycle, Authorization, and Persistence Test Suite", () => {
   after(() => {
     server.close();
     runManager.clear();
+  });
+
+  test("0. Direct unprovenanced client report submission is strictly rejected (403 Forbidden)", async () => {
+    const rawReport: AssessmentReport = {
+      id: "rep_unprovenanced_001",
+      opportunityId: "opp_enterprise_1",
+      repositoryUrl: "https://github.com/company/platform",
+      resolvedCommitSha: "d34db33f".repeat(5),
+      status: "completed",
+      assessments: [],
+      coverageSummary: { total: 0, demonstrated: 0, partiallyDemonstrated: 0, notDemonstrated: 0, needsReview: 0 },
+      scannedFilesCount: 1,
+      skippedFilesCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    const res = await fetch(`${BASE_URL}/api/reports`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rawReport),
+    });
+
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as any;
+    assert.equal(body.code, "UNTRUSTED_REPORT_PROVENANCE");
   });
 
   test("1. Report creation enqueues sanitized data and issues 256-bit viewToken", async () => {
@@ -69,7 +111,7 @@ describe("Data Lifecycle, Authorization, and Persistence Test Suite", () => {
     const res = await fetch(`${BASE_URL}/api/reports`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(reportPayload),
+      body: JSON.stringify(makeProvenancedBody(reportPayload)),
     });
 
     assert.equal(res.status, 201);
@@ -111,7 +153,7 @@ describe("Data Lifecycle, Authorization, and Persistence Test Suite", () => {
     const resA = await fetch(`${BASE_URL}/api/reports`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(reportA),
+      body: JSON.stringify(makeProvenancedBody(reportA)),
     });
     const { viewToken: tokenA } = (await resA.json()) as any;
 
@@ -119,7 +161,7 @@ describe("Data Lifecycle, Authorization, and Persistence Test Suite", () => {
     const resB = await fetch(`${BASE_URL}/api/reports`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(reportB),
+      body: JSON.stringify(makeProvenancedBody(reportB)),
     });
     const { viewToken: tokenB } = (await resB.json()) as any;
 
@@ -183,7 +225,7 @@ describe("Data Lifecycle, Authorization, and Persistence Test Suite", () => {
     const createRes = await fetch(`${BASE_URL}/api/reports`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(tempReport),
+      body: JSON.stringify(makeProvenancedBody(tempReport)),
     });
     const { viewToken } = (await createRes.json()) as any;
 

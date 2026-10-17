@@ -15,6 +15,9 @@ import { GemmaClient } from "@parakh/integrations";
 import { config } from "../config.js";
 import { getStorage } from "../storage/index.js";
 
+import { issueProvenanceToken } from "../services/provenance.js";
+import { runManager } from "../services/runManager.js";
+
 export const analysisRouter = Router();
 
 async function handleAnalysis(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -45,6 +48,15 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
     const runId = crypto.randomUUID();
     const effectiveOpportunityId = opportunityId || `opp_${crypto.randomUUID()}`;
 
+    // Register active analysis run in state machine
+    runManager.createOrGetRun({
+      runId,
+      opportunityId: effectiveOpportunityId,
+      repositoryUrl: canonicalUrl,
+    });
+
+    runManager.transitionState(runId, "INGESTING_REPO");
+
     const ingestion = await RepositoryIngestionService.ingest(repositoryUrl, {
       ref,
       maxFiles: Math.min(config.MAX_REPOSITORY_FILES, 30),
@@ -54,6 +66,8 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
     const records = ingestion.records;
     const commitSha = ingestion.commitSha;
     const skippedFilesCount = ingestion.skippedFilesCount;
+
+    runManager.transitionState(runId, "RETRIEVING_CHUNKS", { scannedFiles: records.length });
 
     // Configure model inference client for assessment
     const gemmaClient = new GemmaClient({
@@ -67,6 +81,8 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
       gemmaClient,
       retriever,
     });
+
+    runManager.transitionState(runId, "ASSESSING");
 
     const report: AssessmentReport = await assessmentService.evaluateRepository({
       runId,
@@ -89,6 +105,18 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
     // Validate output report strictly conforms to AssessmentReportSchema contract
     const validatedReport = AssessmentReportSchema.parse(report);
 
+    // Complete run state transition
+    runManager.transitionState(runId, "COMPLETED", { reportId: validatedReport.id });
+
+    // Issue cryptographic provenance token binding report to verified server run
+    const provenanceToken = issueProvenanceToken({
+      runId,
+      reportId: validatedReport.id,
+      opportunityId: effectiveOpportunityId,
+      repositoryUrl: canonicalUrl,
+      resolvedCommitSha: commitSha,
+    });
+
     // Persist verified report server-side with 256-bit secure viewToken
     const viewToken = crypto.randomBytes(32).toString("hex");
     const storage = getStorage();
@@ -98,6 +126,8 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
       status: "success",
       report: validatedReport,
       viewToken,
+      runId,
+      provenanceToken,
       metadata: {
         opportunityTitle: title || "Technical Capability Assessment",
         modelProvider: config.MODEL_PROVIDER,
@@ -105,6 +135,7 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
         filesScanned: records.length,
         storageMode: storage.getMode(),
         persisted: storage.isPersistent(),
+        provenanceVerified: true,
       },
     });
   } catch (err: unknown) {

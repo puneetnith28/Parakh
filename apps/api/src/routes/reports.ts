@@ -9,20 +9,48 @@ import {
   AuthenticatedReportRequest,
 } from "../middleware/tokenAuth.js";
 
+import { verifyReportProvenance } from "../services/provenance.js";
+
 export const reportsRouter = Router();
 
 /**
  * POST /api/reports
- * Persists an assessment report and generates a cryptographic access token.
+ * Persists a verified assessment report with cryptographic provenance verification.
+ * Direct unprovenanced client submissions are rejected with 403 Forbidden.
  */
 reportsRouter.post("/api/reports", async (req, res): Promise<void> => {
   try {
-    const parsed = AssessmentReportSchema.safeParse(req.body);
+    const rawReport = req.body?.report || req.body;
+    const runId = (req.body?.runId || req.headers["x-run-id"]) as string;
+    const provenanceToken = (req.body?.provenanceToken || req.headers["x-provenance-token"]) as string;
+
+    const parsed = AssessmentReportSchema.safeParse(rawReport);
     if (!parsed.success) {
       res.status(400).json({
         status: "error",
         message: "Invalid assessment report schema payload.",
         errors: parsed.error.issues,
+      });
+      return;
+    }
+
+    // Require and verify server-issued analysis provenance
+    if (!runId || !provenanceToken) {
+      res.status(403).json({
+        status: "error",
+        code: "UNTRUSTED_REPORT_PROVENANCE",
+        message:
+          "Client-submitted reports without verified server provenance are rejected. All assessment reports must originate from verified analysis execution (/api/analysis).",
+      });
+      return;
+    }
+
+    const verification = verifyReportProvenance(parsed.data, runId, provenanceToken);
+    if (!verification.verified) {
+      res.status(403).json({
+        status: "error",
+        code: "INVALID_PROVENANCE_SIGNATURE",
+        message: `Provenance verification failed: ${verification.reason}`,
       });
       return;
     }
@@ -38,7 +66,7 @@ reportsRouter.post("/api/reports", async (req, res): Promise<void> => {
       reportId: sanitizedReport.id,
       viewToken,
       accessUrl: `/api/reports/${sanitizedReport.id}?token=${viewToken}`,
-      message: "Report persisted successfully with cryptographic access token.",
+      message: "Verified report persisted successfully with cryptographic access token.",
     });
   } catch (err: any) {
     res.status(500).json({
