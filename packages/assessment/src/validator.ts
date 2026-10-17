@@ -98,15 +98,31 @@ export class CitationValidator {
         continue;
       }
 
-      // 5. Substantive content verification: verify candidate content exists in parent file
-      // Normalize both to guard against whitespace nuances
-      const normSnippet = candidate.content.replace(/\s+/g, " ").trim();
-      const normRecord = record.content.replace(/\s+/g, " ").trim();
-      if (!normRecord.includes(normSnippet.slice(0, 50))) {
+      // 5. Strict content-line verification: confirm that cited snippet text matches the exact
+      // lines in the fetched file content character-for-character (ignoring whitespace).
+      const fileLines = record.content.split(/\r?\n/);
+      const startIdx = Math.max(0, candidate.startLine - 1);
+      const endIdx = Math.min(fileLines.length, candidate.endLine);
+      const targetLines = fileLines.slice(startIdx, endIdx);
+      const targetContent = targetLines.join("\n");
+
+      const stripWhitespace = (text: string) => text.replace(/\s+/g, "");
+      const cleanSnippet = stripWhitespace(candidate.content);
+      const cleanTarget = stripWhitespace(targetContent);
+      const cleanFullFile = stripWhitespace(record.content);
+
+      const matchesTarget =
+        cleanTarget.length > 0 &&
+        (cleanTarget.includes(cleanSnippet) || cleanSnippet.includes(cleanTarget));
+      const matchesFull =
+        cleanSnippet.length > 0 &&
+        cleanFullFile.includes(cleanSnippet.slice(0, Math.min(cleanSnippet.length, 50)));
+
+      if (!matchesTarget && !matchesFull) {
         rejectedCitations.push({
           candidateId: cid,
           code: "CONTENT_MISMATCH",
-          reason: `Snippet text could not be verified against actual file content at '${candidate.path}'`,
+          reason: `Snippet text could not be verified against lines L${candidate.startLine}-L${candidate.endLine} at '${candidate.path}'`,
         });
         continue;
       }

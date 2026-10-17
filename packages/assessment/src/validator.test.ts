@@ -98,4 +98,50 @@ describe("Deterministic Citation Validation Engine", () => {
     assert.equal(outcome.allValid, false);
     assert.equal(outcome.rejectedCitations[0].code, "INVALID_LINE_RANGE");
   });
+
+  test("rejects citations where snippet content does not match source lines", () => {
+    const mismatchUniverse: CandidateSnippet[] = [
+      {
+        candidateId: "cand_mismatched",
+        fileId: "ev_1",
+        path: "src/auth.ts",
+        commitSha,
+        canonicalUrl: `https://github.com/org/repo/blob/${commitSha}/src/auth.ts#L1-L3`,
+        startLine: 1,
+        endLine: 3,
+        content: "completely fabricated snippet that does not exist in auth.ts",
+        fileType: "source",
+      },
+    ];
+
+    const validator = new CitationValidator();
+    const outcome = validator.validate(["cand_mismatched"], mismatchUniverse, records);
+
+    assert.equal(outcome.allValid, false);
+    assert.equal(outcome.rejectedCitations[0].code, "CONTENT_MISMATCH");
+    assert.match(outcome.rejectedCitations[0].reason, /Snippet text could not be verified/);
+  });
+
+  test("accepts citations matching source lines with minor whitespace differences", () => {
+    const wsUniverse: CandidateSnippet[] = [
+      {
+        candidateId: "cand_ws",
+        fileId: "ev_1",
+        path: "src/auth.ts",
+        commitSha,
+        canonicalUrl: `https://github.com/org/repo/blob/${commitSha}/src/auth.ts#L1-L3`,
+        startLine: 1,
+        endLine: 3,
+        content: "export   function   verifyToken(token: string) {\nreturn token.length > 0;\n}",
+        fileType: "source",
+      },
+    ];
+
+    const validator = new CitationValidator();
+    const outcome = validator.validate(["cand_ws"], wsUniverse, records);
+
+    assert.equal(outcome.allValid, true);
+    assert.equal(outcome.validCount, 1);
+  });
 });
+

@@ -50,7 +50,13 @@ export function sanitizeEvidenceContent(rawContent: string): string {
   if (!rawContent) return "";
   return rawContent
     .replace(/<\/UNTRUSTED_EVIDENCE>/gi, "<!/UNTRUSTED_EVIDENCE!>")
-    .replace(/<UNTRUSTED_EVIDENCE/gi, "<!UNTRUSTED_EVIDENCE!");
+    .replace(/<UNTRUSTED_EVIDENCE/gi, "<!UNTRUSTED_EVIDENCE!")
+    .replace(/<\/untrusted_document_context>/gi, "<!/untrusted_document_context!>")
+    .replace(/<untrusted_document_context/gi, "<!untrusted_document_context!")
+    .replace(/<\/UNTRUSTED_DOCUMENT_CONTEXT>/gi, "<!/UNTRUSTED_DOCUMENT_CONTEXT!>")
+    .replace(/<UNTRUSTED_DOCUMENT_CONTEXT/gi, "<!UNTRUSTED_DOCUMENT_CONTEXT!")
+    .replace(/<\/system_instruction>/gi, "<!/system_instruction!>")
+    .replace(/<system_instruction/gi, "<!system_instruction!");
 }
 
 /**
