@@ -7,6 +7,7 @@ import {
 } from "@parakh/contracts";
 import {
   validateGitHubUrl,
+  GitHubClient,
   RepositoryIngestionService,
 } from "@parakh/evidence";
 import { UnifiedEvidenceRetriever } from "@parakh/assessment";
@@ -76,7 +77,9 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
 
     runManager.transitionState(runId, "INGESTING_REPO");
 
+    const client = new GitHubClient({ token: config.GITHUB_TOKEN });
     const ingestion = await RepositoryIngestionService.ingest(repositoryUrl, {
+      client,
       ref,
       maxFiles: Math.min(config.MAX_REPOSITORY_FILES, 30),
       maxPaths: config.MAX_REPOSITORY_FILES * 10,

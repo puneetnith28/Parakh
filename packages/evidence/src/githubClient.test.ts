@@ -274,4 +274,467 @@ describe("GitHub Repository Metadata Resolution Service", () => {
       }
     );
   });
+
+  describe("Objective 1: Base URL Validation & Credential Isolation", () => {
+    test("accepts canonical public GitHub API destination", () => {
+      const client1 = new GitHubClient({ baseUrl: "https://api.github.com" });
+      assert.ok(client1);
+      const client2 = new GitHubClient({ baseUrl: "https://api.github.com/" });
+      assert.ok(client2);
+      const client3 = new GitHubClient();
+      assert.ok(client3);
+    });
+
+    test("rejects insecure HTTP protocol", () => {
+      assert.throws(
+        () => new GitHubClient({ baseUrl: "http://api.github.com" }),
+        /Insecure GitHub API protocol 'http:'. Only 'https:' is permitted./
+      );
+    });
+
+    test("rejects arbitrary external hosts and permissive suffix domains", () => {
+      assert.throws(
+        () => new GitHubClient({ baseUrl: "https://evil.com" }),
+        /Disallowed GitHub API host 'evil.com'. Only canonical 'api.github.com' is permitted./
+      );
+      assert.throws(
+        () => new GitHubClient({ baseUrl: "https://attacker-api.github.com" }),
+        /Disallowed GitHub API host 'attacker-api.github.com'./
+      );
+      assert.throws(
+        () => new GitHubClient({ baseUrl: "https://api.github.com.evil.com" }),
+        /Disallowed GitHub API host 'api.github.com.evil.com'./
+      );
+    });
+
+    test("rejects embedded credentials, non-standard ports, and malformed URLs before fetch", () => {
+      let fetchCalled = false;
+      const dummyFetch: typeof fetch = async () => {
+        fetchCalled = true;
+        return new Response("{}");
+      };
+
+      assert.throws(
+        () =>
+          new GitHubClient({
+            baseUrl: "https://user:pass@api.github.com",
+            fetchFn: dummyFetch,
+          }),
+        /Embedded credentials in GitHub API base URL are strictly prohibited/
+      );
+
+      assert.throws(
+        () =>
+          new GitHubClient({
+            baseUrl: "https://api.github.com:8080",
+            fetchFn: dummyFetch,
+          }),
+        /Non-standard port '8080' is not permitted/
+      );
+
+      assert.throws(
+        () =>
+          new GitHubClient({
+            baseUrl: "https://api.github.com/v3",
+            fetchFn: dummyFetch,
+          }),
+        /Unexpected path '\/v3' in GitHub API base URL/
+      );
+
+      assert.throws(
+        () =>
+          new GitHubClient({
+            baseUrl: "not-a-valid-url",
+            fetchFn: dummyFetch,
+          }),
+        /Invalid GitHub API base URL 'not-a-valid-url'/
+      );
+
+      assert.equal(fetchCalled, false, "Fetch must never be invoked for invalid base URL");
+    });
+
+    test("token handling: includes Authorization header only when token is non-empty", async () => {
+      let capturedHeadersWithToken: HeadersInit | undefined;
+      const mockFetchWithToken: typeof fetch = async (_url, init) => {
+        capturedHeadersWithToken = init?.headers;
+        return new Response(JSON.stringify({ full_name: "o/r", default_branch: "main" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      };
+
+      const clientWithToken = new GitHubClient({
+        token: "ghp_validToken12345",
+        fetchFn: mockFetchWithToken,
+      });
+      await clientWithToken.resolveRepoMetadata("o", "r");
+      assert.equal(
+        (capturedHeadersWithToken as Record<string, string>)?.["Authorization"],
+        "Bearer ghp_validToken12345"
+      );
+
+      let capturedHeadersNoToken: HeadersInit | undefined;
+      const mockFetchNoToken: typeof fetch = async (_url, init) => {
+        capturedHeadersNoToken = init?.headers;
+        return new Response(JSON.stringify({ full_name: "o/r", default_branch: "main" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      };
+
+      const clientWhitespace = new GitHubClient({
+        token: "   ",
+        fetchFn: mockFetchNoToken,
+      });
+      await clientWhitespace.resolveRepoMetadata("o", "r");
+      assert.equal(
+        (capturedHeadersNoToken as Record<string, string>)?.["Authorization"],
+        undefined,
+        "Whitespace-only token must not generate Authorization header"
+      );
+    });
+  });
+
+  describe("Objective 2: Safe Redirect Behavior", () => {
+    test("every outbound request specifies redirect: error policy", async () => {
+      const recordedInits: RequestInit[] = [];
+      const mockFetch: typeof fetch = async (url, init) => {
+        if (init) recordedInits.push(init);
+        const urlStr = url.toString();
+        if (urlStr.endsWith("/languages")) {
+          return new Response(JSON.stringify({ TypeScript: 100 }), { status: 200 });
+        }
+        if (urlStr.includes("/commits/")) {
+          return new Response(JSON.stringify({ sha: "a".repeat(40) }), { status: 200 });
+        }
+        if (urlStr.includes("/git/trees/")) {
+          return new Response(JSON.stringify({ sha: "a".repeat(40), tree: [], truncated: false }), {
+            status: 200,
+          });
+        }
+        if (urlStr.includes("/git/blobs/")) {
+          return new Response(JSON.stringify({ sha: "b".repeat(40), content: "dGVzdA==", encoding: "base64", size: 4 }), {
+            status: 200,
+          });
+        }
+        return new Response(
+          JSON.stringify({ full_name: "o/r", default_branch: "main" }),
+          { status: 200 }
+        );
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      await client.resolveRepoMetadata("o", "r");
+      await client.resolveCommitSha("o", "r", "main");
+      await client.fetchTree("o", "r", "a".repeat(40));
+      await client.fetchBlob("o", "r", "b".repeat(40));
+
+      assert.ok(recordedInits.length >= 4);
+      for (const init of recordedInits) {
+        assert.equal(init.redirect, "error", "All outbound GitHub API requests must set redirect: error");
+      }
+    });
+
+    test("redirect responses fail safely with 502 without following redirect", async () => {
+      const mockFetch: typeof fetch = async () => {
+        return new Response("Found", {
+          status: 302,
+          headers: { Location: "https://attacker.com/evil-redirect" },
+        });
+      };
+
+      const client = new GitHubClient({
+        token: "ghp_secret_token",
+        fetchFn: mockFetch,
+      });
+
+      await assert.rejects(
+        async () => client.resolveRepoMetadata("o", "r"),
+        (err: unknown) => {
+          assert.ok(err instanceof GitHubApiError);
+          assert.equal((err as GitHubApiError).statusCode, 502);
+          assert.match((err as GitHubApiError).message, /Unexpected redirect response/i);
+          return true;
+        }
+      );
+    });
+
+    test("native fetch redirect TypeError fails safely closed", async () => {
+      const mockFetch: typeof fetch = async () => {
+        throw new TypeError("fetch failed: unexpected redirect");
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      await assert.rejects(
+        async () => client.resolveRepoMetadata("o", "r"),
+        (err: unknown) => {
+          assert.ok(err instanceof GitHubApiError);
+          assert.equal((err as GitHubApiError).statusCode, 502);
+          return true;
+        }
+      );
+    });
+  });
+
+  describe("Objective 3: Request & Response Body Timeout and Size Limits", () => {
+    test("response whose headers arrive promptly but body stalls times out with 504", async () => {
+      let streamCancelled = false;
+      const mockFetch: typeof fetch = async () => {
+        const stalledStream = new ReadableStream({
+          start() {
+            // Never emits data
+          },
+          cancel() {
+            streamCancelled = true;
+          },
+        });
+
+        return new Response(stalledStream, {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      };
+
+      const client = new GitHubClient({
+        fetchFn: mockFetch,
+        defaultTimeoutMs: 50,
+      });
+
+      await assert.rejects(
+        async () => client.resolveRepoMetadata("o", "r"),
+        (err: unknown) => {
+          assert.ok(err instanceof GitHubTimeoutError);
+          assert.equal((err as GitHubTimeoutError).statusCode, 504);
+          assert.match((err as GitHubTimeoutError).message, /timed out after 50ms/i);
+          return true;
+        }
+      );
+
+      // Verify that stream was cancelled when timeout expired
+      assert.equal(streamCancelled, true, "Underlying stream reader must be cancelled on timeout");
+    });
+
+    test("rejects response exceeding maximum response byte limit with 413", async () => {
+      const largePayload = JSON.stringify({
+        data: "X".repeat(2000),
+      });
+
+      const mockFetch: typeof fetch = async () => {
+        return new Response(largePayload, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": String(largePayload.length),
+          },
+        });
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      await assert.rejects(
+        async () =>
+          client.resolveRepoMetadata("o", "r", {
+            maxResponseBytes: 500,
+          }),
+        (err: unknown) => {
+          assert.ok(err instanceof GitHubApiError);
+          assert.equal((err as GitHubApiError).statusCode, 413);
+          assert.match((err as GitHubApiError).message, /exceeds maximum safety limit/i);
+          return true;
+        }
+      );
+    });
+
+    test("cleans up abort listeners upon successful request", async () => {
+      const callerController = new AbortController();
+      const mockFetch: typeof fetch = async () => {
+        return new Response(
+          JSON.stringify({ full_name: "o/r", default_branch: "main" }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      const meta = await client.resolveRepoMetadata("o", "r", {
+        signal: callerController.signal,
+      });
+      assert.equal(meta.fullName, "o/r");
+      // Aborting after completion must not throw unhandled rejection
+      callerController.abort();
+    });
+  });
+
+  describe("Objective 4: Primary and Secondary Rate Limit Handling", () => {
+    test("HTTP 429 with numeric Retry-After header throws GitHubRateLimitError with calculated reset time", async () => {
+      const mockFetch: typeof fetch = async () => {
+        return new Response(JSON.stringify({ message: "Too Many Requests" }), {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "retry-after": "120",
+          },
+        });
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      const beforeTime = Date.now();
+      await assert.rejects(
+        async () => client.resolveRepoMetadata("o", "r"),
+        (err: unknown) => {
+          assert.ok(err instanceof GitHubRateLimitError);
+          assert.equal((err as GitHubRateLimitError).statusCode, 429);
+          const resetTime = (err as GitHubRateLimitError).resetTimestampMs;
+          assert.ok(
+            resetTime >= beforeTime + 118000 && resetTime <= beforeTime + 125000,
+            `Reset time ${resetTime} should be ~120s from now (${beforeTime})`
+          );
+          return true;
+        }
+      );
+    });
+
+    test("HTTP 429 with HTTP Date Retry-After header parses reset timestamp correctly", async () => {
+      const futureDate = new Date(Date.now() + 180000);
+      const httpDateStr = futureDate.toUTCString();
+
+      const mockFetch: typeof fetch = async () => {
+        return new Response(JSON.stringify({ message: "Too Many Requests" }), {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "retry-after": httpDateStr,
+          },
+        });
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      await assert.rejects(
+        async () => client.resolveRepoMetadata("o", "r"),
+        (err: unknown) => {
+          assert.ok(err instanceof GitHubRateLimitError);
+          assert.equal((err as GitHubRateLimitError).statusCode, 429);
+          // Due to second precision in HTTP Date
+          assert.ok(
+            Math.abs((err as GitHubRateLimitError).resetTimestampMs - futureDate.getTime()) < 2000
+          );
+          return true;
+        }
+      );
+    });
+
+    test("HTTP 429 with missing Retry-After header falls back to x-ratelimit-reset", async () => {
+      const mockFetch: typeof fetch = async () => {
+        return new Response(JSON.stringify({ message: "Too Many Requests" }), {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "x-ratelimit-reset": "1780000000",
+            "x-ratelimit-remaining": "0",
+          },
+        });
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      await assert.rejects(
+        async () => client.resolveRepoMetadata("o", "r"),
+        (err: unknown) => {
+          assert.ok(err instanceof GitHubRateLimitError);
+          assert.equal((err as GitHubRateLimitError).statusCode, 429);
+          assert.equal((err as GitHubRateLimitError).resetTimestampMs, 1780000000 * 1000);
+          return true;
+        }
+      );
+    });
+
+    test("HTTP 403 with Retry-After header is classified as secondary rate limit", async () => {
+      const mockFetch: typeof fetch = async () => {
+        return new Response(
+          JSON.stringify({
+            message: "You have exceeded a secondary rate limit. Please wait a few minutes.",
+          }),
+          {
+            status: 403,
+            headers: {
+              "Content-Type": "application/json",
+              "retry-after": "60",
+            },
+          }
+        );
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      const beforeTime = Date.now();
+      await assert.rejects(
+        async () => client.resolveRepoMetadata("o", "r"),
+        (err: unknown) => {
+          assert.ok(err instanceof GitHubRateLimitError);
+          assert.equal((err as GitHubRateLimitError).statusCode, 429);
+          const resetTime = (err as GitHubRateLimitError).resetTimestampMs;
+          assert.ok(
+            resetTime >= beforeTime + 58000 && resetTime <= beforeTime + 65000,
+            `Expected reset ~60s in future`
+          );
+          return true;
+        }
+      );
+    });
+
+    test("HTTP 403 with secondary rate limit body message is classified as rate limit even without header", async () => {
+      const mockFetch: typeof fetch = async () => {
+        return new Response(
+          JSON.stringify({
+            message: "You have triggered an abuse detection mechanism / secondary rate limit.",
+          }),
+          {
+            status: 403,
+            headers: {
+              "Content-Type": "application/json",
+              "x-ratelimit-reset": "1790000000",
+            },
+          }
+        );
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      await assert.rejects(
+        async () => client.resolveRepoMetadata("o", "r"),
+        (err: unknown) => {
+          assert.ok(err instanceof GitHubRateLimitError);
+          assert.equal((err as GitHubRateLimitError).statusCode, 429);
+          assert.equal((err as GitHubRateLimitError).resetTimestampMs, 1790000000 * 1000);
+          return true;
+        }
+      );
+    });
+
+    test("HTTP 403 without rate limit evidence remains genuine GitHubForbiddenError", async () => {
+      const mockFetch: typeof fetch = async () => {
+        return new Response(
+          JSON.stringify({
+            message: "Must have admin rights to Repository.",
+          }),
+          {
+            status: 403,
+            headers: {
+              "Content-Type": "application/json",
+              "x-ratelimit-remaining": "4950",
+            },
+          }
+        );
+      };
+
+      const client = new GitHubClient({ fetchFn: mockFetch });
+      await assert.rejects(
+        async () => client.resolveRepoMetadata("o", "r"),
+        (err: unknown) => {
+          assert.ok(
+            err instanceof GitHubForbiddenError,
+            "Must be GitHubForbiddenError, not GitHubRateLimitError"
+          );
+          assert.equal((err as GitHubForbiddenError).statusCode, 403);
+          assert.match((err as GitHubForbiddenError).message, /forbidden/i);
+          return true;
+        }
+      );
+    });
+  });
 });

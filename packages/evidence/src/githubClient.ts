@@ -70,9 +70,21 @@ export class GitHubTimeoutError extends GitHubApiError {
   }
 }
 
+export const DEFAULT_MAX_RESPONSE_BYTES = 10 * 1024 * 1024; // 10 MB
+
 export interface GitHubRequestOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
+  maxResponseBytes?: number;
+}
+
+export interface ApiResponse {
+  status: number;
+  ok: boolean;
+  headers: Headers;
+  rawText: string;
+  text: () => Promise<string>;
+  json: <T = unknown>() => Promise<T>;
 }
 
 export interface GitHubClientOptions {
@@ -89,10 +101,54 @@ export class GitHubClient {
   private readonly defaultTimeoutMs: number;
 
   constructor(options: GitHubClientOptions = {}) {
-    this.token = options.token || process.env.GITHUB_TOKEN;
-    this.baseUrl = (options.baseUrl || "https://api.github.com").replace(/\/$/, "");
+    const rawToken = options.token !== undefined ? options.token : process.env.GITHUB_TOKEN;
+    this.token = rawToken?.trim() ? rawToken.trim() : undefined;
+    this.baseUrl = this.validateBaseUrl(options.baseUrl);
     this.fetch = options.fetchFn || globalThis.fetch;
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? 10000;
+  }
+
+  private validateBaseUrl(rawUrl?: string): string {
+    const candidate = rawUrl?.trim() || "https://api.github.com";
+    let parsed: URL;
+    try {
+      parsed = new URL(candidate);
+    } catch {
+      throw new Error(`Invalid GitHub API base URL '${candidate}': must be a valid HTTPS URL.`);
+    }
+
+    if (parsed.protocol !== "https:") {
+      throw new Error(
+        `Insecure GitHub API protocol '${parsed.protocol}'. Only 'https:' is permitted.`
+      );
+    }
+
+    if (parsed.username || parsed.password) {
+      throw new Error("Embedded credentials in GitHub API base URL are strictly prohibited.");
+    }
+
+    if (parsed.port && parsed.port !== "443") {
+      throw new Error(`Non-standard port '${parsed.port}' is not permitted for GitHub API.`);
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname !== "api.github.com") {
+      throw new Error(
+        `Disallowed GitHub API host '${hostname}'. Only canonical 'api.github.com' is permitted.`
+      );
+    }
+
+    if (parsed.pathname !== "/" && parsed.pathname !== "") {
+      throw new Error(
+        `Unexpected path '${parsed.pathname}' in GitHub API base URL. Expected root origin.`
+      );
+    }
+
+    if (parsed.search || parsed.hash) {
+      throw new Error("Query parameters and hashes are not permitted in GitHub API base URL.");
+    }
+
+    return parsed.origin;
   }
 
   private buildHeaders(): Record<string, string> {
@@ -100,27 +156,184 @@ export class GitHubClient {
       Accept: "application/vnd.github.v3+json",
       "User-Agent": "Parakh-Evidence-Scanner/1.0",
     };
-    if (this.token && this.token.trim().length > 0) {
-      headers.Authorization = `Bearer ${this.token.trim()}`;
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
     }
     return headers;
   }
 
-  private checkRateLimitHeaders(response: Response): void {
+  private parseRetryAfter(headerValue: string | null): number | undefined {
+    if (!headerValue || !headerValue.trim()) return undefined;
+    const trimmed = headerValue.trim();
+
+    if (/^\d+$/.test(trimmed)) {
+      const seconds = parseInt(trimmed, 10);
+      return seconds > 0 ? Date.now() + seconds * 1000 : undefined;
+    }
+
+    const parsedDate = Date.parse(trimmed);
+    if (!Number.isNaN(parsedDate) && parsedDate > Date.now()) {
+      return parsedDate;
+    }
+
+    return undefined;
+  }
+
+  private checkRateLimitHeaders(response: {
+    status: number;
+    headers: Headers;
+    rawText?: string;
+  }): void {
     const remaining = response.headers.get("x-ratelimit-remaining");
     const reset = response.headers.get("x-ratelimit-reset");
+    const retryAfterHeader = response.headers.get("retry-after");
+    const retryAfterMs = this.parseRetryAfter(retryAfterHeader);
 
-    if (response.status === 403 || response.status === 429) {
+    // 1. Explicit HTTP 429 Too Many Requests
+    if (response.status === 429) {
+      const resetMs =
+        retryAfterMs ??
+        (reset && parseInt(reset, 10) > 0 ? parseInt(reset, 10) * 1000 : Date.now() + 60000);
+      const remainingCount = remaining ? parseInt(remaining, 10) : 0;
+      throw new GitHubRateLimitError(resetMs, Number.isNaN(remainingCount) ? 0 : remainingCount);
+    }
+
+    // 2. HTTP 403 Rate Limit (Primary or Secondary)
+    if (response.status === 403) {
+      // Primary rate limit: x-ratelimit-remaining is 0
       if (remaining === "0") {
-        const resetMs = reset ? parseInt(reset, 10) * 1000 : Date.now() + 60000;
+        const resetMs =
+          reset && parseInt(reset, 10) > 0 ? parseInt(reset, 10) * 1000 : Date.now() + 60000;
         throw new GitHubRateLimitError(resetMs, 0);
+      }
+
+      // Secondary rate limit indicated by Retry-After header
+      if (retryAfterHeader !== null) {
+        const resetMs =
+          retryAfterMs ??
+          (reset && parseInt(reset, 10) > 0 ? parseInt(reset, 10) * 1000 : Date.now() + 60000);
+        throw new GitHubRateLimitError(resetMs, 0);
+      }
+
+      // Secondary rate limit indicated by GitHub message payload
+      if (response.rawText) {
+        const lowerBody = response.rawText.toLowerCase();
+        if (
+          lowerBody.includes("secondary rate limit") ||
+          lowerBody.includes("rate limit exceeded") ||
+          lowerBody.includes("abuse detection mechanism")
+        ) {
+          const resetMs =
+            retryAfterMs ??
+            (reset && parseInt(reset, 10) > 0 ? parseInt(reset, 10) * 1000 : Date.now() + 60000);
+          throw new GitHubRateLimitError(resetMs, 0);
+        }
       }
     }
   }
 
-  private async executeFetch(url: string, options?: GitHubRequestOptions): Promise<Response> {
+  private async readResponseBody(
+    response: Response,
+    maxBytes: number,
+    signal: AbortSignal
+  ): Promise<string> {
+    const contentLengthHeader = response.headers.get("content-length");
+    if (contentLengthHeader) {
+      const contentLength = parseInt(contentLengthHeader, 10);
+      if (!Number.isNaN(contentLength) && contentLength > maxBytes) {
+        throw new GitHubApiError(
+          `GitHub API response size (${contentLength} bytes) exceeds maximum safety limit of ${maxBytes} bytes`,
+          413
+        );
+      }
+    }
+
+    if (response.body && typeof response.body.getReader === "function") {
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let totalBytes = 0;
+
+      const onAbort = () => {
+        reader.cancel("Request aborted").catch(() => {});
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+
+      try {
+        while (true) {
+          if (signal.aborted) {
+            await reader.cancel("Request aborted").catch(() => {});
+            throw signal.reason || new Error("This operation was aborted");
+          }
+          const { done, value } = await reader.read();
+          if (done) break;
+          totalBytes += value.byteLength;
+          if (totalBytes > maxBytes) {
+            await reader.cancel("Response size exceeded maximum safety limit").catch(() => {});
+            throw new GitHubApiError(
+              `GitHub API response stream exceeded maximum safety limit of ${maxBytes} bytes`,
+              413
+            );
+          }
+          chunks.push(value);
+        }
+      } finally {
+        signal.removeEventListener("abort", onAbort);
+        reader.releaseLock();
+      }
+      return Buffer.concat(chunks).toString("utf-8");
+    }
+
+    let text = "";
+    if (typeof response.text === "function") {
+      text = await response.text();
+    } else if (typeof (response as any).json === "function") {
+      const data = await (response as any).json();
+      text = JSON.stringify(data);
+    }
+
+    const byteLength = Buffer.byteLength(text, "utf-8");
+    if (byteLength > maxBytes) {
+      throw new GitHubApiError(
+        `GitHub API response size (${byteLength} bytes) exceeds maximum safety limit of ${maxBytes} bytes`,
+        413
+      );
+    }
+    return text;
+  }
+
+  private async executeFetch(
+    url: string,
+    options?: GitHubRequestOptions
+  ): Promise<ApiResponse> {
+    // Validate destination before constructing headers or sending request
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new GitHubApiError(`Invalid request URL: '${url}'`, 400);
+    }
+
+    if (parsedUrl.protocol !== "https:" || parsedUrl.hostname.toLowerCase() !== "api.github.com") {
+      throw new GitHubApiError(
+        `Disallowed outbound request destination '${parsedUrl.origin}'. Only canonical 'https://api.github.com' is allowed.`,
+        400
+      );
+    }
+
+    if (parsedUrl.username || parsedUrl.password) {
+      throw new GitHubApiError("Embedded credentials in request URL are strictly prohibited.", 400);
+    }
+
+    if (parsedUrl.port && parsedUrl.port !== "443") {
+      throw new GitHubApiError(
+        `Non-standard port '${parsedUrl.port}' is not permitted for GitHub API.`,
+        400
+      );
+    }
+
     const headers = this.buildHeaders();
     const timeoutMs = options?.timeoutMs ?? this.defaultTimeoutMs;
+    const maxBytes = options?.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
     const controller = new AbortController();
     let timedOut = false;
     const timer = setTimeout(() => {
@@ -166,10 +379,37 @@ export class GitHubClient {
           method: "GET",
           headers,
           signal: controller.signal,
+          redirect: "error",
         }),
         abortPromise,
       ]);
-      return response;
+
+      if (response.status >= 300 && response.status < 400) {
+        throw new GitHubApiError(
+          `Unexpected redirect response (HTTP ${response.status}) from GitHub API. Redirects are disabled for security.`,
+          502
+        );
+      }
+
+      // Read response body stream while timeout timer and abort controller are still active
+      const rawText = await Promise.race([
+        this.readResponseBody(response, maxBytes, controller.signal),
+        abortPromise,
+      ]);
+
+      return {
+        status: response.status,
+        ok: response.ok,
+        headers: response.headers,
+        rawText,
+        async text(): Promise<string> {
+          return rawText;
+        },
+        async json<T = unknown>(): Promise<T> {
+          if (!rawText.trim()) return {} as T;
+          return JSON.parse(rawText) as T;
+        },
+      };
     } catch (err: any) {
       if (timedOut || err instanceof GitHubTimeoutError) {
         throw err instanceof GitHubTimeoutError

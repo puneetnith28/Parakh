@@ -7,6 +7,7 @@ import {
   ContentFetcher,
   buildBatchEvidenceRecords,
 } from "@parakh/evidence";
+import { config } from "../config.js";
 
 export const repositoryRouter = Router();
 
@@ -32,7 +33,7 @@ repositoryRouter.post(
       }
 
       const { owner, repo, canonicalUrl } = urlValidation;
-      const client = new GitHubClient();
+      const client = new GitHubClient({ token: config.GITHUB_TOKEN });
 
       const metadata = await client.resolveRepoMetadata(owner, repo);
       const targetRef = ref?.trim() || metadata.defaultBranch;
@@ -76,7 +77,7 @@ repositoryRouter.post(
       }
 
       const { owner, repo, canonicalUrl } = urlValidation;
-      const client = new GitHubClient();
+      const client = new GitHubClient({ token: config.GITHUB_TOKEN });
 
       const metadata = await client.resolveRepoMetadata(owner, repo);
       const targetRef = ref?.trim() || metadata.defaultBranch;
