@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Requirement, AssessmentReport, Citation, RequirementAssessment } from "@parakh/contracts";
 import { Header } from "./components/Header.tsx";
 import { InputSection } from "./components/InputSection.tsx";
@@ -16,6 +16,7 @@ import { getApiUrl } from "./config/api.ts";
 import { extractRequirementsFromText, runAssessmentAnalysis, fetchReportById } from "./services/api.ts";
 
 export default function App() {
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [opportunityText, setOpportunityText] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
@@ -86,6 +87,9 @@ export default function App() {
     return () => {
       isMounted = false;
       clearInterval(interval);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, []);
 
@@ -132,11 +136,15 @@ export default function App() {
     setAnalysisError(null);
     setAnalysisStatus("Connecting to repository and resolving commit snapshot...");
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const { report: resultReport, viewToken: token } = await runAssessmentAnalysis({
         title: "Technical Capability Assessment",
         repositoryUrl: repoUrl.trim(),
         requirements,
+        signal: controller.signal,
       });
       setReport(resultReport);
       if (token) {
@@ -148,7 +156,12 @@ export default function App() {
       }
       setStage("results");
     } catch (err: any) {
+      if (err.name === "AbortError" || controller.signal.aborted) {
+        return;
+      }
       setAnalysisError(err.message || "Failed to complete capability analysis.");
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
@@ -219,6 +232,10 @@ export default function App() {
             error={analysisError}
             onRetry={handleConfirmRequirements}
             onCancel={() => {
+              if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+              }
               setAnalysisError(null);
               setStage("review_requirements");
             }}

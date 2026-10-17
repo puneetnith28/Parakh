@@ -75,6 +75,7 @@ export class CanonicalAssessmentEvaluator {
     citedCandidateIds: string[];
     limitations?: string;
     nextActions?: string[];
+    downgradeReason?: string;
   }> {
     if (universe.candidates.length === 0) {
       return {

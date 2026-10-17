@@ -94,9 +94,19 @@ export async function runAssessmentAnalysis(params: {
   repositoryUrl: string;
   requirements: Requirement[];
   timeoutMs?: number;
+  signal?: AbortSignal;
 }): Promise<any> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), params.timeoutMs ?? 180000);
+
+  // Link caller signal if supplied
+  if (params.signal) {
+    if (params.signal.aborted) {
+      controller.abort();
+    } else {
+      params.signal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
 
   try {
     const res = await fetch(getApiUrl("/api/analysis"), {
@@ -125,6 +135,11 @@ export async function runAssessmentAnalysis(params: {
       viewToken: data.viewToken,
     };
   } catch (err: any) {
+    if (params.signal?.aborted) {
+      const abortErr = new Error("Analysis request cancelled by user.");
+      abortErr.name = "AbortError";
+      throw abortErr;
+    }
     if (err.name === "AbortError") {
       throw new Error("Repository analysis request timed out. Please check repository size or try again.");
     }
