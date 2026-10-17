@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CheckSquare, Square, CheckCircle, ListTodo } from "lucide-react";
 import { RequirementAssessment } from "@parakh/contracts";
+import { Badge } from "../ui/Badge";
 
 export interface GapActionItem {
   id: string;
@@ -24,7 +25,6 @@ export function generateGapActions(assessments: RequirementAssessment[]): GapAct
   const actions: GapActionItem[] = [];
 
   gapItems.forEach((gap) => {
-    // 1. If Gemma returned nextActions, include them
     if (gap.nextActions && gap.nextActions.length > 0) {
       gap.nextActions.forEach((act, actIdx) => {
         actions.push({
@@ -37,7 +37,6 @@ export function generateGapActions(assessments: RequirementAssessment[]): GapAct
         });
       });
     } else if (gap.status === "partially_demonstrated") {
-      // Synthesize specific actionable step
       actions.push({
         id: `${gap.requirementId}_gen_test`,
         requirementId: gap.requirementId,
@@ -64,7 +63,6 @@ export function generateGapActions(assessments: RequirementAssessment[]): GapAct
         completed: false,
       });
     } else {
-      // needs_review
       actions.push({
         id: `${gap.requirementId}_gen_review`,
         requirementId: gap.requirementId,
@@ -93,88 +91,92 @@ export function GapChecklist({ assessments, className = "" }: GapChecklistProps)
 
   if (totalCount === 0) {
     return (
-      <div className={`p-6 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 text-center space-y-2 ${className}`}>
-        <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto" />
-        <h4 className="text-sm font-semibold text-emerald-200">Zero Technical Gaps Detected</h4>
-        <p className="text-xs text-slate-400 max-w-md mx-auto">
-          All extracted client requirements have verified source code or test proof in your repository snapshot.
+      <div className={`p-8 rounded-3xl bg-white border border-[#E2E5DE] text-center space-y-3 font-sans shadow-xs ${className}`}>
+        <CheckCircle className="w-10 h-10 text-emerald-600 mx-auto" />
+        <h4 className="text-base font-bold text-[#111111]">Zero Technical Gaps Detected</h4>
+        <p className="text-xs text-[#5F625E] max-w-md mx-auto">
+          All extracted client requirements have verified source code and test proof in your repository snapshot.
         </p>
       </div>
     );
   }
 
   return (
-    <div className={`p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm space-y-4 ${className}`}>
+    <div className={`bg-white border border-[#E2E5DE] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 font-sans ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <ListTodo className="w-4 h-4" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E2E5DE]">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <ListTodo className="w-4 h-4 text-[#163300]" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#5F625E]">Remediation Plan</span>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-slate-100">Gap Resolution Action Plan</h3>
-            <p className="text-xs text-slate-400">
-              Concrete steps to close unverified requirements prior to submitting proposal
-            </p>
-          </div>
+          <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-[#111111]">
+            Gap Resolution Action Plan
+          </h3>
+          <p className="text-xs sm:text-sm text-[#5F625E]">
+            Actionable steps to close unverified requirements prior to final proposal delivery.
+          </p>
         </div>
 
-        <span className="text-xs font-mono font-medium text-slate-300 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800">
+        <Badge variant={completedCount === totalCount ? "success" : "dark"} size="md">
           {completedCount} of {totalCount} completed
-        </span>
+        </Badge>
       </div>
 
       {/* Progress Bar */}
-      <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800/60">
-        <div
-          style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
-          className="h-full bg-emerald-500 transition-all duration-300"
-        />
+      <div className="space-y-1.5">
+        <div className="h-2 w-full bg-[#F2F4F0] rounded-full overflow-hidden border border-[#E2E5DE]">
+          <div
+            style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
+            className="h-full bg-[#163300] transition-all duration-300 rounded-full"
+          />
+        </div>
       </div>
 
       {/* Action Items List */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {items.map((item) => (
           <div
             key={item.id}
             onClick={() => toggleItem(item.id)}
-            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
+            className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 select-none ${
               item.completed
-                ? "bg-slate-950/40 border-slate-800/50 opacity-60 line-through"
-                : "bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900/50"
+                ? "bg-[#F8F9F7] border-[#E2E5DE] opacity-60 line-through text-[#828580]"
+                : "bg-white border-[#E2E5DE] hover:border-[#163300] text-[#111111] shadow-xs hover:shadow-sm"
             }`}
           >
             <button
               type="button"
-              className="mt-0.5 text-slate-400 hover:text-emerald-400 transition shrink-0"
+              className="mt-0.5 text-[#5F625E] hover:text-[#163300] transition shrink-0"
+              aria-label={item.completed ? "Mark incomplete" : "Mark complete"}
             >
               {item.completed ? (
-                <CheckSquare className="w-4 h-4 text-emerald-400" />
+                <CheckSquare className="w-5 h-5 text-[#163300]" />
               ) : (
-                <Square className="w-4 h-4 text-slate-500" />
+                <Square className="w-5 h-5 text-[#CBD0C5]" />
               )}
             </button>
 
-            <div className="space-y-1 flex-1">
+            <div className="space-y-1.5 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
+                <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F2F4F0] text-[#163300]">
                   {item.requirementId}
                 </span>
 
                 <span
-                  className={`text-[10px] uppercase font-semibold px-2 py-0.2 rounded border ${
+                  className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
                     item.category === "code_test"
-                      ? "bg-blue-500/10 text-blue-300 border-blue-500/20"
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                       : item.category === "alternative_repo"
-                      ? "bg-purple-500/10 text-purple-300 border-purple-500/20"
-                      : "bg-amber-500/10 text-amber-300 border-amber-500/20"
+                      ? "bg-purple-50 text-purple-800 border border-purple-200"
+                      : "bg-amber-50 text-amber-800 border border-amber-200"
                   }`}
                 >
                   {item.category.replace("_", " ")}
                 </span>
               </div>
 
-              <p className={`text-xs text-slate-200 leading-snug ${item.completed ? "text-slate-500" : ""}`}>
+              <p className={`text-xs sm:text-sm font-medium leading-relaxed ${item.completed ? "text-[#828580]" : "text-[#111111]"}`}>
                 {item.actionText}
               </p>
             </div>
@@ -184,3 +186,5 @@ export function GapChecklist({ assessments, className = "" }: GapChecklistProps)
     </div>
   );
 }
+
+export default GapChecklist;

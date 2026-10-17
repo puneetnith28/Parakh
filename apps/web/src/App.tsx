@@ -27,6 +27,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'assessment'>('landing');
   const [dashboardTab, setDashboardTab] = useState<DashboardNavTab>('home');
   const [isModeModalOpen, setIsModeModalOpen] = useState(false);
+  const [evaluationMode, setEvaluationMode] = useState<EvaluationMode>('opportunity');
 
   // Form input state
   const [opportunityText, setOpportunityText] = useState('');
@@ -131,23 +132,34 @@ export default function App() {
     }
   }, [report]);
 
+  // Reset window scroll position on view transitions
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [currentView]);
+
   const handleStartNewAssessment = () => {
     setValidationError(null);
     setSuccessMessage(null);
     setIsModeModalOpen(true);
   };
 
-  const handleSelectMode = (_mode: EvaluationMode) => {
+  const handleSelectMode = (mode: EvaluationMode) => {
+    setEvaluationMode(mode);
     setIsModeModalOpen(false);
     setCurrentView('assessment');
     setStage('input');
+    setValidationError(null);
+    setSuccessMessage(null);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   const handleAnalyze = async () => {
     setValidationError(null);
     setSuccessMessage(null);
 
-    if (!opportunityText.trim()) {
+    const isDirectAudit = evaluationMode === 'quick-audit';
+
+    if (!isDirectAudit && !opportunityText.trim()) {
       setValidationError('Please paste a client opportunity brief or RFP description.');
       return;
     }
@@ -165,13 +177,27 @@ export default function App() {
 
     setIsLoading(true);
     try {
-      const result = await extractRequirementsFromText(opportunityText, 'Opportunity Brief');
+      const briefToExtract = isDirectAudit
+        ? `Standard Repository Architecture, Security & Testing Audit:
+1. Architecture & Design Patterns: Clean separation of concerns, modular directory organization, domain layering, and decoupled dependencies.
+2. Automated Testing Rigor: Comprehensive test suites with passing assertions, unit tests, and edge-case coverage.
+3. Security & Defensive Practices: SSRF protection, input validation, authentication/authorization checks, and safe secrets handling.
+4. API Contracts & Resilience: Strict schema validation, typed API responses, and resilient error recovery mechanisms.`
+        : opportunityText;
+
+      const title = isDirectAudit ? 'Repository Architecture & Security Audit' : 'Opportunity Brief Assessment';
+
+      const result = await extractRequirementsFromText(briefToExtract, title);
       setRequirements(result.requirements);
       setStage('review_requirements');
       const mockNotice = result.isMock ? ' (Deterministic Engine)' : '';
-      setSuccessMessage(`Extracted ${result.requirements.length} structured requirements${mockNotice}! Review and refine them below.`);
+      setSuccessMessage(
+        isDirectAudit
+          ? `Generated ${result.requirements.length} pre-calibrated audit dimensions${mockNotice}! Review and refine them below before inspecting ${repoUrl}.`
+          : `Extracted ${result.requirements.length} structured requirements${mockNotice}! Review and refine them below.`
+      );
     } catch (err: any) {
-      setValidationError(err.message || 'Failed to process opportunity brief.');
+      setValidationError(err.message || 'Failed to process evaluation requirements.');
     } finally {
       setIsLoading(false);
     }
@@ -289,16 +315,16 @@ export default function App() {
           {(dashboardTab === 'home' || dashboardTab === 'assessments') && (
             <>
               {report ? (
-                <div className="space-y-8 max-w-5xl mx-auto">
+                <div className="space-y-6 w-full max-w-7xl 2xl:max-w-[1480px] mx-auto font-sans">
                   {/* Results Sub-Navigation */}
                   <div className="flex flex-wrap items-center gap-2 border-b border-[#E2E5DE] pb-4">
                     <button
                       type="button"
                       onClick={() => setActiveResultsTab('map')}
-                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
                         activeResultsTab === 'map'
-                          ? 'bg-[#163300] text-white shadow-sm'
-                          : 'bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111]'
+                          ? 'bg-[#163300] text-white shadow-xs'
+                          : 'bg-white hover:bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111] border border-[#E2E5DE]'
                       }`}
                     >
                       Report & Evidence Map
@@ -306,10 +332,10 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setActiveResultsTab('gaps')}
-                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
                         activeResultsTab === 'gaps'
-                          ? 'bg-[#163300] text-white shadow-sm'
-                          : 'bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111]'
+                          ? 'bg-[#163300] text-white shadow-xs'
+                          : 'bg-white hover:bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111] border border-[#E2E5DE]'
                       }`}
                     >
                       Gap Checklist
@@ -317,10 +343,10 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setActiveResultsTab('proposal')}
-                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
                         activeResultsTab === 'proposal'
-                          ? 'bg-[#163300] text-white shadow-sm'
-                          : 'bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111]'
+                          ? 'bg-[#163300] text-white shadow-xs'
+                          : 'bg-white hover:bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111] border border-[#E2E5DE]'
                       }`}
                     >
                       Proposal Kit
@@ -328,10 +354,10 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setActiveResultsTab('export')}
-                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
                         activeResultsTab === 'export'
-                          ? 'bg-[#163300] text-white shadow-sm'
-                          : 'bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111]'
+                          ? 'bg-[#163300] text-white shadow-xs'
+                          : 'bg-white hover:bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111] border border-[#E2E5DE]'
                       }`}
                     >
                       Export Center
@@ -340,7 +366,7 @@ export default function App() {
 
                   {/* Active Sub-tab View */}
                   {activeResultsTab === 'map' && (
-                    <div className="space-y-8">
+                    <div className="space-y-6">
                       <ReportSummary report={report} />
                       <EvidenceMap
                         assessments={report.assessments}
@@ -352,27 +378,15 @@ export default function App() {
                   )}
 
                   {activeResultsTab === 'gaps' && (
-                    <div className="bg-[#F2F4F0] p-6 sm:p-10 rounded-[28px] border border-[#E2E5DE]">
-                      <h3 className="text-xl font-bold text-[#111111] mb-2">Technical Gap Checklist</h3>
-                      <p className="text-xs text-[#5F625E] mb-6">
-                        Concrete remediation steps for requirements not fully demonstrated.
-                      </p>
-                      <GapChecklist assessments={report.assessments} />
-                    </div>
+                    <GapChecklist assessments={report.assessments} />
                   )}
 
                   {activeResultsTab === 'proposal' && (
-                    <div className="bg-[#F2F4F0] p-6 sm:p-10 rounded-[28px] border border-[#E2E5DE]">
-                      <h3 className="text-xl font-bold text-[#111111] mb-2">Proposal & Client Response Kit</h3>
-                      <p className="text-xs text-[#5F625E] mb-6">
-                        Auto-generated draft response emphasizing proven architectural strengths.
-                      </p>
-                      <ProposalKit
-                        assessments={report.assessments}
-                        repositoryUrl={report.repositoryUrl}
-                        opportunityTitle={report.opportunityTitle}
-                      />
-                    </div>
+                    <ProposalKit
+                      assessments={report.assessments}
+                      repositoryUrl={report.repositoryUrl}
+                      opportunityTitle={report.opportunityTitle}
+                    />
                   )}
 
                   {activeResultsTab === 'export' && (
@@ -404,7 +418,7 @@ export default function App() {
 
           {/* Evidence Map Dedicated View */}
           {dashboardTab === 'evidence' && (
-            <div className="max-w-5xl mx-auto space-y-6">
+            <div className="w-full max-w-7xl 2xl:max-w-[1480px] mx-auto space-y-6 font-sans">
               {report ? (
                 <EvidenceMap
                   assessments={report.assessments}
@@ -413,7 +427,7 @@ export default function App() {
                   }}
                 />
               ) : (
-                <div className="text-center py-20 bg-[#F2F4F0] rounded-[28px] border border-[#E2E5DE]">
+                <div className="text-center py-20 bg-white rounded-3xl border border-[#E2E5DE] shadow-xs">
                   <p className="text-[#5F625E] text-sm mb-4">
                     No active evidence map. Run an assessment to generate code citations.
                   </p>
@@ -432,24 +446,18 @@ export default function App() {
 
           {/* Action Plan Dedicated View */}
           {dashboardTab === 'action-plan' && (
-            <div className="max-w-5xl mx-auto space-y-6">
+            <div className="w-full max-w-7xl 2xl:max-w-[1480px] mx-auto space-y-6 font-sans">
               {report ? (
                 <div className="space-y-6">
-                  <div className="bg-[#F2F4F0] p-6 sm:p-10 rounded-[28px] border border-[#E2E5DE]">
-                    <h3 className="text-xl font-bold text-[#111111] mb-2">Remediation Action Plan</h3>
-                    <GapChecklist assessments={report.assessments} />
-                  </div>
-                  <div className="bg-[#F2F4F0] p-6 sm:p-10 rounded-[28px] border border-[#E2E5DE]">
-                    <h3 className="text-xl font-bold text-[#111111] mb-2">Client Response Kit</h3>
-                    <ProposalKit
-                      assessments={report.assessments}
-                      repositoryUrl={report.repositoryUrl}
-                      opportunityTitle={report.opportunityTitle}
-                    />
-                  </div>
+                  <GapChecklist assessments={report.assessments} />
+                  <ProposalKit
+                    assessments={report.assessments}
+                    repositoryUrl={report.repositoryUrl}
+                    opportunityTitle={report.opportunityTitle}
+                  />
                 </div>
               ) : (
-                <div className="text-center py-20 bg-[#F2F4F0] rounded-[28px] border border-[#E2E5DE]">
+                <div className="text-center py-20 bg-white rounded-3xl border border-[#E2E5DE] shadow-xs">
                   <p className="text-[#5F625E] text-sm mb-4">
                     No action plan available. Run an assessment to generate gap closures.
                   </p>
@@ -470,27 +478,37 @@ export default function App() {
 
       {/* 3. ASSESSMENT SETUP WORKFLOW */}
       {currentView === 'assessment' && (
-        <div className="min-h-screen bg-white flex flex-col">
-          <header className="border-b border-[#E2E5DE] py-4 px-6 flex items-center justify-between sticky top-0 bg-white z-40">
+        <div className="min-h-screen bg-white flex flex-col relative overflow-hidden font-sans">
+          {/* Architectural Background Grid */}
+          <div className="absolute inset-0 bg-grid-subtle mask-radial-top pointer-events-none opacity-70" />
+
+          <header className="border-b border-[#E2E5DE] py-4 px-6 sm:px-10 lg:px-14 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-40">
             <button
               type="button"
               onClick={() => setCurrentView('dashboard')}
-              className="inline-flex items-center gap-2 text-xs font-bold text-[#163300] hover:underline"
+              className="inline-flex items-center gap-2 text-xs font-bold text-[#163300] hover:underline cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Dashboard</span>
             </button>
-            <div className="font-display text-xl text-[#111111]">
-              PARAKH<span className="text-[#9FE870] font-black">.</span>
+            <div className="font-sans font-black text-xl tracking-tight text-[#111111]">
+              PARAKH<span className="text-[#9FE870]">.</span>
             </div>
-            <div className="text-xs font-mono text-[#5F625E]">
-              API: <span className="text-[#163300] font-bold uppercase">{apiStatus}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#F2F4F0] border border-[#E2E5DE] text-[#163300]">
+                {evaluationMode === 'quick-audit' ? 'Direct Audit Mode' : 'Opportunity Brief Mode'}
+              </span>
+              <div className="text-xs font-mono text-[#5F625E]">
+                API: <span className="text-[#163300] font-bold uppercase">{apiStatus}</span>
+              </div>
             </div>
           </header>
 
-          <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-10 w-full space-y-8">
+          <main className="relative z-10 flex-1 w-full max-w-7xl 2xl:max-w-[1480px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-10 space-y-8">
             {stage === 'input' && (
               <InputSection
+                evaluationMode={evaluationMode}
+                onSwitchMode={setEvaluationMode}
                 opportunityText={opportunityText}
                 setOpportunityText={setOpportunityText}
                 repoUrl={repoUrl}
@@ -545,6 +563,7 @@ export default function App() {
         isOpen={isModeModalOpen}
         onClose={() => setIsModeModalOpen(false)}
         onSelectMode={handleSelectMode}
+        initialMode={evaluationMode}
       />
 
       {/* Citation Inspector Drawer */}

@@ -18,6 +18,21 @@ export const EvaluationModeModal: React.FC<EvaluationModeModalProps> = ({
   initialMode = 'opportunity',
 }) => {
   const [selected, setSelected] = useState<EvaluationMode>(initialMode);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      if (containerRef.current) {
+        containerRef.current.scrollTop = 0;
+      }
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -28,13 +43,17 @@ export const EvaluationModeModal: React.FC<EvaluationModeModalProps> = ({
 
   return (
     <div
+      ref={containerRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="evaluation-mode-heading"
       className="fixed inset-0 z-50 overflow-y-auto bg-white flex flex-col min-h-screen"
     >
+      {/* Background Architectural Grid Pattern */}
+      <div className="fixed inset-0 bg-grid-subtle mask-radial pointer-events-none opacity-60" />
+
       {/* Top Header Row matching Reference 3 */}
-      <header className="w-full border-b border-[#E2E5DE] bg-white sticky top-0 z-30">
+      <header className="relative z-10 w-full border-b border-[#E2E5DE] bg-white sticky top-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between">
           {/* Brand Logo */}
           <div className="flex items-center gap-2">
@@ -85,7 +104,7 @@ export const EvaluationModeModal: React.FC<EvaluationModeModalProps> = ({
       </header>
 
       {/* Main Content Body */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 flex flex-col justify-between">
+      <main className="relative z-10 flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 flex flex-col justify-between">
         {/* Back Link */}
         <div className="mb-6">
           <button

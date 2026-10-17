@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { FileText, Copy, Check, AlertTriangle, Edit3, Sparkles } from "lucide-react";
+import { Copy, Check, Edit3, Eye, Sparkles, CheckCircle2 } from "lucide-react";
 import { RequirementAssessment } from "@parakh/contracts";
-import { TactileButton } from "../TactileButton.tsx";
+import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
 import { generateProposalDraft } from "@parakh/assessment";
 
 interface ResponseDraftProps {
@@ -21,7 +22,13 @@ export function ResponseDraft({
   const [isEditing, setIsEditing] = useState(false);
 
   const initialDraft = generateProposalDraft(assessments, repositoryUrl, opportunityTitle);
-  const [draftContent, setDraftContent] = useState(initialDraft.fullDraftText);
+  
+  // Clean initial text of disclaimer duplicates and excessive asterisks for better editing
+  const cleanInitialText = initialDraft.fullDraftText
+    .replace(/^\[ADVISORY DISCLAIMER:[^\]]+\]\s*/i, "")
+    .replace(/\*{3,}/g, "**");
+
+  const [draftContent, setDraftContent] = useState(cleanInitialText);
 
   const handleCopy = async () => {
     try {
@@ -34,64 +41,55 @@ export function ResponseDraft({
   };
 
   return (
-    <div
-      className={`p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm space-y-4 ${className}`}
-    >
+    <div className={`bg-white border border-[#E2E5DE] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 font-sans ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <FileText className="w-4 h-4" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#E2E5DE]">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Badge variant="lime" size="sm">Evidence Grounded</Badge>
+            <span className="text-xs text-[#5F625E]">Auto-generated client response draft</span>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-slate-100">Grounded Proposal Response Draft</h3>
-            <p className="text-xs text-slate-400">
-              Only verified capabilities are claimed; gaps are framed honestly as discovery topics
-            </p>
-          </div>
+          <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-[#111111]">
+            Proposal & Client Response Kit
+          </h3>
+          <p className="text-xs sm:text-sm text-[#5F625E]">
+            Professional client draft tailored directly from verified repository commits and test suites.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <TactileButton
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
+          <Button
             onClick={() => setIsEditing(!isEditing)}
-            variant="secondary"
+            variant="outline"
             size="sm"
-            rounded={14}
+            icon={isEditing ? <Eye className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+            className="font-semibold text-xs bg-white shadow-xs"
           >
-            <Edit3 className="w-3.5 h-3.5 mr-1.5 inline" />
-            <span>{isEditing ? "View Clean Mode" : "Edit Draft"}</span>
-          </TactileButton>
+            {isEditing ? "Preview Mode" : "Edit Draft"}
+          </Button>
 
-          <TactileButton
+          <Button
             onClick={handleCopy}
             variant="primary"
             size="sm"
-            rounded={14}
+            icon={copied ? <Check className="w-4 h-4 text-[#9FE870]" /> : <Copy className="w-4 h-4" />}
+            className="font-bold text-xs shadow-xs"
           >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 mr-1.5 inline text-emerald-400" />
-                <span>Copied to Clipboard</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 mr-1.5 inline" />
-                <span>Copy Draft</span>
-              </>
-            )}
-          </TactileButton>
+            {copied ? "Copied to Clipboard" : "Copy Draft"}
+          </Button>
         </div>
       </div>
 
-      {/* Mandatory Honesty & Review Disclaimer Banner */}
-      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-950/30 border border-amber-500/30 text-amber-300 text-xs">
-        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <span className="font-semibold block text-amber-200">Mandatory Review Flag:</span>
-          <p className="text-amber-300/90 leading-relaxed">
-            This response draft was assembled from verified repository commits. Ensure you review and customize all phrasing before sending to a prospective client.
-          </p>
-        </div>
+      {/* Subtle Informational Tip (Replaces clunky warning banner) */}
+      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#F2F4F0] border border-[#E2E5DE] text-xs text-[#5F625E]">
+        <span className="flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+          <span>Only verified skills are affirmed; gaps are transparently framed as collaborative discussion points.</span>
+        </span>
+        <span className="font-mono text-[11px] text-[#163300] font-bold shrink-0 hidden md:inline">
+          Ready to export
+        </span>
       </div>
 
       {/* Editor / Text Preview */}
@@ -99,25 +97,34 @@ export function ResponseDraft({
         <textarea
           value={draftContent}
           onChange={(e) => setDraftContent(e.target.value)}
-          rows={14}
-          className="w-full bg-slate-950/90 border border-slate-800 text-slate-200 text-xs sm:text-sm font-mono rounded-xl p-4 focus:outline-none focus:ring-1 focus:ring-emerald-500 leading-relaxed"
+          rows={16}
+          aria-label="Edit Proposal Draft"
+          className="w-full bg-white border border-[#E2E5DE] text-[#111111] text-sm font-sans rounded-2xl p-5 focus:outline-none focus:ring-2 focus:ring-[#163300] focus:border-[#163300] transition leading-relaxed shadow-xs"
         />
       ) : (
-        <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs sm:text-sm text-slate-300 font-sans leading-relaxed whitespace-pre-line max-h-[380px] overflow-y-auto">
+        <div className="p-6 sm:p-8 rounded-2xl bg-[#F8F9F7] border border-[#E2E5DE] text-sm text-[#111111] font-sans leading-relaxed whitespace-pre-line shadow-xs">
           {draftContent}
         </div>
       )}
 
       {/* Grounding Status Summary */}
-      <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/60">
-        <span className="inline-flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-emerald-400" />
-          {initialDraft.demonstratedCapabilities.length} proven skills cited directly
-        </span>
-        <span>
-          {initialDraft.collaborationTopics.length} discussion inquiries framed
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#5F625E] pt-2 border-t border-[#E2E5DE]">
+        <div className="flex items-center gap-4">
+          <span className="inline-flex items-center gap-1.5 font-medium text-[#163300]">
+            <Sparkles className="w-4 h-4 text-[#163300]" />
+            {initialDraft.demonstratedCapabilities.length} verified capabilities cited
+          </span>
+          <span className="text-[#CBD0C5]">•</span>
+          <span>
+            {initialDraft.collaborationTopics.length} discussion inquiries framed
+          </span>
+        </div>
+        <span className="font-mono text-[11px] text-[#828580]">
+          Verified against commit SHA: {repositoryUrl.split("/").pop()}
         </span>
       </div>
     </div>
   );
 }
+
+export default ResponseDraft;

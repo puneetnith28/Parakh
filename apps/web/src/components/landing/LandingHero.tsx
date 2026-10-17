@@ -12,8 +12,11 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
   onExploreDemo,
 }) => {
   return (
-    <section className="relative overflow-hidden bg-white pt-12 pb-20 sm:pt-16 sm:pb-28">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <section className="relative overflow-hidden bg-white pt-24 pb-20 sm:pt-32 sm:pb-28">
+      {/* Background Architectural Grid Pattern */}
+      <div className="absolute inset-0 bg-grid-subtle mask-radial pointer-events-none opacity-80" />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Subtle pill tag */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F2F4F0] border border-[#E2E5DE] mb-6">
           <span className="w-2 h-2 rounded-full bg-[#163300] animate-pulse" />

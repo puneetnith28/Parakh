@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { MessageSquareText, Copy, Check, Sparkles, CheckCircle2 } from "lucide-react";
+import { MessageSquareText, Copy, Check, CheckCircle2 } from "lucide-react";
 import { RequirementAssessment } from "@parakh/contracts";
-import { TactileButton } from "../TactileButton.tsx";
+import { Button } from "../ui/Button";
 import {
   generateClarificationQuestions,
   formatQuestionsMarkdown,
@@ -41,10 +41,10 @@ export function ClientQuestions({ assessments, className = "" }: ClientQuestions
 
   if (questions.length === 0) {
     return (
-      <div className={`p-6 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 text-center space-y-2 ${className}`}>
-        <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-        <h4 className="text-sm font-semibold text-emerald-200">No Clarifications Required</h4>
-        <p className="text-xs text-slate-400 max-w-md mx-auto">
+      <div className={`p-8 rounded-3xl bg-white border border-[#E2E5DE] text-center space-y-3 font-sans shadow-xs ${className}`}>
+        <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
+        <h4 className="text-base font-bold text-[#111111]">No Clarifications Required</h4>
+        <p className="text-xs text-[#5F625E] max-w-md mx-auto">
           All client requirements in the brief are fully specified with verified implementation proof.
         </p>
       </div>
@@ -52,84 +52,67 @@ export function ClientQuestions({ assessments, className = "" }: ClientQuestions
   }
 
   return (
-    <div className={`p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm space-y-4 ${className}`}>
+    <div className={`bg-white border border-[#E2E5DE] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 font-sans ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-            <MessageSquareText className="w-4 h-4" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E2E5DE]">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <MessageSquareText className="w-4 h-4 text-[#163300]" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#5F625E]">Client Discovery</span>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-slate-100">Client Clarification Questions</h3>
-            <p className="text-xs text-slate-400">
-              Polite, targeted questions to de-risk ambiguous or unverified requirements
-            </p>
-          </div>
+          <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-[#111111]">
+            Clarification & Discovery Inquiries
+          </h3>
+          <p className="text-xs sm:text-sm text-[#5F625E]">
+            Suggested technical questions for client alignment meetings based on ambiguous requirements.
+          </p>
         </div>
 
-        <TactileButton
+        <Button
           onClick={handleCopyAll}
-          variant="secondary"
+          variant="outline"
           size="sm"
-          rounded={14}
+          icon={copiedAll ? <Check className="w-4 h-4 text-[#163300]" /> : <Copy className="w-4 h-4" />}
+          className="font-bold text-xs bg-white shadow-xs self-start sm:self-center"
         >
-          {copiedAll ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-emerald-400 mr-1.5 inline" />
-              <span className="text-emerald-300">Copied Full Message</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-3.5 h-3.5 text-rose-400 mr-1.5 inline" />
-              <span>Copy All to Clipboard</span>
-            </>
-          )}
-        </TactileButton>
+          {copiedAll ? "Copied All Inquiries" : "Copy All Questions"}
+        </Button>
       </div>
 
       {/* Questions List */}
       <div className="space-y-3">
-        {questions.map((q, idx) => (
+        {questions.map((q) => (
           <div
             key={q.id}
-            className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-slate-700/80 transition space-y-2.5"
+            className="p-4 rounded-2xl bg-[#F8F9F7] border border-[#E2E5DE] flex items-start justify-between gap-4 hover:border-[#163300] transition"
           >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-semibold text-indigo-400 font-mono">
-                  Q{idx + 1}.
-                </span>
-                <span className="text-xs font-semibold text-slate-200">{q.topic}</span>
-                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
-                  {q.requirementId}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleCopySingle(q.id, q.questionText)}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-slate-800 transition text-xs flex items-center gap-1"
-                title="Copy question text"
-              >
-                {copiedId === q.id ? (
-                  <Check className="w-3 h-3 text-emerald-400" />
-                ) : (
-                  <Copy className="w-3 h-3" />
-                )}
-              </button>
+            <div className="space-y-1.5 flex-1">
+              <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-[#E2E5DE] text-[#163300]">
+                {q.requirementId}
+              </span>
+              <p className="text-xs sm:text-sm text-[#111111] font-medium leading-relaxed">
+                {q.questionText}
+              </p>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed font-sans bg-slate-900/40 p-2.5 rounded-lg border border-slate-800/40">
-              "{q.questionText}"
-            </p>
-
-            <div className="flex items-center gap-1 text-[11px] text-slate-500">
-              <Sparkles className="w-3 h-3 text-slate-500" />
-              <span>Trigger: {q.context}</span>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleCopySingle(q.id, q.questionText)}
+              className="p-2 rounded-xl text-[#5F625E] hover:text-[#111111] hover:bg-white transition border border-transparent hover:border-[#E2E5DE] shrink-0 cursor-pointer"
+              title="Copy inquiry"
+              aria-label="Copy inquiry"
+            >
+              {copiedId === q.id ? (
+                <Check className="w-4 h-4 text-[#163300]" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </button>
           </div>
         ))}
       </div>
     </div>
   );
 }
+
+export default ClientQuestions;

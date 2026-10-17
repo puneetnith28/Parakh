@@ -12,7 +12,9 @@ export const DashboardEmptyState: React.FC<DashboardEmptyStateProps> = ({
   onExploreDemo,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-xl mx-auto text-center px-4 py-12">
+    <div className="relative flex flex-col items-center justify-center min-h-[60vh] max-w-xl mx-auto text-center px-4 py-12">
+      {/* Radial Grid Backdrop */}
+      <div className="absolute inset-0 bg-grid-dots mask-radial pointer-events-none opacity-60" />
       {/* Reference 2: 3D Iridescent Origami Paper Airplane */}
       <div className="relative w-48 h-48 sm:w-60 sm:h-60 mb-8 flex items-center justify-center">
         {/* Soft background ambient glow */}
@@ -88,13 +90,13 @@ export const DashboardEmptyState: React.FC<DashboardEmptyStateProps> = ({
 
         {onExploreDemo && (
           <Button
-            variant="ghost"
-            size="md"
+            variant="secondary"
+            size="lg"
             onClick={onExploreDemo}
             icon={<Sparkles className="w-4 h-4 text-[#163300]" />}
-            className="text-xs font-semibold text-[#5F625E] hover:text-[#111111]"
+            className="text-sm font-bold px-7 py-3.5 shadow-sm"
           >
-            Load sample audit
+            Load Sample Audit
           </Button>
         )}
       </div>

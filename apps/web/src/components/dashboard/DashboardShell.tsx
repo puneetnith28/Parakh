@@ -21,6 +21,23 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
   children,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('parakh_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('parakh_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-white text-[#111111] flex flex-col lg:flex-row w-full overflow-x-hidden">
@@ -48,7 +65,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white p-6 shadow-2xl flex flex-col z-50">
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white p-6 shadow-2xl flex flex-col z-50 overflow-hidden">
             <div className="flex justify-end mb-4">
               <button
                 type="button"
@@ -69,24 +86,34 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
                 onNewAssessment();
                 setMobileMenuOpen(false);
               }}
+              isCollapsed={false}
             />
           </div>
         </div>
       )}
 
-      {/* Desktop Fixed Sidebar (Reference 2 layout) */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 xl:w-72 lg:shrink-0 lg:border-r lg:border-[#E2E5DE] bg-white p-6 sticky top-0 h-screen overflow-y-auto">
+      {/* Desktop Fixed Non-Scrollable Collapsible Sidebar */}
+      <aside
+        className={`hidden lg:flex lg:flex-col lg:shrink-0 lg:border-r lg:border-[#E2E5DE] bg-white sticky top-0 h-screen overflow-hidden transition-[width,padding] duration-200 ease-in-out ${
+          isSidebarCollapsed ? 'w-20 p-4' : 'w-64 xl:w-72 p-6'
+        }`}
+      >
         <Sidebar
           activeTab={activeTab}
           onSelectTab={onSelectTab}
           onNewAssessment={onNewAssessment}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
         />
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 w-full bg-white">
+      <div className="flex-1 flex flex-col min-w-0 w-full bg-white relative">
+        {/* Architectural Background Grid */}
+        <div className="absolute inset-0 bg-grid-subtle pointer-events-none opacity-60" />
+
         {/* Desktop Top Bar */}
-        <div className="hidden lg:flex items-center justify-between px-10 xl:px-14 pt-8 pb-4">
+        <div className="relative z-10 hidden lg:flex items-center justify-between px-10 xl:px-14 pt-8 pb-4">
           <h1 className="font-headline text-3xl font-bold text-[#111111] tracking-tight">
             {title}
           </h1>
@@ -103,7 +130,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
         </div>
 
         {/* Content Body */}
-        <main className="flex-1 px-4 sm:px-8 lg:px-10 xl:px-14 py-6">
+        <main className="relative z-10 flex-1 px-4 sm:px-8 lg:px-10 xl:px-14 py-6">
           {children}
         </main>
       </div>

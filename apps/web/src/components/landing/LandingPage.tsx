@@ -3,13 +3,13 @@ import {
   ArrowRight,
   ShieldCheck,
   FileSearch,
-  CheckCircle2,
   Lock,
   GitBranch,
   ExternalLink,
   Terminal,
 } from 'lucide-react';
 import { LandingHero } from './LandingHero';
+import { HowItWorksSteps } from './HowItWorksSteps';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
@@ -32,78 +32,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         onExploreDemo={onExploreDemo}
       />
 
-      {/* 2. White Section: Traceable Requirements Extraction */}
-      <section className="py-20 bg-white border-t border-[#E2E5DE]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#5F625E] bg-[#F2F4F0] px-3 py-1 rounded-full">
-                Step 01 — Deconstruction
-              </span>
-              <h2 className="font-display text-3xl sm:text-5xl text-[#111111] uppercase tracking-tight mt-4 leading-tight">
-                MANAGE ALL YOUR REQUIREMENTS IN ONE SYSTEM
-              </h2>
-              <p className="mt-4 text-base sm:text-lg text-[#5F625E] leading-relaxed">
-                Paste any unstructured opportunity brief, RFP, or assignment. Parakh extracts both functional and architectural requirements into verifiable criteria with calibrated priority.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-4">
-                <Button
-                  variant="dark"
-                  size="md"
-                  onClick={onStartAssessment}
-                  icon={<ArrowRight className="w-4 h-4" />}
-                  iconPosition="right"
-                >
-                  Create Brief
-                </Button>
-              </div>
-            </div>
-
-            {/* Requirement Extraction Preview Card */}
-            <div className="bg-[#F2F4F0] rounded-3xl p-6 sm:p-8 border border-[#E2E5DE] shadow-sm">
-              <div className="flex items-center justify-between pb-4 border-b border-[#E2E5DE]">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                  <span className="text-xs font-mono text-[#5F625E] ml-2">requirements.json</span>
-                </div>
-                <Badge variant="lime" size="sm">Extracted</Badge>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                <div className="bg-white p-4 rounded-2xl border border-[#E2E5DE] flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#163300] shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-xs font-bold text-[#111111]">Deterministic Provenance Hash</div>
-                    <div className="text-xs text-[#5F625E] mt-0.5">Cryptographic SHA-256 integrity metadata covering all findings.</div>
-                    <div className="mt-2 flex gap-1.5">
-                      <span className="text-[10px] font-mono bg-[#F2F4F0] text-[#163300] px-2 py-0.5 rounded-full font-bold">SECURITY</span>
-                      <span className="text-[10px] font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full">HIGH PRIORITY</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-4 rounded-2xl border border-[#E2E5DE] flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#163300] shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-xs font-bold text-[#111111]">GitHub Commit SHA Pinning</div>
-                    <div className="text-xs text-[#5F625E] mt-0.5">Immutable reference to audited source tree revision.</div>
-                    <div className="mt-2 flex gap-1.5">
-                      <span className="text-[10px] font-mono bg-[#F2F4F0] text-[#163300] px-2 py-0.5 rounded-full font-bold">ARCHITECTURE</span>
-                      <span className="text-[10px] font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full">HIGH PRIORITY</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* 2. White Section: Interactive Animated Evaluation Steps */}
+      <section id="how-it-works" className="py-20 bg-white border-t border-[#E2E5DE] relative overflow-hidden scroll-mt-20">
+        {/* Background Architectural Grid */}
+        <div className="absolute inset-0 bg-grid-subtle mask-radial pointer-events-none opacity-60" />
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <HowItWorksSteps onStartAssessment={onStartAssessment} />
         </div>
       </section>
 
       {/* 3. Reference 1 Vibrant Lime Section (#9FE870) */}
-      <section className="py-20 sm:py-28 bg-[#9FE870] text-[#163300]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 sm:py-28 bg-[#9FE870] text-[#163300] relative overflow-hidden">
+        {/* Background Architectural Grid */}
+        <div className="absolute inset-0 bg-grid-lime mask-radial pointer-events-none opacity-60" />
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="font-display text-3xl sm:text-5xl text-[#163300] uppercase tracking-tight leading-tight">
@@ -112,16 +54,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <p className="mt-6 text-base sm:text-lg text-[#163300]/80 font-medium leading-relaxed">
                 Never accept speculative claims without verifiable repo evidence. Parakh resolves HEAD to immutable commit SHAs, validates repositories against SSRF attacks, and indexes code AST chunks in seconds.
               </p>
-              <div className="mt-8">
-                <Button
-                  variant="dark"
-                  size="lg"
-                  onClick={onStartAssessment}
-                  className="font-bold shadow-md"
-                >
-                  Evaluate a Repository
-                </Button>
-              </div>
             </div>
 
             {/* Inspection Metrics Card */}
@@ -163,8 +95,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 4. Light Gray Section: Precise Citation Inspection */}
-      <section id="evidence-grounding" className="py-20 bg-[#F2F4F0]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="evidence-grounding" className="py-20 bg-[#F2F4F0] relative overflow-hidden scroll-mt-20">
+        {/* Background Architectural Grid */}
+        <div className="absolute inset-0 bg-grid-surface mask-radial pointer-events-none opacity-70" />
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-14">
             <span className="text-xs font-bold uppercase tracking-wider text-[#5F625E] bg-white px-3.5 py-1.5 rounded-full border border-[#E2E5DE]">
               Deterministic Traceability
@@ -214,8 +148,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 5. Reference 1 Deep Forest Green Section (#163300) */}
-      <section className="py-20 sm:py-28 bg-[#163300] text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 sm:py-28 bg-[#163300] text-white relative overflow-hidden">
+        {/* Background Architectural Grid */}
+        <div className="absolute inset-0 bg-grid-dark mask-radial pointer-events-none opacity-40" />
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
             <h2 className="font-display text-3xl sm:text-5xl text-[#9FE870] uppercase tracking-tight leading-tight">
               MEET CODE EVALUATION WITHOUT BLIND SPOTS
@@ -260,8 +196,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 6. Security and Trust Section (White) */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-white relative overflow-hidden">
+        {/* Background Architectural Grid */}
+        <div className="absolute inset-0 bg-grid-subtle mask-radial pointer-events-none opacity-60" />
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold uppercase tracking-wider text-[#5F625E] bg-[#F2F4F0] px-3.5 py-1.5 rounded-full">
               Enterprise Defense
@@ -309,8 +247,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 7. Bottom CTA Section (Surface Gray #ECEFEA) */}
-      <section className="py-20 bg-[#ECEFEA] border-t border-[#E2E5DE]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="py-20 bg-[#ECEFEA] border-t border-[#E2E5DE] relative overflow-hidden">
+        {/* Background Architectural Grid */}
+        <div className="absolute inset-0 bg-grid-subtle mask-radial pointer-events-none opacity-50" />
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="font-display text-3xl sm:text-5xl text-[#111111] uppercase tracking-tight">
             START EVALUATING REPOSITORIES TODAY
           </h2>
@@ -341,7 +281,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span>Evidence-Grounded Developer Capability Assessment</span>
           </div>
           <div className="flex items-center gap-6">
-            <span>Inter Sans-Serif Design System</span>
             <a
               href="https://github.com/puneetnith28/Parakh"
               target="_blank"
