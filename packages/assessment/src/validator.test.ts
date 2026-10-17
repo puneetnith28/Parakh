@@ -143,5 +143,121 @@ describe("Deterministic Citation Validation Engine", () => {
     assert.equal(outcome.allValid, true);
     assert.equal(outcome.validCount, 1);
   });
+
+  test("strictly rejects partial snippet abuse (citing 3 lines with only 1 word snippet)", () => {
+    const partialUniverse: CandidateSnippet[] = [
+      {
+        candidateId: "cand_abuse",
+        fileId: "ev_1",
+        path: "src/auth.ts",
+        commitSha,
+        canonicalUrl: `https://github.com/org/repo/blob/${commitSha}/src/auth.ts#L1-L3`,
+        startLine: 1,
+        endLine: 3,
+        content: "token", // Only 1 token out of 3 full lines (substantive ratio < 0.7)
+        fileType: "source",
+      },
+    ];
+
+    const validator = new CitationValidator();
+    const outcome = validator.validate(["cand_abuse"], partialUniverse, records);
+
+    assert.equal(outcome.allValid, false);
+    assert.equal(outcome.rejectedCitations[0].code, "CONTENT_MISMATCH");
+    assert.match(outcome.rejectedCitations[0].reason, /does not substantively match/);
+  });
+
+  test("strictly rejects citations referencing a mismatched repository in canonicalUrl", () => {
+    const wrongRepoUniverse: CandidateSnippet[] = [
+      {
+        candidateId: "cand_wrong_repo",
+        fileId: "ev_1",
+        path: "src/auth.ts",
+        commitSha,
+        canonicalUrl: `https://github.com/evil-org/other-repo/blob/${commitSha}/src/auth.ts#L1-L3`,
+        startLine: 1,
+        endLine: 3,
+        content: "export function verifyToken(token: string) {\n  return token.length > 0;\n}",
+        fileType: "source",
+      },
+    ];
+
+    const validator = new CitationValidator();
+    const outcome = validator.validate(["cand_wrong_repo"], wrongRepoUniverse, records);
+
+    assert.equal(outcome.allValid, false);
+    assert.equal(outcome.rejectedCitations[0].code, "REPOSITORY_MISMATCH");
+  });
+
+  test("strictly rejects citations referencing stale or wrong commit SHA", () => {
+    const staleSha = "0".repeat(40);
+    const staleUniverse: CandidateSnippet[] = [
+      {
+        candidateId: "cand_stale_sha",
+        fileId: "ev_1",
+        path: "src/auth.ts",
+        commitSha: staleSha,
+        canonicalUrl: `https://github.com/org/repo/blob/${staleSha}/src/auth.ts#L1-L3`,
+        startLine: 1,
+        endLine: 3,
+        content: "export function verifyToken(token: string) {\n  return token.length > 0;\n}",
+        fileType: "source",
+      },
+    ];
+
+    const validator = new CitationValidator();
+    const outcome = validator.validate(["cand_stale_sha"], staleUniverse, records);
+
+    assert.equal(outcome.allValid, false);
+    assert.equal(outcome.rejectedCitations[0].code, "COMMIT_SHA_MISMATCH");
+  });
+
+  test("safely isolates duplicate paths in separate repositories", () => {
+    const multiRepoRecords: EvidenceRecord[] = [
+      {
+        id: "ev_orgA",
+        repository: "orgA/service",
+        commitSha,
+        path: "src/config.ts",
+        canonicalUrl: `https://github.com/orgA/service/blob/${commitSha}/src/config.ts`,
+        fileType: "source",
+        lineCount: 2,
+        content: "export const port = 3000;\nexport const env = 'prod';",
+        ingestionStatus: "full",
+      },
+      {
+        id: "ev_orgB",
+        repository: "orgB/service",
+        commitSha,
+        path: "src/config.ts",
+        canonicalUrl: `https://github.com/orgB/service/blob/${commitSha}/src/config.ts`,
+        fileType: "source",
+        lineCount: 2,
+        content: "export const port = 8080;\nexport const env = 'dev';",
+        ingestionStatus: "full",
+      },
+    ];
+
+    const universe: CandidateSnippet[] = [
+      {
+        candidateId: "cand_orgA",
+        fileId: "ev_orgA",
+        path: "src/config.ts",
+        commitSha,
+        canonicalUrl: `https://github.com/orgA/service/blob/${commitSha}/src/config.ts#L1-L2`,
+        startLine: 1,
+        endLine: 2,
+        content: "export const port = 3000;\nexport const env = 'prod';",
+        fileType: "source",
+      },
+    ];
+
+    const validator = new CitationValidator();
+    const outcome = validator.validate(["cand_orgA"], universe, multiRepoRecords);
+
+    assert.equal(outcome.allValid, true);
+    assert.equal(outcome.validCount, 1);
+    assert.equal(outcome.validCitations[0].repository, "orgA/service");
+  });
 });
 
