@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { RepositoryIngestionService } from "./ingestion.js";
+import {
+  GitHubClient,
+  GitHubNotFoundError,
+  GitHubForbiddenError,
+  GitHubRateLimitError,
+  GitHubTimeoutError,
+  GitHubApiError,
+} from "./githubClient.js";
 import { EvidenceRecordSchema } from "@parakh/contracts";
 
 test("RepositoryIngestionService rejects invalid and SSRF repository URLs", async () => {
@@ -76,3 +84,122 @@ test("RepositoryIngestionService pins 40-character commit SHA and produces valid
   }
 });
 
+test("RepositoryIngestionService does not fallback to mock evidence on GitHub 404", async () => {
+  const mockFetch: typeof fetch = async () => {
+    return new Response(JSON.stringify({ message: "Not Found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  const client = new GitHubClient({ fetchFn: mockFetch });
+
+  await assert.rejects(
+    async () => {
+      await RepositoryIngestionService.ingest("https://github.com/nonexistent/repo", { client });
+    },
+    (err: unknown) => {
+      assert.ok(err instanceof GitHubNotFoundError);
+      assert.equal((err as GitHubNotFoundError).statusCode, 404);
+      return true;
+    }
+  );
+});
+
+test("RepositoryIngestionService does not fallback to mock evidence on GitHub 403 private repo", async () => {
+  const mockFetch: typeof fetch = async () => {
+    return new Response(
+      JSON.stringify({
+        full_name: "private-org/private-repo",
+        private: true,
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  };
+  const client = new GitHubClient({ fetchFn: mockFetch });
+
+  await assert.rejects(
+    async () => {
+      await RepositoryIngestionService.ingest("https://github.com/private-org/private-repo", {
+        client,
+      });
+    },
+    (err: unknown) => {
+      assert.ok(err instanceof GitHubForbiddenError);
+      assert.equal((err as GitHubForbiddenError).statusCode, 403);
+      assert.match((err as GitHubForbiddenError).message, /private/i);
+      return true;
+    }
+  );
+});
+
+test("RepositoryIngestionService does not fallback to mock evidence on GitHub rate-limit error (429)", async () => {
+  const mockFetch: typeof fetch = async () => {
+    return new Response(JSON.stringify({ message: "API rate limit exceeded" }), {
+      status: 403,
+      headers: {
+        "Content-Type": "application/json",
+        "x-ratelimit-remaining": "0",
+        "x-ratelimit-reset": "1760000000",
+      },
+    });
+  };
+  const client = new GitHubClient({ fetchFn: mockFetch });
+
+  await assert.rejects(
+    async () => {
+      await RepositoryIngestionService.ingest("https://github.com/rate-limited/repo", { client });
+    },
+    (err: unknown) => {
+      assert.ok(err instanceof GitHubRateLimitError);
+      assert.equal((err as GitHubRateLimitError).statusCode, 429);
+      assert.match((err as GitHubRateLimitError).message, /rate limit exceeded/i);
+      return true;
+    }
+  );
+});
+
+test("RepositoryIngestionService does not fallback to mock evidence on network failure", async () => {
+  const mockFetch: typeof fetch = async () => {
+    throw new TypeError("fetch failed: ENOTFOUND api.github.com");
+  };
+  const client = new GitHubClient({ fetchFn: mockFetch });
+
+  await assert.rejects(
+    async () => {
+      await RepositoryIngestionService.ingest("https://github.com/network-fail/repo", { client });
+    },
+    (err: unknown) => {
+      assert.ok(err instanceof GitHubApiError);
+      assert.equal((err as GitHubApiError).statusCode, 502);
+      assert.match((err as GitHubApiError).message, /Network error communicating with GitHub API/i);
+      return true;
+    }
+  );
+});
+
+test("RepositoryIngestionService does not fallback to mock evidence on request timeout", async () => {
+  const mockFetch: typeof fetch = async (_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => {
+        const err = new Error("The operation was aborted due to timeout");
+        err.name = "TimeoutError";
+        reject(err);
+      });
+    });
+  };
+  const client = new GitHubClient({ fetchFn: mockFetch, defaultTimeoutMs: 30 });
+
+  await assert.rejects(
+    async () => {
+      await RepositoryIngestionService.ingest("https://github.com/timeout-org/timeout-repo", {
+        client,
+      });
+    },
+    (err: unknown) => {
+      assert.ok(err instanceof GitHubTimeoutError);
+      assert.equal((err as GitHubTimeoutError).statusCode, 504);
+      assert.match((err as GitHubTimeoutError).message, /timed out after 30ms/i);
+      return true;
+    }
+  );
+});

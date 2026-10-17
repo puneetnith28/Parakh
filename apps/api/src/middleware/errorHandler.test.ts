@@ -5,6 +5,7 @@ import {
   GitHubNotFoundError,
   GitHubForbiddenError,
   GitHubRateLimitError,
+  GitHubTimeoutError,
   GitHubApiError,
 } from "@parakh/evidence";
 import { errorHandler } from "./errorHandler.js";
@@ -63,6 +64,16 @@ describe("API Centralized Error Handler Middleware", () => {
     assert.equal(getStatus(), 429);
     assert.equal(getBody().code, "GITHUB_RATE_LIMITED");
     assert.equal(getBody().resetTimestampMs, resetTime);
+  });
+
+  test("translates GitHubTimeoutError to HTTP 504 with GITHUB_TIMEOUT code", () => {
+    const { res, getStatus, getBody } = createMockResponse();
+    const err = new GitHubTimeoutError("GitHub API request timed out after 10000ms");
+
+    errorHandler(err, req, res, next);
+    assert.equal(getStatus(), 504);
+    assert.equal(getBody().code, "GITHUB_TIMEOUT");
+    assert.match(getBody().error, /timed out/i);
   });
 
   test("translates generic GitHubApiError to appropriate status code", () => {

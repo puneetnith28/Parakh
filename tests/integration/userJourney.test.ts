@@ -16,8 +16,75 @@ describe("Complete End-to-End User Journey Integration Suite", () => {
   let port: number;
   let baseUrl: string;
   let memoryStorage: MemoryReportStorage;
+  let originalFetch: typeof fetch;
 
   before(async () => {
+    originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = input.toString();
+      if (urlStr.includes("api.github.com")) {
+        if (urlStr.includes("/languages")) {
+          return new Response(JSON.stringify({ TypeScript: 15000 }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        if (urlStr.includes("/commits/")) {
+          return new Response(JSON.stringify({ sha: "c0ffee1234567890abcdef1234567890abcdef12" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        if (urlStr.includes("/git/trees/")) {
+          return new Response(
+            JSON.stringify({
+              sha: "c0ffee1234567890abcdef1234567890abcdef12",
+              truncated: false,
+              tree: [
+                {
+                  path: "src/service.ts",
+                  mode: "100644",
+                  type: "blob",
+                  sha: "blob1234567890abcdef1234567890abcdef12",
+                  size: 200,
+                  url: "https://api.github.com/repos/parakh-audit/sample-repo/git/blobs/blob1234567890abcdef1234567890abcdef12",
+                },
+              ],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        if (urlStr.includes("/git/blobs/")) {
+          const content = `// High-performance backend microservice with strict type safety\nexport class TransactionService {\n  async process() { return true; }\n}\n`;
+          return new Response(
+            JSON.stringify({
+              content: Buffer.from(content).toString("base64"),
+              encoding: "base64",
+              size: Buffer.byteLength(content),
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        if (urlStr.includes("/repos/parakh-audit/sample-repo")) {
+          return new Response(
+            JSON.stringify({
+              full_name: "parakh-audit/sample-repo",
+              description: "Fixture sample repository for user journey test",
+              default_branch: "main",
+              private: false,
+              stargazers_count: 5,
+              forks_count: 1,
+              open_issues_count: 0,
+              language: "TypeScript",
+              updated_at: "2026-10-15T00:00:00Z",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      }
+      return originalFetch(input, init);
+    };
+
     memoryStorage = new MemoryReportStorage();
     setStorage(memoryStorage);
     server = http.createServer(app);
@@ -32,6 +99,7 @@ describe("Complete End-to-End User Journey Integration Suite", () => {
   });
 
   after(() => {
+    globalThis.fetch = originalFetch;
     server.close();
     runManager.clear();
   });
@@ -70,7 +138,9 @@ Target Scope:
     // -------------------------------------------------------------------------
     // Step 2: Validate extracted structured requirements match schema
     // -------------------------------------------------------------------------
-    const validatedExtraction = ExtractedRequirementsResultSchema.parse(extractionResult.extraction);
+    const validatedExtraction = ExtractedRequirementsResultSchema.parse(
+      extractionResult.extraction
+    );
     assert.ok(
       validatedExtraction.requirements.length >= 2,
       "Extraction must produce at least 2 structured technical requirements"
@@ -81,9 +151,16 @@ Target Scope:
       assert.ok(req.id, "Requirement must have unique ID");
       assert.ok(req.text.length > 5, "Requirement text must be substantive");
       assert.ok(
-        ["frontend", "backend", "database", "devops", "architecture", "security", "testing", "general"].includes(
-          req.category
-        ),
+        [
+          "frontend",
+          "backend",
+          "database",
+          "devops",
+          "architecture",
+          "security",
+          "testing",
+          "general",
+        ].includes(req.category),
         `Category '${req.category}' must belong to valid requirement categories`
       );
       assert.ok(
@@ -101,7 +178,10 @@ Target Scope:
         return {
           ...req,
           text: `${req.text} (verified with strict type safety and linting)`,
-          acceptanceCriteria: ["All API responses match schema contracts", "Zero compiler warnings"],
+          acceptanceCriteria: [
+            "All API responses match schema contracts",
+            "Zero compiler warnings",
+          ],
         };
       }
       return req;
@@ -132,7 +212,11 @@ Target Scope:
     assert.equal(analysisResult.status, "success");
     assert.ok(analysisResult.report, "Analysis must return a validated report");
     assert.ok(analysisResult.viewToken, "Analysis must issue a cryptographic viewToken");
-    assert.equal(analysisResult.viewToken.length, 64, "viewToken must be a 256-bit hexadecimal string");
+    assert.equal(
+      analysisResult.viewToken.length,
+      64,
+      "viewToken must be a 256-bit hexadecimal string"
+    );
 
     // -------------------------------------------------------------------------
     // Step 5: Assert pinned commit SHA, citations, and contract integrity
@@ -162,7 +246,11 @@ Target Scope:
     // Assert assessment citations and conservative downgrade rules
     for (const assessment of report.assessments) {
       assert.ok(assessment.requirementId, "Each assessment must correspond to a requirement");
-      assert.ok(["demonstrated", "partially_demonstrated", "not_demonstrated", "needs_review"].includes(assessment.status));
+      assert.ok(
+        ["demonstrated", "partially_demonstrated", "not_demonstrated", "needs_review"].includes(
+          assessment.status
+        )
+      );
 
       // Rule: If status is demonstrated, must cite candidate evidence
       if (assessment.status === "demonstrated") {
@@ -173,7 +261,11 @@ Target Scope:
         for (const citation of assessment.citations) {
           assert.ok(citation.candidateId, "Citation must have candidateId");
           assert.ok(citation.path, "Citation must cite specific file path");
-          assert.match(citation.commitSha, /^[0-9a-f]{40}$/i, "Citation must cite pinned commit SHA");
+          assert.match(
+            citation.commitSha,
+            /^[0-9a-f]{40}$/i,
+            "Citation must cite pinned commit SHA"
+          );
         }
       }
     }
@@ -194,11 +286,15 @@ Target Scope:
     assert.equal(unauthResponse.status, 401, "Fetching report without token must return 401");
 
     // 7b. Request with invalid/mismatched token must be rejected with HTTP 403
-    const badTokenResponse = await fetch(`${baseUrl}/api/reports/${report.id}?token=invalid00000000000000000000000000000000000000000000000000000000000000`);
+    const badTokenResponse = await fetch(
+      `${baseUrl}/api/reports/${report.id}?token=invalid00000000000000000000000000000000000000000000000000000000000000`
+    );
     assert.equal(badTokenResponse.status, 403, "Fetching report with bad token must return 403");
 
     // 7c. Authorized request with valid viewToken must succeed with HTTP 200
-    const authResponse = await fetch(`${baseUrl}/api/reports/${report.id}?token=${analysisResult.viewToken}`);
+    const authResponse = await fetch(
+      `${baseUrl}/api/reports/${report.id}?token=${analysisResult.viewToken}`
+    );
     assert.equal(authResponse.status, 200, "Fetching report with valid viewToken must return 200");
 
     const fetchedBody = (await authResponse.json()) as any;

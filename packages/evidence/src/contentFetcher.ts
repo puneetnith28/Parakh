@@ -1,4 +1,4 @@
-import { GitHubClient, GitHubRateLimitError } from "./githubClient.js";
+import { GitHubClient, GitHubRateLimitError, GitHubTimeoutError } from "./githubClient.js";
 import type { ScannedFileEntry } from "./treeScanner.js";
 
 /**
@@ -94,7 +94,9 @@ export class ContentFetcher {
 
     const targetFiles = files.slice(0, maxFiles);
     if (files.length > maxFiles) {
-      warnings.push(`Files to fetch capped at ${maxFiles} (input had ${files.length} candidate files).`);
+      warnings.push(
+        `Files to fetch capped at ${maxFiles} (input had ${files.length} candidate files).`
+      );
     }
 
     for (const file of targetFiles) {
@@ -115,7 +117,9 @@ export class ContentFetcher {
       // Check aggregate budget
       if (totalBytes + file.size > maxAggregateBytes) {
         skippedCount++;
-        warnings.push(`Aggregate byte cap of ${maxAggregateBytes} bytes reached. Skipping further downloads.`);
+        warnings.push(
+          `Aggregate byte cap of ${maxAggregateBytes} bytes reached. Skipping further downloads.`
+        );
         break;
       }
 
@@ -145,7 +149,7 @@ export class ContentFetcher {
           status: "full",
         });
       } catch (err: unknown) {
-        if (err instanceof GitHubRateLimitError) {
+        if (err instanceof GitHubRateLimitError || err instanceof GitHubTimeoutError) {
           throw err;
         }
         skippedCount++;

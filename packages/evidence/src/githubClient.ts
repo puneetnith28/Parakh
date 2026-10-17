@@ -34,7 +34,10 @@ export class GitHubApiError extends Error {
 
 export class GitHubNotFoundError extends GitHubApiError {
   constructor(owner: string, repo: string) {
-    super(`Repository '${owner}/${repo}' was not found on GitHub (HTTP 404). Verify name and visibility.`, 404);
+    super(
+      `Repository '${owner}/${repo}' was not found on GitHub (HTTP 404). Verify name and visibility.`,
+      404
+    );
     this.name = "GitHubNotFoundError";
   }
 }
@@ -60,21 +63,36 @@ export class GitHubRateLimitError extends GitHubApiError {
   }
 }
 
+export class GitHubTimeoutError extends GitHubApiError {
+  constructor(message = "GitHub API request timed out after 10000ms") {
+    super(message, 504);
+    this.name = "GitHubTimeoutError";
+  }
+}
+
+export interface GitHubRequestOptions {
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}
+
 export interface GitHubClientOptions {
   token?: string;
   baseUrl?: string;
   fetchFn?: typeof fetch;
+  defaultTimeoutMs?: number;
 }
 
 export class GitHubClient {
   private readonly token?: string;
   private readonly baseUrl: string;
   private readonly fetch: typeof fetch;
+  private readonly defaultTimeoutMs: number;
 
   constructor(options: GitHubClientOptions = {}) {
     this.token = options.token || process.env.GITHUB_TOKEN;
     this.baseUrl = (options.baseUrl || "https://api.github.com").replace(/\/$/, "");
     this.fetch = options.fetchFn || globalThis.fetch;
+    this.defaultTimeoutMs = options.defaultTimeoutMs ?? 10000;
   }
 
   private buildHeaders(): Record<string, string> {
@@ -100,14 +118,93 @@ export class GitHubClient {
     }
   }
 
+  private async executeFetch(url: string, options?: GitHubRequestOptions): Promise<Response> {
+    const headers = this.buildHeaders();
+    const timeoutMs = options?.timeoutMs ?? this.defaultTimeoutMs;
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+
+    const onCallerAbort = () => {
+      controller.abort(options?.signal?.reason);
+    };
+
+    if (options?.signal) {
+      if (options.signal.aborted) {
+        clearTimeout(timer);
+        throw options.signal.reason ?? new Error("This operation was aborted");
+      }
+      options.signal.addEventListener("abort", onCallerAbort, { once: true });
+    }
+
+    const abortPromise = new Promise<never>((_, reject) => {
+      controller.signal.addEventListener(
+        "abort",
+        () => {
+          if (timedOut) {
+            reject(
+              new GitHubTimeoutError(
+                `GitHub API request timed out after ${timeoutMs}ms: GET ${url}`
+              )
+            );
+          } else {
+            const err =
+              (options?.signal?.reason as Error) || new Error("This operation was aborted");
+            reject(err);
+          }
+        },
+        { once: true }
+      );
+    });
+
+    try {
+      const response = await Promise.race([
+        this.fetch(url, {
+          method: "GET",
+          headers,
+          signal: controller.signal,
+        }),
+        abortPromise,
+      ]);
+      return response;
+    } catch (err: any) {
+      if (timedOut || err instanceof GitHubTimeoutError) {
+        throw err instanceof GitHubTimeoutError
+          ? err
+          : new GitHubTimeoutError(`GitHub API request timed out after ${timeoutMs}ms: GET ${url}`);
+      }
+      if (options?.signal?.aborted || err?.name === "AbortError") {
+        throw err;
+      }
+      if (err instanceof GitHubApiError) {
+        throw err;
+      }
+      throw new GitHubApiError(
+        `Network error communicating with GitHub API: ${err?.message || String(err)}`,
+        502
+      );
+    } finally {
+      clearTimeout(timer);
+      if (options?.signal) {
+        options.signal.removeEventListener("abort", onCallerAbort);
+      }
+    }
+  }
+
   /**
    * Resolve repository metadata: existence, visibility, default branch, stars, and languages.
    */
-  async resolveRepoMetadata(owner: string, repo: string): Promise<RepoMetadata> {
+  async resolveRepoMetadata(
+    owner: string,
+    repo: string,
+    options?: GitHubRequestOptions
+  ): Promise<RepoMetadata> {
     const repoUrl = `${this.baseUrl}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
-    const headers = this.buildHeaders();
 
-    const response = await this.fetch(repoUrl, { method: "GET", headers });
+    const response = await this.executeFetch(repoUrl, options);
     this.checkRateLimitHeaders(response);
 
     if (response.status === 404) {
@@ -151,11 +248,15 @@ export class GitHubClient {
     let languages: Record<string, number> = {};
     try {
       const langUrl = `${this.baseUrl}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/languages`;
-      const langRes = await this.fetch(langUrl, { method: "GET", headers });
+      const langRes = await this.executeFetch(langUrl, options);
+      this.checkRateLimitHeaders(langRes);
       if (langRes.ok) {
         languages = (await langRes.json()) as Record<string, number>;
       }
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof GitHubRateLimitError || err instanceof GitHubTimeoutError) {
+        throw err;
+      }
       // Gracefully fall back to primary language if language api fails
       if (data.language) {
         languages[data.language] = 1;
@@ -181,7 +282,12 @@ export class GitHubClient {
   /**
    * Resolve a ref (branch, tag, HEAD, or partial SHA) to an immutable 40-character commit SHA.
    */
-  async resolveCommitSha(owner: string, repo: string, ref = "HEAD"): Promise<string> {
+  async resolveCommitSha(
+    owner: string,
+    repo: string,
+    ref = "HEAD",
+    options?: GitHubRequestOptions
+  ): Promise<string> {
     const trimmedRef = ref.trim();
 
     // If already a valid 40-character commit SHA, verify or return
@@ -190,9 +296,8 @@ export class GitHubClient {
     }
 
     const commitUrl = `${this.baseUrl}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits/${encodeURIComponent(trimmedRef)}`;
-    const headers = this.buildHeaders();
 
-    const response = await this.fetch(commitUrl, { method: "GET", headers });
+    const response = await this.executeFetch(commitUrl, options);
     this.checkRateLimitHeaders(response);
 
     if (response.status === 404) {
@@ -221,14 +326,19 @@ export class GitHubClient {
   /**
    * Resolve and package revision immutability metadata.
    */
-  async resolvePinnedRevision(owner: string, repo: string, ref = "HEAD"): Promise<{
+  async resolvePinnedRevision(
+    owner: string,
+    repo: string,
+    ref = "HEAD",
+    options?: GitHubRequestOptions
+  ): Promise<{
     owner: string;
     repo: string;
     ref: string;
     commitSha: string;
     resolvedAt: string;
   }> {
-    const commitSha = await this.resolveCommitSha(owner, repo, ref);
+    const commitSha = await this.resolveCommitSha(owner, repo, ref, options);
     return {
       owner,
       repo,
@@ -241,7 +351,12 @@ export class GitHubClient {
   /**
    * Fetch recursive Git tree at commit SHA.
    */
-  async fetchTree(owner: string, repo: string, commitSha: string): Promise<{
+  async fetchTree(
+    owner: string,
+    repo: string,
+    commitSha: string,
+    options?: GitHubRequestOptions
+  ): Promise<{
     sha: string;
     tree: Array<{
       path: string;
@@ -254,9 +369,8 @@ export class GitHubClient {
     truncated: boolean;
   }> {
     const url = `${this.baseUrl}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(commitSha)}?recursive=1`;
-    const headers = this.buildHeaders();
 
-    const response = await this.fetch(url, { method: "GET", headers });
+    const response = await this.executeFetch(url, options);
     this.checkRateLimitHeaders(response);
 
     if (response.status === 404) {
@@ -291,26 +405,28 @@ export class GitHubClient {
   async fetchBlob(
     owner: string,
     repo: string,
-    blobSha: string
+    blobSha: string,
+    options?: GitHubRequestOptions
   ): Promise<{
     data: { content?: string; encoding?: string; size?: number };
     rateLimitRemaining?: number;
   }> {
     const url = `${this.baseUrl}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/blobs/${encodeURIComponent(blobSha)}`;
-    const headers = this.buildHeaders();
 
-    const response = await this.fetch(url, { method: "GET", headers });
+    const response = await this.executeFetch(url, options);
     this.checkRateLimitHeaders(response);
 
     const remainingStr = response.headers.get("x-ratelimit-remaining");
     const remaining = remainingStr ? parseInt(remainingStr, 10) : undefined;
 
     if (!response.ok) {
-      throw new GitHubApiError(`Failed to fetch blob ${blobSha}: HTTP ${response.status}`, response.status);
+      throw new GitHubApiError(
+        `Failed to fetch blob ${blobSha}: HTTP ${response.status}`,
+        response.status
+      );
     }
 
     const data = (await response.json()) as { content?: string; encoding?: string; size?: number };
     return { data, rateLimitRemaining: remaining };
   }
 }
-

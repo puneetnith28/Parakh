@@ -3,6 +3,7 @@ import {
   GitHubNotFoundError,
   GitHubForbiddenError,
   GitHubRateLimitError,
+  GitHubTimeoutError,
   GitHubApiError,
 } from "@parakh/evidence";
 
@@ -43,6 +44,15 @@ export function errorHandler(
       error: err.message,
       code: "GITHUB_RATE_LIMITED",
       resetTimestampMs: err.resetTimestampMs,
+    });
+    return;
+  }
+
+  // 4. GitHub 504 Timeout
+  if (err instanceof GitHubTimeoutError) {
+    res.status(504).json({
+      error: err.message,
+      code: "GITHUB_TIMEOUT",
     });
     return;
   }

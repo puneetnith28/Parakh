@@ -1,8 +1,4 @@
-import crypto from "node:crypto";
-import {
-  type EvidenceRecord,
-  type RepoMetadata,
-} from "@parakh/contracts";
+import { type EvidenceRecord, type RepoMetadata } from "@parakh/contracts";
 import { validateGitHubUrl } from "./urlValidator.js";
 import { GitHubClient } from "./githubClient.js";
 import { TreeScanner } from "./treeScanner.js";
@@ -58,74 +54,37 @@ export class RepositoryIngestionService {
     const maxFiles = options.maxFiles || 150;
     const maxPaths = options.maxPaths || 2000;
 
-    let metadata: RepoMetadata;
-    let commitSha = "0".repeat(40);
-    let targetRef = "main";
-    let records: EvidenceRecord[] = [];
-    let totalEntriesScanned = 0;
-    let candidateFilesCount = 0;
-    let skippedFilesCount = 0;
-    const warnings: string[] = [];
-    let isTruncated = false;
+    const metadata = await client.resolveRepoMetadata(owner, repo);
+    const targetRef = options.ref?.trim() || metadata.defaultBranch || "main";
+    const pinnedRevision = await client.resolvePinnedRevision(owner, repo, targetRef);
+    const commitSha = pinnedRevision.commitSha;
 
-    try {
-      metadata = await client.resolveRepoMetadata(owner, repo);
-      targetRef = options.ref?.trim() || metadata.defaultBranch || "main";
-      const pinnedRevision = await client.resolvePinnedRevision(owner, repo, targetRef);
-      commitSha = pinnedRevision.commitSha;
+    const scanner = new TreeScanner(client);
+    const treeResult = await scanner.scanTree(owner, repo, commitSha, {
+      maxPaths,
+    });
 
-      const scanner = new TreeScanner(client);
-      const treeResult = await scanner.scanTree(owner, repo, commitSha, {
-        maxPaths,
-      });
+    const totalEntriesScanned = treeResult.totalEntriesScanned;
+    const isTruncated = treeResult.isTruncated;
 
-      totalEntriesScanned = treeResult.totalEntriesScanned;
-      isTruncated = treeResult.isTruncated;
+    // Filter against denylist and allowlist
+    const eligibleFilePaths = new Set(
+      filterAllowlist(treeResult.files.map((f) => f.path)).map((f) => f.path)
+    );
 
-      // Filter against denylist and allowlist
-      const eligibleFilePaths = new Set(
-        filterAllowlist(treeResult.files.map((f) => f.path)).map((f) => f.path)
-      );
+    const candidateFiles = treeResult.files.filter((f) => eligibleFilePaths.has(f.path));
+    const candidateFilesCount = candidateFiles.length;
+    const skippedFilesCount = treeResult.files.length - candidateFiles.length;
 
-      const candidateFiles = treeResult.files.filter((f) => eligibleFilePaths.has(f.path));
-      candidateFilesCount = candidateFiles.length;
-      skippedFilesCount = treeResult.files.length - candidateFiles.length;
+    // Fetch file contents boundedly
+    const fetcher = new ContentFetcher(client);
+    const batchResult = await fetcher.fetchBatch(owner, repo, commitSha, candidateFiles, {
+      maxFiles,
+    });
 
-      // Fetch file contents boundedly
-      const fetcher = new ContentFetcher(client);
-      const batchResult = await fetcher.fetchBatch(owner, repo, commitSha, candidateFiles, {
-        maxFiles,
-      });
+    const warnings: string[] = [...batchResult.warnings];
 
-      warnings.push(...batchResult.warnings);
-
-      records = buildBatchEvidenceRecords(owner, repo, commitSha, batchResult.fetchedFiles);
-    } catch (err: any) {
-      warnings.push(`Repository live ingestion notice: ${err.message}`);
-      commitSha = "e".repeat(40);
-      metadata = {
-        owner,
-        repo,
-        fullName: `${owner}/${repo}`,
-        defaultBranch: "main",
-        isPrivate: false,
-      };
-      records = [
-        {
-          id: `ev_${crypto.randomUUID()}`,
-          repository: `${owner}/${repo}`,
-          commitSha,
-          path: "src/index.ts",
-          fileType: "source",
-          canonicalUrl: `${canonicalUrl}/blob/${commitSha}/src/index.ts`,
-          content: "// Module implementation\nexport function run() { return true; }",
-          lineCount: 2,
-          ingestionStatus: "full",
-        },
-      ];
-      candidateFilesCount = 1;
-      totalEntriesScanned = 1;
-    }
+    const records = buildBatchEvidenceRecords(owner, repo, commitSha, batchResult.fetchedFiles);
 
     return {
       owner,

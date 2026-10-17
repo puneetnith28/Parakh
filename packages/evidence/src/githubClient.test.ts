@@ -5,6 +5,8 @@ import {
   GitHubNotFoundError,
   GitHubForbiddenError,
   GitHubRateLimitError,
+  GitHubTimeoutError,
+  GitHubApiError,
 } from "./githubClient.js";
 
 describe("GitHub Repository Metadata Resolution Service", () => {
@@ -170,5 +172,106 @@ describe("GitHub Repository Metadata Resolution Service", () => {
       }
     );
   });
-});
 
+  test("aborts stalled request and throws GitHubTimeoutError after timeout", async () => {
+    const mockFetch: typeof fetch = async (_url, init) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const err = new Error("The operation was aborted due to timeout");
+          err.name = "TimeoutError";
+          reject(err);
+        });
+      });
+    };
+
+    const client = new GitHubClient({ fetchFn: mockFetch, defaultTimeoutMs: 40 });
+    await assert.rejects(
+      async () => client.resolveRepoMetadata("owner", "repo"),
+      (err: unknown) => {
+        assert.ok(err instanceof GitHubTimeoutError);
+        assert.equal((err as GitHubTimeoutError).statusCode, 504);
+        assert.match((err as GitHubTimeoutError).message, /timed out after 40ms/i);
+        return true;
+      }
+    );
+  });
+
+  test("preserves caller cancellation signal when caller aborts", async () => {
+    const callerController = new AbortController();
+    const mockFetch: typeof fetch = async (_url, init) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const err = new Error("Caller canceled request");
+          err.name = "AbortError";
+          reject(err);
+        });
+      });
+    };
+
+    const client = new GitHubClient({ fetchFn: mockFetch, defaultTimeoutMs: 1000 });
+    const promise = client.resolveRepoMetadata("owner", "repo", {
+      signal: callerController.signal,
+    });
+    setTimeout(() => callerController.abort(), 10);
+
+    await assert.rejects(
+      async () => promise,
+      (err: any) => {
+        assert.ok(err?.name === "AbortError" || callerController.signal.aborted);
+        assert.ok(!(err instanceof GitHubTimeoutError));
+        return true;
+      }
+    );
+  });
+
+  test("converts network fetch failure into GitHubApiError with 502 status", async () => {
+    const mockFetch: typeof fetch = async () => {
+      throw new TypeError("fetch failed: connect ECONNREFUSED 140.82.121.3:443");
+    };
+
+    const client = new GitHubClient({ fetchFn: mockFetch });
+    await assert.rejects(
+      async () => client.resolveRepoMetadata("owner", "repo"),
+      (err: unknown) => {
+        assert.ok(err instanceof GitHubApiError);
+        assert.equal((err as GitHubApiError).statusCode, 502);
+        assert.match(
+          (err as GitHubApiError).message,
+          /Network error communicating with GitHub API/i
+        );
+        return true;
+      }
+    );
+  });
+
+  test("enforces bounded timeout on fetchTree and fetchBlob", async () => {
+    const mockFetch: typeof fetch = async (_url, init) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const err = new Error("The operation was aborted");
+          err.name = "AbortError";
+          reject(err);
+        });
+      });
+    };
+
+    const client = new GitHubClient({ fetchFn: mockFetch, defaultTimeoutMs: 30 });
+    await assert.rejects(
+      async () => client.fetchTree("owner", "repo", "a".repeat(40)),
+      (err: unknown) => {
+        assert.ok(err instanceof GitHubTimeoutError);
+        assert.equal((err as GitHubTimeoutError).statusCode, 504);
+        return true;
+      }
+    );
+
+    await assert.rejects(
+      async () => client.fetchBlob("owner", "repo", "b".repeat(40)),
+      (err: unknown) => {
+        assert.ok(err instanceof GitHubTimeoutError);
+        assert.equal((err as GitHubTimeoutError).statusCode, 504);
+        return true;
+      }
+    );
+  });
+});
