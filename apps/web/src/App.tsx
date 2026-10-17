@@ -7,7 +7,7 @@ import { AnalysisProgress } from "./components/AnalysisProgress.tsx";
 import { EvidenceMap } from "./components/EvidenceMap/EvidenceMap.tsx";
 import { CoverageSummary } from "./components/EvidenceMap/CoverageSummary.tsx";
 import { FilterBar, type FilterStatus } from "./components/EvidenceMap/FilterBar.tsx";
-import { EvidenceDrawer } from "./components/EvidenceMap/EvidenceDrawer.tsx";
+import { CitationDrawer } from "./components/EvidenceMap/CitationDrawer.tsx";
 import { getApiUrl } from "./config/api.ts";
 import { extractRequirementsFromText, runAssessmentAnalysis } from "./services/api.ts";
 
@@ -279,7 +279,7 @@ export default function App() {
 
               {/* Citation Inspection Drawer */}
               {selectedCitation && (
-                <EvidenceDrawer
+                <CitationDrawer
                   isOpen={!!selectedCitation}
                   onClose={() => setSelectedCitation(null)}
                   citation={selectedCitation.citation}
