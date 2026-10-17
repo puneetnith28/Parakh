@@ -85,6 +85,8 @@ export function computeReportContentHash(report: AssessmentReport): string {
     repositoryUrl: (report.repositoryUrl || "").toLowerCase(),
     resolvedCommitSha: (report.resolvedCommitSha || "").toLowerCase(),
     status: report.status,
+    scannedFilesCount: report.scannedFilesCount ?? 0,
+    skippedFilesCount: report.skippedFilesCount ?? 0,
     assessments: normalizedAssessments,
     coverageSummary: {
       total: report.coverageSummary?.total ?? 0,
