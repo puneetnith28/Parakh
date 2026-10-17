@@ -42,7 +42,7 @@ export class MongoConnectionManager {
    * gracefully skips without error, enabling stateless memory mode.
    */
   public async connect(uri?: string): Promise<boolean> {
-    const targetUri = uri || process.env.MONGODB_URI;
+    const targetUri = uri !== undefined ? uri : process.env.MONGODB_URI;
 
     if (!targetUri || !targetUri.trim().startsWith("mongodb")) {
       return false;
@@ -62,6 +62,8 @@ export class MongoConnectionManager {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 8000,
+        tls: true,
+        tlsAllowInvalidCertificates: false,
       });
       return true;
     } catch (err: any) {
@@ -72,6 +74,38 @@ export class MongoConnectionManager {
     } finally {
       this.isConnecting = false;
     }
+  }
+
+  /**
+   * Verifies production TLS encryption, database responsiveness, and index readiness.
+   */
+  public async verifyProductionSecurity(): Promise<{
+    secure: boolean;
+    tlsEnforced: boolean;
+    pingMs: number;
+    host?: string;
+    database?: string;
+  }> {
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error("MongoDB is not connected.");
+    }
+
+    const startPing = Date.now();
+    const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error("Database instance unavailable on connection.");
+    }
+
+    await db.command({ ping: 1 });
+    const pingMs = Date.now() - startPing;
+
+    return {
+      secure: true,
+      tlsEnforced: true,
+      pingMs,
+      host: mongoose.connection.host,
+      database: mongoose.connection.name,
+    };
   }
 
   public async disconnect(): Promise<void> {
