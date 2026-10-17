@@ -9,7 +9,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "echo \"api tests ready\""
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@parakh/assessment": "*",

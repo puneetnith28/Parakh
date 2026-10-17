@@ -12,6 +12,6 @@
   },
   "scripts": {
     "build": "echo \"evidence build ready\"",
-    "test": "npx tsx --test src/ingestion.test.ts"
+    "test": "tsx --test src/**/*.test.ts"
   }
 }

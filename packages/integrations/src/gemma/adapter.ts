@@ -77,9 +77,15 @@ export class GemmaModelAdapter {
 
     // Handle mock provider directly
     if (this.provider === "mock") {
+      const isEvaluation =
+        prompt.includes("CANDIDATE REPOSITORY EVIDENCE:") ||
+        prompt.includes("TECHNICAL REQUIREMENT TO EVALUATE:") ||
+        Boolean(options.systemInstruction && /Evaluator|Candidate Evidence|DEMONSTRATED/i.test(options.systemInstruction));
+
       const isExtraction =
-        prompt.includes("<opportunity_brief>") ||
-        Boolean(options.systemInstruction && /extraction|technical requirement/i.test(options.systemInstruction));
+        !isEvaluation &&
+        (prompt.includes("<opportunity_brief>") ||
+          Boolean(options.systemInstruction && /extract/i.test(options.systemInstruction)));
 
       if (isExtraction) {
         const briefMatch = prompt.match(/<opportunity_brief>([\s\S]*?)<\/opportunity_brief>/i);
@@ -166,11 +172,14 @@ export class GemmaModelAdapter {
         };
       }
 
+      const candidateIdMatch = prompt.match(/candidateId="([^"]+)"/);
+      const citedCandidateId = candidateIdMatch ? candidateIdMatch[1] : "cand_001";
+
       return {
         text: JSON.stringify({
           status: "demonstrated",
           rationale: "Mock response generated for test environment",
-          citedCandidateIds: ["cand_001"],
+          citedCandidateIds: [citedCandidateId],
           limitations: "None in mock",
           nextActions: ["Proceed with report generation"],
         }),

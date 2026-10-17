@@ -12,6 +12,6 @@
   },
   "scripts": {
     "build": "echo \"integrations build ready\"",
-    "test": "echo \"integrations test ready\""
+    "test": "tsx --test src/**/*.test.ts"
   }
 }
