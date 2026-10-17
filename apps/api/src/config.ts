@@ -7,7 +7,10 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().default(3000),
   WEB_ORIGIN: z.string().url().default("http://localhost:5173"),
+  FRONTEND_URL: z.string().url().default("http://localhost:5173"),
   API_BASE_URL: z.string().url().default("http://localhost:3000"),
+  ANALYSIS_RATE_LIMIT_MAX: z.coerce.number().default(10),
+  ANALYSIS_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(3600000), // 1 hour
 
   // Model provider
   MODEL_PROVIDER: z.string().default("google"),

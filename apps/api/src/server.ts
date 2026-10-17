@@ -11,7 +11,8 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { mongoConnection } from "./storage/mongodb.js";
 import { ensureDatabaseIndexes } from "./storage/models/indexes.js";
 import { initSentry } from "./observability/sentry.js";
-import { validateConfigAtStartup } from "./config.js";
+import { config, validateConfigAtStartup } from "./config.js";
+import { analysisRateLimiter } from "./middleware/rateLimiter.js";
 
 // Initialize Sentry agent tracing
 initSentry();
@@ -20,9 +21,36 @@ validateConfigAtStartup();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Allowed CORS origins based on configuration and local development
+const allowedOrigins = new Set([
+  config.FRONTEND_URL,
+  config.WEB_ORIGIN,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
+]);
+
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. server-to-server, curl, tests)
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked: Origin ${origin} is not authorized.`));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "10mb" }));
+
+// Rate limiting on resource-intensive analysis and ingestion endpoints
+app.use("/api/analysis", analysisRateLimiter);
+app.use("/api/assessment/analyze", analysisRateLimiter);
+app.use("/api/repository/inspect", analysisRateLimiter);
 
 // Mount routes
 app.use(healthRouter);
