@@ -5,14 +5,20 @@ import app from "../../apps/api/src/server.js";
 import { AssessmentReport } from "@parakh/contracts";
 import { setStorage, MemoryReportStorage } from "../../apps/api/src/storage/index.js";
 import { runManager } from "../../apps/api/src/services/runManager.js";
-import { issueProvenanceToken } from "../../apps/api/src/services/provenance.js";
+import { issueProvenanceToken, computeReportContentHash } from "../../apps/api/src/services/provenance.js";
 import { ensureDatabaseIndexes } from "../../apps/api/src/storage/models/indexes.js";
+import { config } from "../../apps/api/src/config.js";
 
 function makeProvenancedBody(report: AssessmentReport, runId = `run_${report.id}`) {
+  const contentHash = computeReportContentHash(report);
   runManager.createOrGetRun({
     runId,
     opportunityId: report.opportunityId,
     repositoryUrl: report.repositoryUrl,
+  });
+  runManager.transitionState(runId, "COMPLETED", {
+    reportId: report.id,
+    reportContentHash: contentHash,
   });
   const provenanceToken = issueProvenanceToken({
     runId,
@@ -20,6 +26,7 @@ function makeProvenancedBody(report: AssessmentReport, runId = `run_${report.id}
     opportunityId: report.opportunityId,
     repositoryUrl: report.repositoryUrl,
     resolvedCommitSha: report.resolvedCommitSha,
+    contentHash,
   });
   return { report, runId, provenanceToken };
 }
@@ -247,5 +254,76 @@ describe("Data Lifecycle, Authorization, and Persistence Test Suite", () => {
       headers: { "X-Report-Token": viewToken },
     });
     assert.equal(afterDelRes.status, 404);
+  });
+
+  test("5. Enforces production persistence guarantees: ephemeral fallback rejected in production", async () => {
+    const originalEnv = config.NODE_ENV;
+    const originalStorageMode = process.env.STORAGE_MODE;
+    delete process.env.STORAGE_MODE;
+    (config as any).NODE_ENV = "production";
+
+    try {
+      const prodReport: AssessmentReport = {
+        id: "rep_prod_fail_1",
+        opportunityId: "opp_prod_1",
+        repositoryUrl: "https://github.com/owner/repo",
+        resolvedCommitSha: "a".repeat(40),
+        status: "completed",
+        assessments: [],
+        coverageSummary: { total: 0, demonstrated: 0, partiallyDemonstrated: 0, notDemonstrated: 0, needsReview: 0 },
+        scannedFilesCount: 1,
+        skippedFilesCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+
+      const res = await fetch(`${BASE_URL}/api/reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeProvenancedBody(prodReport)),
+      });
+
+      // When memoryStorage is active in production, saving must be rejected with 503
+      assert.equal(res.status, 503);
+      const json = (await res.json()) as any;
+      assert.equal(json.code, "DURABLE_STORAGE_UNAVAILABLE");
+    } finally {
+      (config as any).NODE_ENV = originalEnv;
+      if (originalStorageMode) {
+        process.env.STORAGE_MODE = originalStorageMode;
+      }
+    }
+  });
+
+  test("6. Truthful ephemeral mode: retrieval accurately reports persisted: false", async () => {
+    const testReport: AssessmentReport = {
+      id: "rep_ephemeral_truth_1",
+      opportunityId: "opp_eph_1",
+      repositoryUrl: "https://github.com/owner/repo",
+      resolvedCommitSha: "b".repeat(40),
+      status: "completed",
+      assessments: [],
+      coverageSummary: { total: 0, demonstrated: 0, partiallyDemonstrated: 0, notDemonstrated: 0, needsReview: 0 },
+      scannedFilesCount: 1,
+      skippedFilesCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    const createRes = await fetch(`${BASE_URL}/api/reports`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(makeProvenancedBody(testReport)),
+    });
+    assert.equal(createRes.status, 201);
+    const { viewToken, persisted, storageMode } = (await createRes.json()) as any;
+    assert.equal(persisted, false, "Ephemeral storage must report persisted: false");
+    assert.equal(storageMode, "memory");
+
+    const getRes = await fetch(`${BASE_URL}/api/reports/rep_ephemeral_truth_1`, {
+      headers: { "X-Report-Token": viewToken },
+    });
+    assert.equal(getRes.status, 200);
+    const getJson = (await getRes.json()) as any;
+    assert.equal(getJson.persisted, false);
+    assert.equal(getJson.storageMode, "memory");
   });
 });
