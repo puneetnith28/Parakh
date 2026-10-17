@@ -36,8 +36,15 @@ export interface AssessmentServiceOptions {
 export interface EvaluateRepositoryParams {
   runId: string;
   opportunityId: string;
+  opportunityTitle?: string;
   repositoryUrl: string;
   commitSha: string;
+  repoMetadata?: {
+    owner: string;
+    repo: string;
+    defaultBranch?: string;
+  };
+  warnings?: string[];
   requirements: Requirement[];
   records: EvidenceRecord[];
 }
@@ -215,16 +222,34 @@ export class AssessmentService {
       needsReview: assessments.filter((a) => a.status === "needs_review").length,
     };
 
+    const gapRecommendationsSet = new Set<string>();
+    const limitationsSet = new Set<string>(params.warnings || []);
+
+    for (const a of assessments) {
+      if (a.status !== "demonstrated" && a.nextActions) {
+        for (const action of a.nextActions) {
+          if (action.trim()) gapRecommendationsSet.add(action.trim());
+        }
+      }
+      if (a.limitations && a.limitations.trim()) {
+        limitationsSet.add(a.limitations.trim());
+      }
+    }
+
     return {
       id: `report_${runId}`,
       opportunityId,
+      opportunityTitle: params.opportunityTitle,
       repositoryUrl,
       resolvedCommitSha: commitSha,
+      repoMetadata: params.repoMetadata,
       status: "completed",
       assessments,
       coverageSummary: summary,
       scannedFilesCount: records.length,
       skippedFilesCount: 0,
+      limitations: Array.from(limitationsSet),
+      gapRecommendations: Array.from(gapRecommendationsSet),
       createdAt: new Date().toISOString(),
     };
   }

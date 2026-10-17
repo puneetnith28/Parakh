@@ -71,8 +71,15 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
     const report: AssessmentReport = await assessmentService.evaluateRepository({
       runId,
       opportunityId: effectiveOpportunityId,
+      opportunityTitle: title,
       repositoryUrl: canonicalUrl,
       commitSha,
+      repoMetadata: {
+        owner: ingestion.owner,
+        repo: ingestion.repo,
+        defaultBranch: ingestion.metadata.defaultBranch,
+      },
+      warnings: ingestion.warnings,
       requirements,
       records,
     });

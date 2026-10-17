@@ -77,8 +77,16 @@ export type RequirementAssessment = z.infer<typeof RequirementAssessmentSchema>;
 export const AssessmentReportSchema = z.object({
   id: z.string().min(1),
   opportunityId: z.string().min(1),
+  opportunityTitle: z.string().optional(),
   repositoryUrl: z.string().url(),
   resolvedCommitSha: z.string(),
+  repoMetadata: z
+    .object({
+      owner: z.string(),
+      repo: z.string(),
+      defaultBranch: z.string().optional(),
+    })
+    .optional(),
   status: z.enum(["pending", "in_progress", "completed", "failed"]),
   assessments: z.array(RequirementAssessmentSchema),
   coverageSummary: z.object({
@@ -90,6 +98,8 @@ export const AssessmentReportSchema = z.object({
   }),
   scannedFilesCount: z.number().int().nonnegative(),
   skippedFilesCount: z.number().int().nonnegative(),
+  limitations: z.array(z.string()).optional(),
+  gapRecommendations: z.array(z.string()).optional(),
   createdAt: z.string().datetime(),
 });
 

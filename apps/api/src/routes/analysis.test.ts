@@ -99,6 +99,12 @@ describe("Analysis Orchestration Route Suite", () => {
       assert.ok(validatedReport.coverageSummary.total === 2);
       assert.ok(typeof validatedReport.scannedFilesCount === "number");
       assert.ok(validatedReport.status === "completed");
+      assert.equal(validatedReport.opportunityTitle, "Fullstack Capability Test");
+      assert.ok(validatedReport.repoMetadata);
+      assert.equal(validatedReport.repoMetadata?.owner, "expressjs");
+      assert.equal(validatedReport.repoMetadata?.repo, "express");
+      assert.ok(Array.isArray(validatedReport.limitations));
+      assert.ok(Array.isArray(validatedReport.gapRecommendations));
     } finally {
       server.close();
     }
