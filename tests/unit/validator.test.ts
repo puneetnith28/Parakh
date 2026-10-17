@@ -98,4 +98,99 @@ describe("Unit: CitationValidator Suite", () => {
     assert.equal(outcome.rejectedCount, 1);
     assert.equal(outcome.rejectedCitations[0].code, "EMPTY_SNIPPET");
   });
+
+  it("strictly rejects snippets present elsewhere in the file that do not match the cited line interval", () => {
+    // Snippet is "export function signToken", which is at lines 1-3, but candidate claims lines 50-52
+    const displacedCandidate: CandidateSnippet = {
+      candidateId: "cand-displaced",
+      fileId: "rec-1",
+      repository: "org/repo",
+      commitSha: "abc1234",
+      path: "src/auth/jwt.ts",
+      startLine: 50,
+      endLine: 52,
+      content: "export function signToken(payload: object) {\n  return jwt.sign(payload, secret);\n}",
+      canonicalUrl: "https://github.com/org/repo/blob/abc1234/src/auth/jwt.ts#L50-L52",
+      fileType: "source",
+    };
+
+    const outcome = validator.validate(["cand-displaced"], [displacedCandidate], mockRecords);
+    assert.equal(outcome.allValid, false);
+    assert.equal(outcome.rejectedCount, 1);
+    assert.equal(outcome.rejectedCitations[0].code, "CONTENT_MISMATCH");
+    assert.match(outcome.rejectedCitations[0].reason, /could not be verified against lines L50-L52/);
+  });
+
+  it("strictly rejects hallucinated file paths not present in ingested repository records", () => {
+    const fakePathCandidate: CandidateSnippet = {
+      candidateId: "cand-fake-file",
+      fileId: "rec-fake",
+      repository: "org/repo",
+      commitSha: "abc1234",
+      path: "src/nonexistent/secret.ts",
+      startLine: 1,
+      endLine: 5,
+      content: "const secret = '12345';",
+      canonicalUrl: "https://github.com/org/repo/blob/abc1234/src/nonexistent/secret.ts#L1-L5",
+      fileType: "source",
+    };
+
+    const outcome = validator.validate(["cand-fake-file"], [fakePathCandidate], mockRecords);
+    assert.equal(outcome.allValid, false);
+    assert.equal(outcome.rejectedCount, 1);
+    assert.equal(outcome.rejectedCitations[0].code, "HALLUCINATED_FILE_PATH");
+  });
+
+  it("handles Windows CRLF line endings transparently during line-interval matching", () => {
+    const crlfRecord: EvidenceRecord = {
+      id: "rec-crlf",
+      repository: "org/repo",
+      commitSha: "abc1234",
+      path: "src/windows.ts",
+      canonicalUrl: "https://github.com/org/repo/blob/abc1234/src/windows.ts",
+      fileType: "source",
+      lineCount: 3,
+      content: "const a = 1;\r\nconst b = 2;\r\nconst c = 3;",
+      ingestionStatus: "full",
+    };
+
+    const crlfCandidate: CandidateSnippet = {
+      candidateId: "cand-crlf",
+      fileId: "rec-crlf",
+      repository: "org/repo",
+      commitSha: "abc1234",
+      path: "src/windows.ts",
+      startLine: 2,
+      endLine: 2,
+      content: "const b = 2;",
+      canonicalUrl: "https://github.com/org/repo/blob/abc1234/src/windows.ts#L2-L2",
+      fileType: "source",
+    };
+
+    const outcome = validator.validate(["cand-crlf"], [crlfCandidate], [crlfRecord]);
+    assert.equal(outcome.allValid, true);
+    assert.equal(outcome.validCount, 1);
+    assert.equal(outcome.validCitations[0].startLine, 2);
+    assert.equal(outcome.validCitations[0].endLine, 2);
+  });
+
+  it("strictly rejects inverted line ranges where startLine > endLine", () => {
+    const invertedCandidate: CandidateSnippet = {
+      candidateId: "cand-inverted",
+      fileId: "rec-1",
+      repository: "org/repo",
+      commitSha: "abc1234",
+      path: "src/auth/jwt.ts",
+      startLine: 10,
+      endLine: 5,
+      content: "inverted",
+      canonicalUrl: "https://github.com/org/repo/blob/abc1234/src/auth/jwt.ts#L10-L5",
+      fileType: "source",
+    };
+
+    const outcome = validator.validate(["cand-inverted"], [invertedCandidate], mockRecords);
+    assert.equal(outcome.allValid, false);
+    assert.equal(outcome.rejectedCount, 1);
+    assert.equal(outcome.rejectedCitations[0].code, "INVALID_LINE_RANGE");
+  });
 });

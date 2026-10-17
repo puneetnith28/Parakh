@@ -75,15 +75,18 @@ export class CitationValidator {
       }
 
       // 3. Line range validation
+      const fileLines = record.content.split(/\r?\n/);
+      const totalFileLines = record.lineCount || fileLines.length;
+
       if (
         candidate.startLine < 1 ||
         candidate.endLine < candidate.startLine ||
-        candidate.endLine > record.lineCount
+        candidate.endLine > totalFileLines
       ) {
         rejectedCitations.push({
           candidateId: cid,
           code: "INVALID_LINE_RANGE",
-          reason: `Line range L${candidate.startLine}-L${candidate.endLine} is invalid for file with ${record.lineCount} lines`,
+          reason: `Line range L${candidate.startLine}-L${candidate.endLine} is invalid for file with ${totalFileLines} lines`,
         });
         continue;
       }
@@ -100,7 +103,6 @@ export class CitationValidator {
 
       // 5. Strict content-line verification: confirm that cited snippet text matches the exact
       // lines in the fetched file content character-for-character (ignoring whitespace).
-      const fileLines = record.content.split(/\r?\n/);
       const startIdx = Math.max(0, candidate.startLine - 1);
       const endIdx = Math.min(fileLines.length, candidate.endLine);
       const targetLines = fileLines.slice(startIdx, endIdx);
@@ -109,16 +111,12 @@ export class CitationValidator {
       const stripWhitespace = (text: string) => text.replace(/\s+/g, "");
       const cleanSnippet = stripWhitespace(candidate.content);
       const cleanTarget = stripWhitespace(targetContent);
-      const cleanFullFile = stripWhitespace(record.content);
 
       const matchesTarget =
         cleanTarget.length > 0 &&
         (cleanTarget.includes(cleanSnippet) || cleanSnippet.includes(cleanTarget));
-      const matchesFull =
-        cleanSnippet.length > 0 &&
-        cleanFullFile.includes(cleanSnippet.slice(0, Math.min(cleanSnippet.length, 50)));
 
-      if (!matchesTarget && !matchesFull) {
+      if (!matchesTarget) {
         rejectedCitations.push({
           candidateId: cid,
           code: "CONTENT_MISMATCH",
