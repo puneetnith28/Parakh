@@ -56,9 +56,9 @@ body {
 
 /* Accessibility: Keyboard Focus Rings */
 :focus-visible {
-  outline: 2px solid var(--border-focus) !important;
+  outline: 2px solid var(--color-forest) !important;
   outline-offset: 2px !important;
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25) !important;
+  box-shadow: 0 0 0 4px rgba(159, 232, 112, 0.45) !important;
 }
 
 /* Screen Reader Only Utility */
