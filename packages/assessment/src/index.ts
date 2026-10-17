@@ -9,6 +9,7 @@ export * from "./retrieval/candidateSelector.js";
 export * from "./retrieval/coverageTracker.js";
 export * from "./validator.js";
 export * from "./statusRules.js";
+export * from "./evaluator.js";
 export * from "./generators/questionGenerator.js";
 export * from "./generators/responseDraftGenerator.js";
 

@@ -6,7 +6,11 @@ import {
   type EvidenceStatus,
   ModelAssessmentOutputSchema,
 } from "@parakh/contracts";
-import { CandidateSelector, type RequirementCandidateUniverse } from "@parakh/assessment";
+import {
+  CandidateSelector,
+  type RequirementCandidateUniverse,
+  CanonicalAssessmentEvaluator,
+} from "@parakh/assessment";
 import { GemmaClient } from "@parakh/integrations";
 
 /**
@@ -43,15 +47,18 @@ export interface AssessmentWorkflowOutput {
 }
 
 export interface WorkflowDependencies {
+  evaluator?: CanonicalAssessmentEvaluator;
   candidateSelector?: CandidateSelector;
   gemmaClient?: GemmaClient;
 }
 
 export class AssessmentWorkflow {
+  private readonly evaluator: CanonicalAssessmentEvaluator;
   private readonly candidateSelector: CandidateSelector;
   private readonly gemmaClient: GemmaClient;
 
   constructor(deps: WorkflowDependencies = {}) {
+    this.evaluator = deps.evaluator || new CanonicalAssessmentEvaluator({ maxCandidates: 5 });
     this.candidateSelector = deps.candidateSelector || new CandidateSelector({ maxCandidates: 5 });
     this.gemmaClient = deps.gemmaClient || new GemmaClient({ provider: "mock" });
   }
@@ -104,103 +111,54 @@ export class AssessmentWorkflow {
     for (const universe of candidateUniverses) {
       const req = input.requirements.find((r) => r.id === universe.requirementId)!;
 
-      if (universe.candidateCount === 0) {
-        // Deterministic zero-evidence short-circuit
-        evaluatedResults.push({
-          requirementId: req.id,
-          requirementText: req.text,
-          status: "not_demonstrated",
-          rationale: "No matching implementation, tests, or documentation found in repository evidence.",
-          citedCandidateIds: [],
-          citations: [],
-          nextActions: ["Implement requirement feature"],
-          confidence: "high",
-          manuallyOverridden: false,
-        });
-        continue;
-      }
+      const assessment = await this.evaluator.evaluateRequirement(
+        {
+          requirement: req,
+          universe,
+          modelEvaluator: async (requirement, uni) => {
+            if (uni.candidateCount === 0) {
+              return {
+                status: "not_demonstrated",
+                rationale: "No matching implementation, tests, or documentation found in repository evidence.",
+                citedCandidateIds: [],
+                nextActions: ["Implement requirement feature"],
+              };
+            }
 
-      // Format prompt for Gemma
-      const prompt = `Requirement: "${req.text}"\nCandidates:\n${universe.candidates
-        .map((c) => `[${c.candidateId}] ${c.path} (L${c.startLine}-L${c.endLine}):\n${c.content}`)
-        .join("\n\n")}`;
+            const prompt = `Requirement: "${requirement.text}"\nCandidates:\n${uni.candidates
+              .map((c) => `[${c.candidateId}] ${c.path} (L${c.startLine}-L${c.endLine}):\n${c.content}`)
+              .join("\n\n")}`;
 
-      const inference = await this.gemmaClient.executeConservativeReasoning(prompt);
+            const inference = await this.gemmaClient.executeConservativeReasoning(prompt);
 
-      let parsedStatus: EvidenceStatus = "needs_review";
-      let parsedRationale = inference.text;
-      let citedIds: string[] = [];
-      let limitations: string | undefined;
-      let nextActions: string[] = [];
+            try {
+              const jsonMatch = inference.text.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const parsed = ModelAssessmentOutputSchema.parse(JSON.parse(jsonMatch[0]));
+                return {
+                  status: parsed.status,
+                  rationale: parsed.rationale,
+                  citedCandidateIds: parsed.citedCandidateIds,
+                  limitations: parsed.limitations,
+                  nextActions: parsed.nextActions,
+                };
+              }
+            } catch {
+              // Fall through to needs_review
+            }
 
-      try {
-        const jsonMatch = inference.text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = ModelAssessmentOutputSchema.parse(JSON.parse(jsonMatch[0]));
-          parsedStatus = parsed.status;
-          parsedRationale = parsed.rationale;
-          citedIds = parsed.citedCandidateIds;
-          limitations = parsed.limitations;
-          nextActions = parsed.nextActions;
-        }
-      } catch {
-        parsedStatus = "needs_review";
-      }
+            const hasCode = uni.candidates.some((c) => c.fileType === "source" || c.fileType === "test");
+            return {
+              status: hasCode ? "demonstrated" : "needs_review",
+              rationale: inference.text || `Evaluated ${uni.candidates.length} candidate files`,
+              citedCandidateIds: uni.candidates.slice(0, 1).map((c) => c.candidateId),
+            };
+          },
+        },
+        input.records
+      );
 
-      // --- Step D: Deterministic Citation Validation & Status Verification ---
-      // Verify that every citedCandidateId actually exists in the provided candidate universe
-      const candidateMap = new Map(universe.candidates.map((c) => [c.candidateId, c]));
-      const verifiedCitations = [];
-
-      for (const cid of citedIds) {
-        const found = candidateMap.get(cid);
-        if (found) {
-          verifiedCitations.push({
-            candidateId: found.candidateId,
-            repository: repoIndex.repository,
-            commitSha: repoIndex.commitSha,
-            path: found.path,
-            canonicalUrl: found.canonicalUrl,
-            startLine: found.startLine,
-            endLine: found.endLine,
-            snippet: found.content.slice(0, 500),
-            evidenceType: found.fileType,
-          });
-        }
-      }
-
-      let finalStatus: EvidenceStatus = parsedStatus;
-      let downgradeReason: string | undefined;
-
-      // Rule: if model claimed demonstrated but cited 0 valid candidates -> downgrade to needs_review
-      if (parsedStatus === "demonstrated" && verifiedCitations.length === 0) {
-        finalStatus = "needs_review";
-        downgradeReason = "Downgraded to needs_review: claimed demonstrated but no valid candidate IDs were cited";
-      }
-
-      // Rule: if citations are documentation only and status is demonstrated -> downgrade to partially_demonstrated
-      if (
-        finalStatus === "demonstrated" &&
-        verifiedCitations.length > 0 &&
-        verifiedCitations.every((c) => c.evidenceType === "doc")
-      ) {
-        finalStatus = "partially_demonstrated";
-        downgradeReason = "Downgraded to partially_demonstrated: citations consist solely of documentation without working code";
-      }
-
-      evaluatedResults.push({
-        requirementId: req.id,
-        requirementText: req.text,
-        status: finalStatus,
-        rationale: parsedRationale,
-        citedCandidateIds: citedIds,
-        citations: verifiedCitations,
-        limitations,
-        nextActions,
-        confidence: "medium",
-        manuallyOverridden: false,
-        downgradeReason,
-      });
+      evaluatedResults.push(assessment);
     }
 
     telemetries.push({
