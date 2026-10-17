@@ -1,0 +1,63 @@
+services:
+  # Parakh Backend API Service
+  - type: web
+    name: parakh-api
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: npm install && npm run build --workspaces --if-present
+    startCommand: npm run start --workspace=@parakh/api
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: WEB_ORIGIN
+        fromService:
+          type: web
+          name: parakh-web
+          property: host
+      - key: MODEL_PROVIDER
+        value: google
+      - key: MODEL_NAME
+        value: gemini-3.5-flash-lite
+      - key: MONGODB_DATABASE
+        value: parakh
+      - key: SENTRY_ENVIRONMENT
+        value: production
+      # Secret Environment Variables configured via Render dashboard
+      - key: AI_STUDIO_API_KEY
+        sync: false
+      - key: MODEL_API_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: TIGERDATA_DATABASE_URL
+        sync: false
+      - key: TEMPORAL_API_KEY
+        sync: false
+
+  # Parakh Frontend Static Site
+  - type: web
+    name: parakh-web
+    runtime: static
+    region: oregon
+    buildCommand: npm install && npm run build --workspace=@parakh/contracts && npm run build --workspace=@parakh/web
+    staticPublishPath: ./apps/web/dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: parakh-api
+          property: host
