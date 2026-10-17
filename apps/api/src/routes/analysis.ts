@@ -10,6 +10,7 @@ import {
   validateGitHubUrl,
   RepositoryIngestionService,
 } from "@parakh/evidence";
+import { UnifiedEvidenceRetriever } from "@parakh/assessment";
 import { AssessmentService } from "../services/assessmentService.js";
 import { GemmaClient } from "@parakh/integrations";
 import { config } from "../config.js";
@@ -61,8 +62,10 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
       apiKey: config.MODEL_API_KEY || config.AI_STUDIO_API_KEY,
     });
 
+    const retriever = new UnifiedEvidenceRetriever();
     const assessmentService = new AssessmentService({
       gemmaClient,
+      retriever,
     });
 
     const report: AssessmentReport = await assessmentService.evaluateRepository({

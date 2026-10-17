@@ -10,6 +10,7 @@ import {
   CandidateSelector,
   CitationValidator,
   resolveAssessmentStatus,
+  UnifiedEvidenceRetriever,
   type RequirementCandidateUniverse,
 } from "@parakh/assessment";
 import { GemmaClient, formatAssessmentPrompt, HARDENED_ASSESSMENT_SYSTEM_INSTRUCTION } from "@parakh/integrations";
@@ -27,6 +28,7 @@ export interface AssessmentServiceOptions {
   maxRetries?: number; // default: 1
   backoffMs?: number; // default: 1000 ms (configurable in tests)
   candidateSelector?: CandidateSelector;
+  retriever?: UnifiedEvidenceRetriever;
   gemmaClient?: GemmaClient;
   citationValidator?: CitationValidator;
 }
@@ -44,6 +46,7 @@ export class AssessmentService {
   private readonly maxRetries: number;
   private readonly backoffMs: number;
   private readonly candidateSelector: CandidateSelector;
+  private readonly retriever?: UnifiedEvidenceRetriever;
   private readonly gemmaClient: GemmaClient;
   private readonly citationValidator: CitationValidator;
 
@@ -51,6 +54,7 @@ export class AssessmentService {
     this.maxRetries = options.maxRetries ?? 1;
     this.backoffMs = options.backoffMs ?? 500;
     this.candidateSelector = options.candidateSelector || new CandidateSelector({ maxCandidates: 5 });
+    this.retriever = options.retriever;
     this.gemmaClient = options.gemmaClient || new GemmaClient({ provider: "mock" });
     this.citationValidator = options.citationValidator || new CitationValidator();
   }
@@ -187,7 +191,9 @@ export class AssessmentService {
       indexedAt: new Date().toISOString(),
     };
 
-    const universes = this.candidateSelector.selectBatch(requirements, repoIndex);
+    const universes = this.retriever
+      ? await this.retriever.retrieveBatch(requirements, repoIndex)
+      : this.candidateSelector.selectBatch(requirements, repoIndex);
     const assessments: RequirementAssessment[] = [];
 
     for (let i = 0; i < universes.length; i++) {

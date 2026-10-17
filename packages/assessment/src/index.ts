@@ -6,6 +6,7 @@ export * from "./retrieval/chunker.js";
 export * from "./retrieval/semantic.js";
 export * from "./retrieval/indexManager.js";
 export * from "./retrieval/candidateSelector.js";
+export * from "./retrieval/retriever.js";
 export * from "./retrieval/coverageTracker.js";
 export * from "./validator.js";
 export * from "./statusRules.js";
