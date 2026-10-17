@@ -7,3 +7,4 @@ export * from "./filters.js";
 export * from "./contentFetcher.js";
 export * from "./normalizer.js";
 export * from "./recordBuilder.js";
+export * from "./ingestion.js";
