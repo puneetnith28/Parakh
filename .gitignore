@@ -15,6 +15,7 @@ out/
 *.tsbuildinfo
 
 # Environment variables & secrets
+atlas-credentials.env
 .env
 .env.local
 .env.*.local

@@ -28,7 +28,11 @@ export class GemmaModelAdapter {
   private readonly fetch: typeof fetch;
 
   constructor(config: ModelAdapterConfig = {}) {
-    this.apiKey = config.apiKey || process.env.MODEL_API_KEY || process.env.GEMINI_API_KEY;
+    this.apiKey =
+      config.apiKey ||
+      process.env.MODEL_API_KEY ||
+      process.env.AI_STUDIO_API_KEY ||
+      process.env.GEMINI_API_KEY;
     this.provider = config.provider || (this.apiKey ? "google-ai" : "mock");
     this.modelName = config.modelName || "gemma-2-9b-it";
     this.baseUrl = config.baseUrl || this.getDefaultBaseUrl(this.provider);

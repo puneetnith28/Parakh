@@ -190,8 +190,13 @@ export class AssessmentService {
     const universes = this.candidateSelector.selectBatch(requirements, repoIndex);
     const assessments: RequirementAssessment[] = [];
 
-    for (const universe of universes) {
+    for (let i = 0; i < universes.length; i++) {
+      const universe = universes[i];
       const req = requirements.find((r) => r.id === universe.requirementId)!;
+      // Add throttle pause between active LLM inferences for free-tier rate limits
+      if (i > 0 && universe.candidateCount > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
       const assessment = await this.evaluateRequirement(req, universe, records);
       assessments.push(assessment);
     }

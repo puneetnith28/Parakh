@@ -11,8 +11,9 @@ const envSchema = z.object({
 
   // Model provider
   MODEL_PROVIDER: z.string().default("google"),
-  MODEL_NAME: z.string().default("gemma-2-9b-it"),
+  MODEL_NAME: z.string().default("gemini-3.5-flash-lite"),
   MODEL_API_KEY: z.string().optional(),
+  AI_STUDIO_API_KEY: z.string().optional(),
   MODEL_BASE_URL: z.string().url().optional(),
 
   // GitHub access
@@ -41,7 +42,11 @@ const envSchema = z.object({
 export type AppConfig = z.infer<typeof envSchema>;
 
 export function loadConfig(rawEnv: Record<string, string | undefined> = process.env): AppConfig {
-  const result = envSchema.safeParse(rawEnv);
+  const normalized = { ...rawEnv };
+  if (!normalized.MODEL_API_KEY && normalized.AI_STUDIO_API_KEY) {
+    normalized.MODEL_API_KEY = normalized.AI_STUDIO_API_KEY;
+  }
+  const result = envSchema.safeParse(normalized);
   if (!result.success) {
     const errorDetails = result.error.errors
       .map((err) => `${err.path.join(".")}: ${err.message}`)

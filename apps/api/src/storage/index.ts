@@ -1,12 +1,15 @@
 import { ReportStorage, MemoryReportStorage } from "./memoryStore.js";
+import { MongoReportStorage } from "./mongoStore.js";
+import mongoose from "mongoose";
 
 export * from "./memoryStore.js";
+export * from "./mongoStore.js";
 
 let storageInstance: ReportStorage | null = null;
 
 /**
  * Returns the configured storage adapter.
- * Defaults to in-memory storage if MONGODB_URI is absent.
+ * Uses MongoReportStorage if MongoDB is connected, otherwise MemoryReportStorage.
  */
 export function getStorage(): ReportStorage {
   if (storageInstance) {
@@ -15,14 +18,8 @@ export function getStorage(): ReportStorage {
 
   const mongoUri = process.env.MONGODB_URI;
 
-  if (mongoUri && mongoUri.trim().startsWith("mongodb")) {
-    // When MongoDB is wired in Step 062/063, MongoReportStorage will be returned here
-    try {
-      // Lazy check for mongo storage implementation
-      storageInstance = new MemoryReportStorage(); // Fallback until Step 062 connects
-    } catch {
-      storageInstance = new MemoryReportStorage();
-    }
+  if (mongoUri && mongoUri.trim().startsWith("mongodb") && mongoose.connection.readyState === 1) {
+    storageInstance = new MongoReportStorage();
   } else {
     // Stateless fallback mode
     storageInstance = new MemoryReportStorage();
