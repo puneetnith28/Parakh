@@ -65,10 +65,15 @@ app.use(healthRouter);
  * Blocks normal application traffic if durable storage is disconnected in production.
  */
 export function productionStorageGuard(
-  _req: express.Request,
+  req: express.Request,
   res: express.Response,
   next: express.NextFunction
 ): void {
+  // Only guard API endpoints; static web assets, frontend SPA, and healthz are allowed
+  if (!req.path.startsWith("/api")) {
+    return next();
+  }
+
   if (config.NODE_ENV === "production" && process.env.STORAGE_MODE !== "memory") {
     const storage = getStorage();
     if (!storage.isPersistent()) {

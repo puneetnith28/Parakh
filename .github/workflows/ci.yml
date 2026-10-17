@@ -38,3 +38,39 @@ jobs:
 
       - name: Execute security and boundary audit tests
         run: npm run test:security
+
+      - name: Execute integration test suite
+        run: npm run test:integration
+
+      - name: Execute end-to-end user journey tests
+        run: npm run test:e2e
+
+  live-verification:
+    name: Live Services Verification (Secret-Gated)
+    runs-on: ubuntu-latest
+    if: github.repository == 'puneetnith28/Parakh' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    env:
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      AI_STUDIO_API_KEY: ${{ secrets.AI_STUDIO_API_KEY }}
+      MODEL_PROVIDER: google
+      MODEL_NAME: gemini-3.8-flash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build monorepo packages
+        run: npm run build
+
+      - name: Run live Atlas database verification
+        if: env.MONGODB_URI != ''
+        run: npm run test:db
