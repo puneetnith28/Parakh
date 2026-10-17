@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { X, ExternalLink, GitCommit, FileCode, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Citation } from "@parakh/contracts";
 import { CodeSnippet } from "../CodeSnippet.tsx";
+import { TactileButton } from "../TactileButton.tsx";
 
 interface EvidenceDrawerProps {
   isOpen: boolean;
@@ -134,13 +135,14 @@ export function EvidenceDrawer({
           <span className="italic">
             Lines pinned to commit snapshot <code className="text-slate-300">{shortSha}</code>
           </span>
-          <button
-            type="button"
+          <TactileButton
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition font-medium"
+            variant="secondary"
+            size="sm"
+            rounded={12}
           >
             Close
-          </button>
+          </TactileButton>
         </div>
       </div>
     </div>

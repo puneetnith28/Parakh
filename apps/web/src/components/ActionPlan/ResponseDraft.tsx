@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FileText, Copy, Check, AlertTriangle, Edit3, Sparkles } from "lucide-react";
 import { RequirementAssessment } from "@parakh/contracts";
+import { TactileButton } from "../TactileButton.tsx";
 import { generateProposalDraft } from "@parakh/assessment";
 
 interface ResponseDraftProps {
@@ -51,32 +52,34 @@ export function ResponseDraft({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <TactileButton
             onClick={() => setIsEditing(!isEditing)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-xs font-medium border border-slate-700"
+            variant="secondary"
+            size="sm"
+            rounded={14}
           >
-            <Edit3 className="w-3.5 h-3.5" />
+            <Edit3 className="w-3.5 h-3.5 mr-1.5 inline" />
             <span>{isEditing ? "View Clean Mode" : "Edit Draft"}</span>
-          </button>
+          </TactileButton>
 
-          <button
-            type="button"
+          <TactileButton
             onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-semibold hover:bg-emerald-400 transition text-xs shadow-sm"
+            variant="primary"
+            size="sm"
+            rounded={14}
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5" />
+                <Check className="w-3.5 h-3.5 mr-1.5 inline text-emerald-400" />
                 <span>Copied to Clipboard</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5" />
+                <Copy className="w-3.5 h-3.5 mr-1.5 inline" />
                 <span>Copy Draft</span>
               </>
             )}
-          </button>
+          </TactileButton>
         </div>
       </div>
 

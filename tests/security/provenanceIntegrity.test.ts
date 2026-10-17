@@ -397,4 +397,84 @@ describe("Cryptographic Report Provenance & Tamper Detection Suite", () => {
     assert.equal(verification.verified, false);
     assert.match(verification.reason!, /Report content does not match the authoritative server analysis run/i);
   });
+
+  test("16. Opportunity title and repository metadata tampering are detected", () => {
+    const originalHash = computeReportContentHash(baseReport);
+
+    const tamperedTitle = { ...baseReport, opportunityTitle: "Tampered Staff Engineer Title" };
+    assert.notEqual(
+      computeReportContentHash(tamperedTitle),
+      originalHash,
+      "Mutating opportunityTitle must alter content hash"
+    );
+
+    const tamperedRepoMeta = {
+      ...baseReport,
+      repoMetadata: { owner: "malicious-org", repo: "spoofed-repo", defaultBranch: "main" },
+    };
+    assert.notEqual(
+      computeReportContentHash(tamperedRepoMeta),
+      originalHash,
+      "Mutating repoMetadata must alter content hash"
+    );
+  });
+
+  test("17. Citation evidenceType tampering is detected", () => {
+    const originalHash = computeReportContentHash(baseReport);
+    const tamperedCitationType = JSON.parse(JSON.stringify(baseReport));
+    tamperedCitationType.assessments[0].citations[0].evidenceType = "documentation";
+
+    assert.notEqual(
+      computeReportContentHash(tamperedCitationType),
+      originalHash,
+      "Mutating citation evidenceType must alter content hash"
+    );
+  });
+
+  test("18. Manual override flags and user notes tampering are detected", () => {
+    const originalHash = computeReportContentHash(baseReport);
+
+    const tamperedOverride = JSON.parse(JSON.stringify(baseReport));
+    tamperedOverride.assessments[0].manuallyOverridden = true;
+    assert.notEqual(
+      computeReportContentHash(tamperedOverride),
+      originalHash,
+      "Mutating manuallyOverridden flag must alter content hash"
+    );
+
+    const tamperedNotes = JSON.parse(JSON.stringify(baseReport));
+    tamperedNotes.assessments[0].userNotes = "Attacker injected arbitrary manual justification";
+    assert.notEqual(
+      computeReportContentHash(tamperedNotes),
+      originalHash,
+      "Mutating userNotes must alter content hash"
+    );
+  });
+
+  test("19. Table-driven material report mutations all produce distinct hashes", () => {
+    const initialHash = computeReportContentHash(baseReport);
+
+    const testCases: Array<{ name: string; mutate: (rep: AssessmentReport) => void }> = [
+      { name: "report.status", mutate: (r) => (r.status = "failed") },
+      { name: "assessment.confidence", mutate: (r) => (r.assessments[0].confidence = "low") },
+      { name: "assessment.nextActions", mutate: (r) => (r.assessments[0].nextActions = ["Different action"]) },
+      { name: "assessment.limitations", mutate: (r) => (r.assessments[0].limitations = "New requirement limitation") },
+      { name: "citation.supports", mutate: (r) => (r.assessments[0].citations[0].supports = "Altered support statement") },
+      { name: "citation.limitations", mutate: (r) => (r.assessments[0].citations[0].limitations = "Altered limitation statement") },
+      { name: "coverage.demonstrated", mutate: (r) => (r.coverageSummary.demonstrated = 99) },
+      { name: "report.limitations", mutate: (r) => (r.limitations = ["Altered global limitation"]) },
+      { name: "report.gapRecommendations", mutate: (r) => (r.gapRecommendations = ["Altered gap recommendation"]) },
+    ];
+
+    for (const tc of testCases) {
+      const clone = JSON.parse(JSON.stringify(baseReport));
+      tc.mutate(clone);
+      const mutatedHash = computeReportContentHash(clone);
+      assert.notEqual(
+        mutatedHash,
+        initialHash,
+        `Mutating ${tc.name} must produce a different content hash`
+      );
+    }
+  });
 });

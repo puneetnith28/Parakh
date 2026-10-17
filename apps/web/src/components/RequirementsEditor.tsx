@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, CheckCircle, ArrowRight } from "lucide-react";
 import { Requirement } from "@parakh/contracts";
 import { RequirementCard } from "./RequirementCard.tsx";
+import { TactileButton } from "./TactileButton.tsx";
 
 interface RequirementsEditorProps {
   requirements: Requirement[];
@@ -50,12 +51,12 @@ export function RequirementsEditor({ requirements, onChange, onConfirm }: Requir
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+    <div className="bg-neutral-950/75 border border-red-950/40 backdrop-blur-md rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/80 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-red-950/40">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <span>Review & Refine Requirements</span>
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+            <span className="px-2.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-rose-400 text-xs font-mono">
               {requirements.length} total
             </span>
           </h2>
@@ -74,14 +75,15 @@ export function RequirementsEditor({ requirements, onChange, onConfirm }: Requir
           </div>
         </div>
 
-        <button
-          type="button"
+        <TactileButton
           onClick={() => setIsAdding(!isAdding)}
-          className="inline-flex items-center px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition"
+          variant="secondary"
+          size="sm"
+          rounded={16}
         >
-          <Plus className="w-4 h-4 mr-1.5" />
+          <Plus className="w-4 h-4 mr-1.5 inline" />
           Add Requirement
-        </button>
+        </TactileButton>
       </div>
 
       {/* Category Filter Pills */}
@@ -113,13 +115,14 @@ export function RequirementsEditor({ requirements, onChange, onConfirm }: Requir
             className="flex-1 bg-transparent border-none text-sm text-slate-100 placeholder-slate-500 focus:outline-none"
             autoFocus
           />
-          <button
-            type="button"
+          <TactileButton
             onClick={handleAdd}
-            className="px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-semibold transition"
+            variant="primary"
+            size="sm"
+            rounded={12}
           >
             Add
-          </button>
+          </TactileButton>
         </div>
       )}
 
@@ -149,15 +152,16 @@ export function RequirementsEditor({ requirements, onChange, onConfirm }: Requir
           <CheckCircle className="w-4 h-4 text-emerald-400" />
           Ready to verify against repository evidence
         </span>
-        <button
-          type="button"
+        <TactileButton
           onClick={onConfirm}
           disabled={requirements.length === 0}
-          className="inline-flex items-center px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-semibold text-sm transition shadow-lg shadow-emerald-500/20"
+          variant="primary"
+          size="md"
+          rounded={18}
         >
           Confirm Requirements & Match Evidence
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </button>
+          <ArrowRight className="w-4 h-4 ml-2 inline" />
+        </TactileButton>
       </div>
     </div>
   );

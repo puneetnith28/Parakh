@@ -164,10 +164,10 @@ describe("MongoDB Lifecycle, Provenance Preservation, and Tamper Detection Suite
         { $set: { "assessments.0.status": "not_demonstrated" } }
       );
     } else {
-      // In-memory simulation
-      const rec = await storage.getReportById(reportId);
-      if (rec) {
-        rec.report.assessments[0].status = "not_demonstrated";
+      // In-memory simulation: mutate raw stored report record directly in memory map
+      const rawStoredRecord = (storage as any).reports?.get(reportId);
+      if (rawStoredRecord) {
+        rawStoredRecord.report.assessments[0].status = "not_demonstrated";
       }
     }
 

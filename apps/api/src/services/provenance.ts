@@ -53,6 +53,7 @@ export function computeReportContentHash(report: AssessmentReport): string {
           canonicalUrl: c.canonicalUrl,
           startLine: c.startLine ?? null,
           endLine: c.endLine ?? null,
+          evidenceType: c.evidenceType ?? "source_code",
           snippet: c.snippet,
           supports: c.supports ?? null,
           limitations: c.limitations ?? null,
@@ -74,6 +75,8 @@ export function computeReportContentHash(report: AssessmentReport): string {
         citations: normalizedCitations,
         limitations: a.limitations ?? null,
         nextActions,
+        manuallyOverridden: a.manuallyOverridden ?? false,
+        userNotes: a.userNotes ?? null,
         originalStatus: a.originalStatus ?? null,
         downgradeReason: a.downgradeReason ?? null,
       };
@@ -82,8 +85,16 @@ export function computeReportContentHash(report: AssessmentReport): string {
   const canonicalObj = {
     id: report.id,
     opportunityId: report.opportunityId,
+    opportunityTitle: report.opportunityTitle ?? null,
     repositoryUrl: (report.repositoryUrl || "").toLowerCase(),
     resolvedCommitSha: (report.resolvedCommitSha || "").toLowerCase(),
+    repoMetadata: report.repoMetadata
+      ? {
+          owner: (report.repoMetadata.owner || "").toLowerCase(),
+          repo: (report.repoMetadata.repo || "").toLowerCase(),
+          defaultBranch: report.repoMetadata.defaultBranch ?? null,
+        }
+      : null,
     status: report.status,
     scannedFilesCount: report.scannedFilesCount ?? 0,
     skippedFilesCount: report.skippedFilesCount ?? 0,

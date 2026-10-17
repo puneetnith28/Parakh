@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { TactileButton } from "./TactileButton.tsx";
 
 export const SAMPLE_BRIEF_TEXT = `# Project Brief: Modern Full-Stack Enterprise Billing & Subscription Engine
 
@@ -30,26 +31,28 @@ export function DemoLoader({ onLoadDemo }: DemoLoaderProps) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl bg-sky-950/30 border border-sky-800/40 gap-3">
+    <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl bg-red-950/20 border border-red-900/30 gap-3">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
-          <Sparkles className="w-5 h-5 text-sky-400" />
+        <div className="w-9 h-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+          <Sparkles className="w-5 h-5 text-rose-400" />
         </div>
         <div>
-          <h4 className="text-sm font-semibold text-sky-200">Instant Demo Scenario</h4>
-          <p className="text-xs text-sky-400/80">
+          <h4 className="text-sm font-semibold text-rose-200">Instant Demo Scenario</h4>
+          <p className="text-xs text-rose-300/70">
             Pre-populate a realistic SaaS client brief & repository with one click.
           </p>
         </div>
       </div>
-      <button
-        type="button"
+      <TactileButton
         onClick={handleLoad}
-        className="w-full sm:w-auto px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs transition shadow-sm hover:shadow-sky-500/20 flex items-center justify-center gap-2 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+        variant="primary"
+        size="sm"
+        rounded={16}
+        className="w-full sm:w-auto shrink-0"
       >
-        <Sparkles className="w-3.5 h-3.5" />
+        <Sparkles className="w-3.5 h-3.5 mr-1.5 inline" />
         Load Sample Demo
-      </button>
+      </TactileButton>
     </div>
   );
 }

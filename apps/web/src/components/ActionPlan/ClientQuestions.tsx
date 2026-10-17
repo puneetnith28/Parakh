@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MessageSquareText, Copy, Check, Sparkles, CheckCircle2 } from "lucide-react";
 import { RequirementAssessment } from "@parakh/contracts";
+import { TactileButton } from "../TactileButton.tsx";
 import {
   generateClarificationQuestions,
   formatQuestionsMarkdown,
@@ -66,23 +67,24 @@ export function ClientQuestions({ assessments, className = "" }: ClientQuestions
           </div>
         </div>
 
-        <button
-          type="button"
+        <TactileButton
           onClick={handleCopyAll}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 transition text-xs font-medium shadow-sm"
+          variant="secondary"
+          size="sm"
+          rounded={14}
         >
           {copiedAll ? (
             <>
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-emerald-400 mr-1.5 inline" />
               <span className="text-emerald-300">Copied Full Message</span>
             </>
           ) : (
             <>
-              <Copy className="w-3.5 h-3.5" />
+              <Copy className="w-3.5 h-3.5 text-rose-400 mr-1.5 inline" />
               <span>Copy All to Clipboard</span>
             </>
           )}
-        </button>
+        </TactileButton>
       </div>
 
       {/* Questions List */}

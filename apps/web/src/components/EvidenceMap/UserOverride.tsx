@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Check, RotateCcw, ShieldCheck } from "lucide-react";
 import { RequirementAssessment, EvidenceStatus } from "@parakh/contracts";
 import { StatusBadge } from "./StatusBadge.tsx";
+import { TactileButton } from "../TactileButton.tsx";
 
 interface UserOverrideProps {
   isOpen: boolean;
@@ -193,34 +194,37 @@ export function UserOverride({ isOpen, assessment, onClose, onSave }: UserOverri
         {/* Footer Actions */}
         <div className="p-4 bg-slate-900/90 border-t border-slate-800/80 flex items-center justify-between gap-2">
           {assessment.manuallyOverridden ? (
-            <button
-              type="button"
+            <TactileButton
               onClick={handleReset}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-rose-300 transition text-xs font-medium"
+              variant="danger"
+              size="sm"
+              rounded={12}
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5 inline" />
               <span>Reset to Automated</span>
-            </button>
+            </TactileButton>
           ) : (
             <div />
           )}
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <TactileButton
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition text-xs font-medium"
+              variant="secondary"
+              size="sm"
+              rounded={12}
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </TactileButton>
+            <TactileButton
               onClick={handleApply}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold transition text-xs shadow-sm"
+              variant="primary"
+              size="sm"
+              rounded={12}
             >
-              <Check className="w-3.5 h-3.5" />
+              <Check className="w-3.5 h-3.5 mr-1.5 inline" />
               <span>Save Adjustment</span>
-            </button>
+            </TactileButton>
           </div>
         </div>
       </div>

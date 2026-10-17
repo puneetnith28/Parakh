@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { X, ExternalLink, GitCommit, FileCode, CheckCircle2, ShieldCheck, Copy, Check } from "lucide-react";
 import { Citation } from "@parakh/contracts";
 import { CodeSnippet } from "../CodeSnippet.tsx";
+import { TactileButton } from "../TactileButton.tsx";
 
 export interface CitationDrawerProps {
   isOpen: boolean;
@@ -86,33 +87,33 @@ export const CitationDrawer: React.FC<CitationDrawerProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Code Citation Inspection Drawer"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
     >
       <div
-        className="relative w-full max-w-3xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        className="relative w-full max-w-3xl max-h-[90vh] bg-neutral-950 border border-red-950/60 rounded-2xl shadow-[0_0_50px_rgba(255,0,0,0.15)] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b border-slate-800/80 bg-slate-900/90 gap-4">
+        <div className="flex items-start justify-between p-5 border-b border-red-950/50 bg-black/80 gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1 font-semibold">
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-red-500/10 text-rose-400 border border-red-500/20 inline-flex items-center gap-1 font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 Verified Grounding
               </span>
-              <span className="text-xs font-mono text-slate-400">ID: {citation.candidateId}</span>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 capitalize">
+              <span className="text-xs font-mono text-zinc-400">ID: {citation.candidateId}</span>
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-neutral-900 text-zinc-300 capitalize">
                 {citation.evidenceType || "source"} evidence
               </span>
             </div>
 
-            <h3 className="text-base font-bold text-slate-100 line-clamp-1">
+            <h3 className="text-base font-bold text-zinc-100 line-clamp-1">
               {citation.path.split("/").pop()}
             </h3>
 
             {requirementTitle && (
-              <p className="text-xs text-slate-400 line-clamp-1">
-                Supports: <span className="text-slate-300 font-medium">"{requirementTitle}"</span>
+              <p className="text-xs text-zinc-400 line-clamp-1">
+                Supports: <span className="text-zinc-300 font-medium">"{requirementTitle}"</span>
               </p>
             )}
           </div>
@@ -194,13 +195,14 @@ export const CitationDrawer: React.FC<CitationDrawerProps> = ({
           <span className="italic truncate max-w-sm">
             Immutable snapshot pinned to <code className="text-slate-300">{shortSha}</code>
           </span>
-          <button
-            type="button"
+          <TactileButton
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition font-medium"
+            variant="secondary"
+            size="sm"
+            rounded={12}
           >
             Close
-          </button>
+          </TactileButton>
         </div>
       </div>
     </div>

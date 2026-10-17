@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle2, Loader2, RefreshCw, ArrowLeft, ShieldAlert } from "lucide-react";
+import { TactileButton } from "./TactileButton.tsx";
 
 export type AnalysisStep = "validate" | "ingest" | "retrieve" | "evaluate" | "complete";
 
@@ -133,34 +134,37 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
           <p className="text-xs text-rose-300/80">{errDetails.solution}</p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-neutral-800">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <TactileButton
               onClick={onRetry}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold transition shadow-lg shadow-emerald-950/40"
+              variant="primary"
+              size="sm"
+              rounded={14}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4 mr-1.5 inline" />
               Retry Analysis
-            </button>
-            <button
-              type="button"
+            </TactileButton>
+            <TactileButton
               onClick={onCancel}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition"
+              variant="secondary"
+              size="sm"
+              rounded={14}
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 mr-1.5 inline" />
               Edit Requirements
-            </button>
+            </TactileButton>
           </div>
 
           {onChangeTarget && (
-            <button
-              type="button"
+            <TactileButton
               onClick={onChangeTarget}
-              className="text-xs text-slate-400 hover:text-slate-200 underline transition"
+              variant="ghost"
+              size="sm"
+              rounded={12}
             >
               Change Repository URL
-            </button>
+            </TactileButton>
           )}
         </div>
       </div>
@@ -168,21 +172,21 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-10 max-w-2xl mx-auto shadow-2xl space-y-8">
+    <div className="bg-neutral-950/80 border border-red-950/40 backdrop-blur-md rounded-2xl p-6 sm:p-10 max-w-2xl mx-auto shadow-2xl shadow-black/90 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-5">
+      <div className="flex items-center justify-between border-b border-red-950/40 pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <h3 className="text-lg sm:text-xl font-bold text-white">Evaluating Technical Capabilities</h3>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-red-500/10 text-rose-400 border border-red-500/30">
               {elapsedSeconds}s elapsed
             </span>
           </div>
-          <p className="text-xs font-mono text-slate-400 truncate max-w-md">Target: {repoUrl}</p>
+          <p className="text-xs font-mono text-neutral-400 truncate max-w-md">Target: {repoUrl}</p>
         </div>
         <div className="text-right shrink-0">
-          <span className="text-xs font-medium text-slate-400">Verifying</span>
-          <p className="text-sm font-bold text-emerald-400">{requirementsCount} Requirements</p>
+          <span className="text-xs font-medium text-neutral-400">Verifying</span>
+          <p className="text-sm font-bold text-rose-400">{requirementsCount} Requirements</p>
         </div>
       </div>
 
@@ -197,37 +201,37 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
               key={step.key}
               className={`p-3.5 rounded-xl border transition-all ${
                 isCurrent
-                  ? "bg-slate-800/80 border-emerald-500/40 shadow-md shadow-emerald-950/20"
+                  ? "bg-neutral-900/90 border-red-500/50 shadow-md shadow-red-950/40"
                   : isDone
-                  ? "bg-slate-950/40 border-slate-800/60 opacity-80"
-                  : "bg-slate-950/20 border-slate-800/30 opacity-40"
+                  ? "bg-neutral-950/40 border-neutral-800/60 opacity-80"
+                  : "bg-neutral-950/20 border-neutral-800/30 opacity-40"
               }`}
             >
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 shrink-0">
                   {isDone ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    <CheckCircle2 className="w-5 h-5 text-rose-400" />
                   ) : isCurrent ? (
-                    <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+                    <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
                   ) : (
-                    <div className="w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center text-[10px] text-slate-500">
+                    <div className="w-5 h-5 rounded-full border border-neutral-700 flex items-center justify-center text-[10px] text-neutral-500">
                       {idx + 1}
                     </div>
                   )}
                 </div>
                 <div className="space-y-0.5 flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className={`text-sm font-semibold ${isCurrent ? "text-white" : isDone ? "text-slate-300" : "text-slate-500"}`}>
+                    <p className={`text-sm font-semibold ${isCurrent ? "text-white" : isDone ? "text-neutral-300" : "text-neutral-500"}`}>
                       {step.label}
                     </p>
                     {isCurrent && (
-                      <span className="text-[10px] font-mono text-emerald-400 animate-pulse">Running</span>
+                      <span className="text-[10px] font-mono text-rose-400 animate-pulse">Running</span>
                     )}
                     {isDone && (
-                      <span className="text-[10px] font-mono text-slate-400">Complete</span>
+                      <span className="text-[10px] font-mono text-neutral-400">Complete</span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-400 line-clamp-1">{step.detail}</p>
+                  <p className="text-xs text-neutral-400 line-clamp-1">{step.detail}</p>
                 </div>
               </div>
             </div>
@@ -236,24 +240,25 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
       </div>
 
       {/* Live status notice */}
-      <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3.5 flex items-center gap-3">
-        <Loader2 className="w-4 h-4 text-emerald-400 animate-spin shrink-0" />
-        <p className="text-xs text-slate-300 font-mono truncate">{statusMessage}</p>
+      <div className="bg-neutral-950/80 border border-neutral-800 rounded-xl p-3.5 flex items-center gap-3">
+        <Loader2 className="w-4 h-4 text-red-500 animate-spin shrink-0" />
+        <p className="text-xs text-neutral-300 font-mono truncate">{statusMessage}</p>
       </div>
 
       {/* Footer Controls */}
-      <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5 text-slate-400">
-          <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" />
+      <div className="flex items-center justify-between pt-2 border-t border-neutral-800/80 text-xs text-neutral-500">
+        <span className="flex items-center gap-1.5 text-neutral-400">
+          <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
           Deterministic citation verification enforced
         </span>
-        <button
-          type="button"
+        <TactileButton
           onClick={onCancel}
-          className="text-slate-400 hover:text-slate-200 transition underline"
+          variant="secondary"
+          size="sm"
+          rounded={12}
         >
           Cancel & Edit
-        </button>
+        </TactileButton>
       </div>
     </div>
   );

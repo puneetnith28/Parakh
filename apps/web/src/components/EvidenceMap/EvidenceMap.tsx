@@ -17,9 +17,9 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
       <section
         role="region"
         aria-label="Evidence Map Empty State"
-        className="p-8 sm:p-12 text-center rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-sm"
+        className="p-8 sm:p-12 text-center rounded-2xl bg-neutral-950/75 border border-red-950/40 backdrop-blur-md"
       >
-        <p className="text-slate-400 text-sm">No requirement assessments available yet.</p>
+        <p className="text-zinc-400 text-sm">No requirement assessments available yet.</p>
       </section>
     );
   }
@@ -29,8 +29,8 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
       {/* Top Controls: View Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100 tracking-tight">Evidence Map</h2>
-          <p className="text-xs text-slate-400">
+          <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">Evidence Map</h2>
+          <p className="text-xs text-zinc-400">
             Transparent mapping between client requirements and verified repository code.
           </p>
         </div>
@@ -38,7 +38,7 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
         <div
           role="tablist"
           aria-label="Evidence view layout options"
-          className="flex items-center self-start sm:self-auto bg-slate-900/80 p-1 rounded-xl border border-slate-800/80"
+          className="flex items-center self-start sm:self-auto bg-black/60 p-1 rounded-xl border border-red-950/50"
         >
           <button
             type="button"
@@ -46,10 +46,10 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
             aria-selected={viewMode === "grid"}
             aria-label="Switch to Grid View"
             onClick={() => setViewMode("grid")}
-            className={`p-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
+            className={`p-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
               viewMode === "grid"
-                ? "bg-slate-800 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-red-950/70 text-rose-200 border border-red-500/40 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <LayoutGrid className="w-4 h-4" aria-hidden="true" />
@@ -61,10 +61,10 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
             aria-selected={viewMode === "list"}
             aria-label="Switch to List View"
             onClick={() => setViewMode("list")}
-            className={`p-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
+            className={`p-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
               viewMode === "list"
-                ? "bg-slate-800 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-red-950/70 text-rose-200 border border-red-500/40 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <List className="w-4 h-4" aria-hidden="true" />
@@ -87,14 +87,14 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
             <article
               key={item.requirementId}
               aria-label={`Assessment for requirement ${item.requirementId}`}
-              className={`p-5 rounded-2xl bg-slate-900/50 border border-slate-800/80 hover:border-slate-700/80 transition-all duration-200 flex flex-col justify-between group shadow-sm hover:shadow-md ${
+              className={`p-5 rounded-2xl bg-neutral-950/75 border border-red-950/40 hover:border-red-500/40 backdrop-blur-md transition-all duration-200 flex flex-col justify-between group shadow-sm hover:shadow-lg ${
                 item.status === "demonstrated"
                   ? "hover:border-emerald-500/30"
                   : item.status === "partially_demonstrated"
                   ? "hover:border-amber-500/30"
                   : item.status === "needs_review"
                   ? "hover:border-indigo-500/30"
-                  : "hover:border-slate-700"
+                  : "hover:border-red-900/50"
               }`}
             >
               <div className="space-y-3">

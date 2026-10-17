@@ -12,6 +12,8 @@ import { ReportSummary } from "./components/ReportSummary.tsx";
 import { GapChecklist } from "./components/GapChecklist.tsx";
 import { ProposalKit } from "./components/ProposalKit.tsx";
 import { ReportExport } from "./components/ReportExport.tsx";
+import { PredictiveArc } from "./components/PredictiveArc.tsx";
+import { TactileButton } from "./components/TactileButton.tsx";
 import { getApiUrl } from "./config/api.ts";
 import { extractRequirementsFromText, runAssessmentAnalysis, fetchReportById } from "./services/api.ts";
 
@@ -177,247 +179,271 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col w-full">
-      <Header apiStatus={apiStatus} />
+    <div className="relative min-h-screen bg-[#030303] text-zinc-100 flex flex-col w-full selection:bg-red-500/30 selection:text-red-200">
+      {/* Predictive Arc Background Layer */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-95">
+        <PredictiveArc
+          background="#030303"
+          baseColor="#FF0000"
+          accentColor="#FF9898"
+          highlight="#FF0000"
+        />
+      </div>
 
-      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full space-y-8">
-        <div className="text-center space-y-3">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Developer Capability Assessment
-          </h1>
-          <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto">
-            Extract requirements from your client brief and verify them against inspectable code, tests, and documentation from your GitHub repository.
-          </p>
-        </div>
+      <div className="relative z-10 flex flex-col flex-1 w-full">
+        <Header apiStatus={apiStatus} />
 
-        {stage === "input" && (
-          <InputSection
-            opportunityText={opportunityText}
-            setOpportunityText={setOpportunityText}
-            repoUrl={repoUrl}
-            setRepoUrl={setRepoUrl}
-            onAnalyze={handleAnalyze}
-            isLoading={isLoading}
-            validationError={validationError}
-            successMessage={successMessage}
-          />
-        )}
-
-        {stage === "review_requirements" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStage("input")}
-                className="text-xs text-slate-400 hover:text-slate-200 transition"
-              >
-                &larr; Back to Brief Input
-              </button>
-              <span className="text-xs font-mono text-emerald-400">Target Repo: {repoUrl}</span>
+        <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full space-y-8">
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/40 border border-red-500/30 text-rose-300 text-xs font-mono uppercase tracking-wider backdrop-blur-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              OriginKit Predictive Arc Engine
             </div>
-
-            <RequirementsEditor
-              requirements={requirements}
-              onChange={setRequirements}
-              onConfirm={handleConfirmRequirements}
-            />
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-rose-200 bg-clip-text text-transparent">
+              Developer Capability Assessment
+            </h1>
+            <p className="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto">
+              Extract requirements from your client brief and verify them against inspectable code, tests, and documentation from your GitHub repository.
+            </p>
           </div>
-        )}
 
-        {stage === "analyzing" && (
-          <AnalysisProgress
-            repoUrl={repoUrl}
-            requirementsCount={requirements.length}
-            statusMessage={analysisStatus}
-            error={analysisError}
-            onRetry={handleConfirmRequirements}
-            onCancel={() => {
-              if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-                abortControllerRef.current = null;
-              }
-              setAnalysisError(null);
-              setStage("review_requirements");
-            }}
-            onChangeTarget={() => {
-              setAnalysisError(null);
-              setStage("input");
-            }}
-          />
-        )}
+          {stage === "input" && (
+            <InputSection
+              opportunityText={opportunityText}
+              setOpportunityText={setOpportunityText}
+              repoUrl={repoUrl}
+              setRepoUrl={setRepoUrl}
+              onAnalyze={handleAnalyze}
+              isLoading={isLoading}
+              validationError={validationError}
+              successMessage={successMessage}
+            />
+          )}
 
-        {stage === "results" && report && (() => {
-          const filteredAssessments = (report.assessments || []).filter((item) => {
-            if (searchQuery.trim()) {
-              const q = searchQuery.toLowerCase();
-              const match =
-                item.requirementText.toLowerCase().includes(q) ||
-                item.rationale.toLowerCase().includes(q) ||
-                item.requirementId.toLowerCase().includes(q);
-              if (!match) return false;
-            }
-            if (statusFilter === "gaps_only") {
-              if (item.status === "demonstrated") return false;
-            } else if (statusFilter !== "all") {
-              if (item.status !== statusFilter) return false;
-            }
-            return true;
-          });
-
-          return (
-            <div className="space-y-8">
-              {/* Executive Report Summary */}
-              <ReportSummary
-                report={report}
-                onExportPrint={() => window.print()}
-                onExportJson={() => {
-                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
-                  const downloadAnchor = document.createElement("a");
-                  downloadAnchor.setAttribute("href", dataStr);
-                  downloadAnchor.setAttribute("download", `parakh-assessment-${report.id}.json`);
-                  document.body.appendChild(downloadAnchor);
-                  downloadAnchor.click();
-                  downloadAnchor.remove();
-                }}
-              />
-
-              {/* Navigation Tabs */}
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+          {stage === "review_requirements" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setActiveResultsTab("map")}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                    activeResultsTab === "map"
-                      ? "bg-slate-800 text-white shadow"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
+                  onClick={() => setStage("input")}
+                  className="text-xs text-zinc-400 hover:text-rose-400 transition"
                 >
-                  Evidence Map ({report.assessments.length})
+                  &larr; Back to Brief Input
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveResultsTab("gaps")}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                    activeResultsTab === "gaps"
-                      ? "bg-slate-800 text-white shadow"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  Gap Plan & Actions ({report.coverageSummary.partiallyDemonstrated + report.coverageSummary.notDemonstrated + report.coverageSummary.needsReview})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveResultsTab("proposal")}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                    activeResultsTab === "proposal"
-                      ? "bg-slate-800 text-white shadow"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  Proposal Response Kit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveResultsTab("export")}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                    activeResultsTab === "export"
-                      ? "bg-slate-800 text-white shadow"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  Export & Share
-                </button>
-
-                <div className="ml-auto flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setStage("review_requirements")}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition whitespace-nowrap"
-                  >
-                    Refine Requirements
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStage("input");
-                      setReport(null);
-                    }}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition whitespace-nowrap"
-                  >
-                    New Assessment
-                  </button>
-                </div>
+                <span className="text-xs font-mono text-rose-400">Target Repo: {repoUrl}</span>
               </div>
 
-              {/* Tab 1: Interactive Evidence Map */}
-              {activeResultsTab === "map" && (
-                <div className="space-y-6">
-                  <CoverageSummary summary={report.coverageSummary} />
-                  <FilterBar
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    statusFilter={statusFilter}
-                    onStatusFilterChange={setStatusFilter}
-                    selectedCategory={selectedCategory}
-                    onCategoryChange={setSelectedCategory}
-                    counts={{
-                      total: report.coverageSummary.total,
-                      demonstrated: report.coverageSummary.demonstrated,
-                      partially_demonstrated: report.coverageSummary.partiallyDemonstrated,
-                      not_demonstrated: report.coverageSummary.notDemonstrated,
-                      needs_review: report.coverageSummary.needsReview,
-                    }}
-                  />
-
-                  <EvidenceMap
-                    assessments={filteredAssessments}
-                    onSelectCitation={(citation, assessment) => {
-                      setSelectedCitation({ citation, assessment });
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Tab 2: Gap Plan & Action Checklist */}
-              {activeResultsTab === "gaps" && (
-                <GapChecklist assessments={report.assessments} />
-              )}
-
-              {/* Tab 3: Proposal Response Kit */}
-              {activeResultsTab === "proposal" && (
-                <ProposalKit
-                  assessments={report.assessments}
-                  repositoryUrl={report.repositoryUrl}
-                  opportunityTitle={report.opportunityTitle}
-                />
-              )}
-
-              {/* Tab 4: Export Center */}
-              {activeResultsTab === "export" && (
-                <ReportExport
-                  report={report}
-                  viewToken={viewToken}
-                  onDelete={handleReportDeleted}
-                />
-              )}
-
-              {/* Citation Inspection Drawer */}
-              {selectedCitation && (
-                <CitationDrawer
-                  isOpen={!!selectedCitation}
-                  onClose={() => setSelectedCitation(null)}
-                  citation={selectedCitation.citation}
-                  requirementTitle={selectedCitation.assessment.requirementText}
-                />
-              )}
+              <RequirementsEditor
+                requirements={requirements}
+                onChange={setRequirements}
+                onConfirm={handleConfirmRequirements}
+              />
             </div>
-          );
-        })()}
-      </main>
+          )}
 
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        Parakh &copy; 2026 Parakh Contributors. Open-source under Apache-2.0.
-      </footer>
+          {stage === "analyzing" && (
+            <AnalysisProgress
+              repoUrl={repoUrl}
+              requirementsCount={requirements.length}
+              statusMessage={analysisStatus}
+              error={analysisError}
+              onRetry={handleConfirmRequirements}
+              onCancel={() => {
+                if (abortControllerRef.current) {
+                  abortControllerRef.current.abort();
+                  abortControllerRef.current = null;
+                }
+                setAnalysisError(null);
+                setStage("review_requirements");
+              }}
+              onChangeTarget={() => {
+                setAnalysisError(null);
+                setStage("input");
+              }}
+            />
+          )}
+
+          {stage === "results" && report && (() => {
+            const filteredAssessments = (report.assessments || []).filter((item) => {
+              if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase();
+                const match =
+                  item.requirementText.toLowerCase().includes(q) ||
+                  item.rationale.toLowerCase().includes(q) ||
+                  item.requirementId.toLowerCase().includes(q);
+                if (!match) return false;
+              }
+              if (statusFilter === "gaps_only") {
+                if (item.status === "demonstrated") return false;
+              } else if (statusFilter !== "all") {
+                if (item.status !== statusFilter) return false;
+              }
+              if (selectedCategory !== "all") {
+                const req = requirements.find((r) => r.id === item.requirementId);
+                if (req && req.category && req.category.toLowerCase() !== selectedCategory.toLowerCase()) {
+                  return false;
+                }
+              }
+              return true;
+            });
+
+            return (
+              <div className="space-y-8">
+                {/* Executive Report Summary */}
+                <ReportSummary
+                  report={report}
+                  onExportPrint={() => window.print()}
+                  onExportJson={() => {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
+                    const downloadAnchor = document.createElement("a");
+                    downloadAnchor.setAttribute("href", dataStr);
+                    downloadAnchor.setAttribute("download", `parakh-assessment-${report.id}.json`);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click();
+                    downloadAnchor.remove();
+                  }}
+                />
+
+                {/* Navigation Tabs */}
+                <div className="flex items-center gap-2 border-b border-red-950/60 pb-2 overflow-x-auto">
+                  <button
+                    type="button"
+                    onClick={() => setActiveResultsTab("map")}
+                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
+                      activeResultsTab === "map"
+                        ? "bg-red-950/60 border border-red-500/50 text-rose-200 shadow-[0_0_15px_rgba(255,0,0,0.15)]"
+                        : "text-zinc-400 hover:text-zinc-200 border border-transparent"
+                    }`}
+                  >
+                    Evidence Map ({report.assessments.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveResultsTab("gaps")}
+                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
+                      activeResultsTab === "gaps"
+                        ? "bg-red-950/60 border border-red-500/50 text-rose-200 shadow-[0_0_15px_rgba(255,0,0,0.15)]"
+                        : "text-zinc-400 hover:text-zinc-200 border border-transparent"
+                    }`}
+                  >
+                    Gap Plan & Actions ({report.coverageSummary.partiallyDemonstrated + report.coverageSummary.notDemonstrated + report.coverageSummary.needsReview})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveResultsTab("proposal")}
+                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
+                      activeResultsTab === "proposal"
+                        ? "bg-red-950/60 border border-red-500/50 text-rose-200 shadow-[0_0_15px_rgba(255,0,0,0.15)]"
+                        : "text-zinc-400 hover:text-zinc-200 border border-transparent"
+                    }`}
+                  >
+                    Proposal Response Kit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveResultsTab("export")}
+                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
+                      activeResultsTab === "export"
+                        ? "bg-red-950/60 border border-red-500/50 text-rose-200 shadow-[0_0_15px_rgba(255,0,0,0.15)]"
+                        : "text-zinc-400 hover:text-zinc-200 border border-transparent"
+                    }`}
+                  >
+                    Export & Share
+                  </button>
+
+                  <div className="ml-auto flex items-center gap-2">
+                    <TactileButton
+                      onClick={() => setStage("review_requirements")}
+                      variant="secondary"
+                      size="sm"
+                      rounded={14}
+                    >
+                      Refine Requirements
+                    </TactileButton>
+                    <TactileButton
+                      onClick={() => {
+                        setStage("input");
+                        setReport(null);
+                      }}
+                      variant="secondary"
+                      size="sm"
+                      rounded={14}
+                    >
+                      New Assessment
+                    </TactileButton>
+                  </div>
+                </div>
+
+                {/* Tab 1: Interactive Evidence Map */}
+                {activeResultsTab === "map" && (
+                  <div className="space-y-6">
+                    <CoverageSummary summary={report.coverageSummary} />
+                    <FilterBar
+                      searchQuery={searchQuery}
+                      onSearchChange={setSearchQuery}
+                      statusFilter={statusFilter}
+                      onStatusFilterChange={setStatusFilter}
+                      selectedCategory={selectedCategory}
+                      onCategoryChange={setSelectedCategory}
+                      counts={{
+                        total: report.coverageSummary.total,
+                        demonstrated: report.coverageSummary.demonstrated,
+                        partially_demonstrated: report.coverageSummary.partiallyDemonstrated,
+                        not_demonstrated: report.coverageSummary.notDemonstrated,
+                        needs_review: report.coverageSummary.needsReview,
+                      }}
+                    />
+
+                    <EvidenceMap
+                      assessments={filteredAssessments}
+                      onSelectCitation={(citation, assessment) => {
+                        setSelectedCitation({ citation, assessment });
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Tab 2: Gap Plan & Action Checklist */}
+                {activeResultsTab === "gaps" && (
+                  <GapChecklist assessments={report.assessments} />
+                )}
+
+                {/* Tab 3: Proposal Response Kit */}
+                {activeResultsTab === "proposal" && (
+                  <ProposalKit
+                    assessments={report.assessments}
+                    repositoryUrl={report.repositoryUrl}
+                    opportunityTitle={report.opportunityTitle}
+                  />
+                )}
+
+                {/* Tab 4: Export Center */}
+                {activeResultsTab === "export" && (
+                  <ReportExport
+                    report={report}
+                    viewToken={viewToken}
+                    onDelete={handleReportDeleted}
+                  />
+                )}
+
+                {/* Citation Inspection Drawer */}
+                {selectedCitation && (
+                  <CitationDrawer
+                    isOpen={!!selectedCitation}
+                    onClose={() => setSelectedCitation(null)}
+                    citation={selectedCitation.citation}
+                    requirementTitle={selectedCitation.assessment.requirementText}
+                  />
+                )}
+              </div>
+            );
+          })()}
+        </main>
+
+        <footer className="border-t border-red-950/40 py-6 text-center text-xs text-zinc-500 backdrop-blur-md bg-black/40">
+          Parakh &copy; 2026 Parakh Contributors &bull; Predictive Arc Visual Architecture &bull; Apache-2.0
+        </footer>
+      </div>
     </div>
   );
 }

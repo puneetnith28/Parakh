@@ -1,6 +1,7 @@
 import React from "react";
 import { CheckCircle2, AlertTriangle, AlertCircle, HelpCircle, ShieldCheck, GitCommit, FileCode, Printer, Download } from "lucide-react";
 import { AssessmentReport } from "@parakh/contracts";
+import { TactileButton } from "./TactileButton.tsx";
 
 export interface ReportSummaryProps {
   report: AssessmentReport;
@@ -21,29 +22,29 @@ export const ReportSummary: React.FC<ReportSummaryProps> = ({
   const unaddressedPct = pct(notDemonstrated + needsReview);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+    <div className="bg-neutral-950/80 border border-red-950/40 backdrop-blur-md rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl shadow-black/80">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-red-950/40">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold font-mono">
-              <ShieldCheck className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/10 text-rose-300 border border-red-500/30 text-xs font-semibold font-mono">
+              <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
               Verified Evidence Grounding
             </span>
-            <span className="text-xs text-slate-500 font-mono">ID: {report.id}</span>
+            <span className="text-xs text-neutral-500 font-mono">ID: {report.id}</span>
           </div>
           <h2 className="text-2xl font-bold text-white tracking-tight">
             {report.opportunityTitle || "Capability Assessment Report"}
           </h2>
-          <div className="flex items-center gap-4 text-xs font-mono text-slate-400 flex-wrap pt-1">
+          <div className="flex items-center gap-4 text-xs font-mono text-neutral-400 flex-wrap pt-1">
             <span className="flex items-center gap-1.5">
-              <FileCode className="w-3.5 h-3.5 text-slate-500" />
+              <FileCode className="w-3.5 h-3.5 text-neutral-500" />
               Repo:{" "}
               <a
                 href={report.repositoryUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-emerald-400 hover:underline"
+                className="text-rose-400 hover:underline"
               >
                 {report.repositoryUrl.replace(/^https?:\/\/github\.com\//, "")}
               </a>
@@ -61,24 +62,26 @@ export const ReportSummary: React.FC<ReportSummaryProps> = ({
         {/* Action Buttons */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {onExportPrint && (
-            <button
-              type="button"
+            <TactileButton
               onClick={onExportPrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition"
+              variant="secondary"
+              size="sm"
+              rounded={14}
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-3.5 h-3.5 mr-1.5 inline" />
               Print Report
-            </button>
+            </TactileButton>
           )}
           {onExportJson && (
-            <button
-              type="button"
+            <TactileButton
               onClick={onExportJson}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition"
+              variant="secondary"
+              size="sm"
+              rounded={14}
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 mr-1.5 inline" />
               JSON Data
-            </button>
+            </TactileButton>
           )}
         </div>
       </div>

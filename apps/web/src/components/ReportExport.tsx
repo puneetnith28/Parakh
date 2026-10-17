@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Download, Printer, FileJson, FileCode, Check, Share2, Trash2 } from "lucide-react";
 import { AssessmentReport } from "@parakh/contracts";
 import { deleteReportById } from "../services/api";
+import { TactileButton } from "./TactileButton.tsx";
 
 interface ReportExportProps {
   report: AssessmentReport;
@@ -133,72 +134,75 @@ export function ReportExport({ report, viewToken, onDelete, className = "" }: Re
 
       <div className="flex items-center gap-2 flex-wrap">
         {/* JSON Export */}
-        <button
-          type="button"
+        <TactileButton
           onClick={handleDownloadJson}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 transition text-xs font-medium"
+          variant="secondary"
+          size="sm"
+          rounded={14}
         >
           {downloadedJson ? (
-            <Check className="w-3.5 h-3.5 text-emerald-400" />
+            <Check className="w-3.5 h-3.5 text-emerald-400 mr-1.5 inline" />
           ) : (
-            <FileJson className="w-3.5 h-3.5 text-blue-400" />
+            <FileJson className="w-3.5 h-3.5 text-rose-400 mr-1.5 inline" />
           )}
           <span>JSON</span>
-        </button>
+        </TactileButton>
 
         {/* HTML Export */}
-        <button
-          type="button"
+        <TactileButton
           onClick={handleDownloadHtml}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 transition text-xs font-medium"
+          variant="secondary"
+          size="sm"
+          rounded={14}
         >
           {downloadedHtml ? (
-            <Check className="w-3.5 h-3.5 text-emerald-400" />
+            <Check className="w-3.5 h-3.5 text-emerald-400 mr-1.5 inline" />
           ) : (
-            <FileCode className="w-3.5 h-3.5 text-purple-400" />
+            <FileCode className="w-3.5 h-3.5 text-purple-400 mr-1.5 inline" />
           )}
           <span>HTML</span>
-        </button>
+        </TactileButton>
 
         {/* Print / PDF */}
-        <button
-          type="button"
+        <TactileButton
           onClick={handlePrint}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold transition text-xs shadow-sm"
+          variant="primary"
+          size="sm"
+          rounded={14}
         >
-          <Printer className="w-3.5 h-3.5" />
+          <Printer className="w-3.5 h-3.5 mr-1.5 inline" />
           <span>Print / PDF</span>
-        </button>
+        </TactileButton>
 
         {/* Share Link (if viewToken present) */}
         {viewToken && (
-          <button
-            type="button"
+          <TactileButton
             onClick={handleCopyShareLink}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition text-xs font-medium"
-            title="Copy shareable link with secure view token"
+            variant="secondary"
+            size="sm"
+            rounded={14}
           >
             {copiedLink ? (
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-emerald-400 mr-1.5 inline" />
             ) : (
-              <Share2 className="w-3.5 h-3.5 text-indigo-400" />
+              <Share2 className="w-3.5 h-3.5 text-rose-400 mr-1.5 inline" />
             )}
             <span>{copiedLink ? "Link Copied!" : "Share Link"}</span>
-          </button>
+          </TactileButton>
         )}
 
         {/* Delete Report */}
         {viewToken && onDelete && (
-          <button
-            type="button"
+          <TactileButton
             onClick={handleDelete}
             disabled={isDeleting}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition text-xs font-medium disabled:opacity-50"
-            title="Permanently delete this report and purge records"
+            variant="danger"
+            size="sm"
+            rounded={14}
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3.5 h-3.5 mr-1.5 inline" />
             <span>{isDeleting ? "Deleting..." : "Delete"}</span>
-          </button>
+          </TactileButton>
         )}
       </div>
     </div>

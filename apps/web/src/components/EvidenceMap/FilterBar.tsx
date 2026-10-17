@@ -81,23 +81,23 @@ export function FilterBar({
   ];
 
   return (
-    <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm space-y-3.5">
+    <div className="p-4 rounded-2xl bg-neutral-950/75 border border-red-950/40 backdrop-blur-md space-y-3.5 shadow-xl">
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         {/* Instant Search Input */}
         <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search requirements, rationales, citations..."
-            className="w-full bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs sm:text-sm rounded-xl pl-10 pr-9 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500/70 focus:border-emerald-500/70 transition"
+            className="w-full bg-black/60 border border-neutral-800 text-zinc-100 placeholder-zinc-500 text-xs sm:text-sm rounded-xl pl-10 pr-9 py-2 focus:outline-none focus:ring-1 focus:ring-red-500/70 focus:border-red-500/70 transition"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => onSearchChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-200 rounded-md transition"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-zinc-200 rounded-md transition"
               title="Clear search"
             >
               <X className="w-3.5 h-3.5" />
@@ -107,11 +107,11 @@ export function FilterBar({
 
         {/* Category Domain Dropdown */}
         <div className="flex items-center gap-2 shrink-0">
-          <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+          <Filter className="w-4 h-4 text-zinc-400 shrink-0" />
           <select
             value={selectedCategory}
             onChange={(e) => onCategoryChange(e.target.value)}
-            className="bg-slate-950/80 border border-slate-800 text-slate-300 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="bg-black/60 border border-neutral-800 text-zinc-300 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500"
           >
             {categories.map((cat) => (
               <option key={cat} value={cat}>
@@ -123,8 +123,8 @@ export function FilterBar({
       </div>
 
       {/* Filter Chips */}
-      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-800/60">
-        <span className="text-[11px] font-medium text-slate-500 mr-1 uppercase tracking-wider">
+      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-neutral-800/60">
+        <span className="text-[11px] font-medium text-zinc-500 mr-1 uppercase tracking-wider">
           Filter:
         </span>
         {statusChips.map((chip) => {
@@ -137,14 +137,14 @@ export function FilterBar({
               className={`px-2.5 py-1 rounded-lg text-xs transition border flex items-center gap-1.5 ${
                 isActive
                   ? chip.activeClass
-                  : "bg-slate-950/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200"
+                  : "bg-black/40 text-zinc-400 border-neutral-800/80 hover:border-neutral-700 hover:text-zinc-200"
               }`}
             >
               <span>{chip.label}</span>
               {typeof chip.count === "number" && (
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    isActive ? "bg-black/20 text-current" : "bg-slate-800 text-slate-400"
+                    isActive ? "bg-black/20 text-current" : "bg-neutral-800 text-zinc-400"
                   }`}
                 >
                   {chip.count}

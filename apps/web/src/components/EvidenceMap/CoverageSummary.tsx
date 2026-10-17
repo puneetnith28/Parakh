@@ -42,22 +42,22 @@ export function CoverageSummary({ summary, className = "" }: CoverageSummaryProp
 
   return (
     <div
-      className={`p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm space-y-4 ${className}`}
+      className={`p-5 rounded-2xl bg-neutral-950/75 border border-red-950/40 backdrop-blur-md space-y-4 shadow-xl ${className}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="p-1.5 rounded-lg bg-red-500/10 text-rose-400 border border-red-500/20">
             <BarChart3 className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-100">Capability Evidence Coverage</h3>
-            <p className="text-xs text-slate-400">
+            <h3 className="text-sm font-semibold text-zinc-100">Capability Evidence Coverage</h3>
+            <p className="text-xs text-zinc-400">
               Verified ground truth from repository scan ({total} total criteria)
             </p>
           </div>
         </div>
 
-        <span className="text-xs font-mono font-medium text-slate-400 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800">
+        <span className="text-xs font-mono font-medium text-rose-300 bg-black/60 px-2.5 py-1 rounded-lg border border-red-950/60">
           {demonstrated + partiallyDemonstrated}/{total} addressed
         </span>
       </div>
