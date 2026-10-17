@@ -7,6 +7,7 @@ import { uploadRouter } from "./routes/upload.js";
 import { repositoryRouter } from "./routes/repository.js";
 import { reportsRouter } from "./routes/reports.js";
 import { analysisRouter } from "./routes/analysis.js";
+import { integrationsRouter } from "./routes/integrations.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { mongoConnection } from "./storage/mongodb.js";
 import { ensureDatabaseIndexes } from "./storage/models/indexes.js";
@@ -59,6 +60,7 @@ app.use(uploadRouter);
 app.use(repositoryRouter);
 app.use(reportsRouter);
 app.use(analysisRouter);
+app.use(integrationsRouter);
 
 // Centralized error handling middleware
 app.use(errorHandler);

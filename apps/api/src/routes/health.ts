@@ -14,6 +14,9 @@ healthRouter.get("/healthz", (_req: Request, res: Response) => {
     version: "0.1.0",
     contractsVersion: CONTRACTS_VERSION,
     environment: config.NODE_ENV,
+    truthfulReporting: true,
+    modelProvider: config.MODEL_PROVIDER,
+    isMockModel: config.MODEL_PROVIDER === "mock" || (!config.AI_STUDIO_API_KEY && !config.MODEL_API_KEY),
     mastra: mastraOrchestrator.getStatus(),
     storage: mongoConnection.getStatus(),
   });
