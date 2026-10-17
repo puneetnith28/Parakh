@@ -13,6 +13,9 @@ export interface AnalysisRunState {
   idempotencyKey?: string;
   status: RunStatus;
   reportId?: string;
+  reportContentHash?: string;
+  cancelled?: boolean;
+  cancellationReason?: string;
   scannedFiles: number;
   error?: string;
   history: StateTransitionRecord[];
@@ -21,11 +24,12 @@ export interface AnalysisRunState {
 }
 
 export const VALID_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
-  INITIALIZED: ["INGESTING_REPO", "FAILED"],
-  INGESTING_REPO: ["RETRIEVING_CHUNKS", "FAILED"],
-  RETRIEVING_CHUNKS: ["ASSESSING", "FAILED"],
-  ASSESSING: ["COMPLETED", "FAILED"],
+  INITIALIZED: ["INGESTING_REPO", "COMPLETED", "FAILED", "CANCELLED"],
+  INGESTING_REPO: ["RETRIEVING_CHUNKS", "FAILED", "CANCELLED"],
+  RETRIEVING_CHUNKS: ["ASSESSING", "FAILED", "CANCELLED"],
+  ASSESSING: ["COMPLETED", "FAILED", "CANCELLED"],
   COMPLETED: [],
+  CANCELLED: [],
   FAILED: [],
 };
 
@@ -80,7 +84,13 @@ export class RunManager {
   transitionState(
     runId: string,
     nextStatus: RunStatus,
-    metadata?: { reportId?: string; error?: string; scannedFiles?: number; note?: string }
+    metadata?: {
+      reportId?: string;
+      reportContentHash?: string;
+      error?: string;
+      scannedFiles?: number;
+      note?: string;
+    }
   ): AnalysisRunState {
     const run = this.runs.get(runId);
     if (!run) {
@@ -104,10 +114,37 @@ export class RunManager {
     });
 
     if (metadata?.reportId) run.reportId = metadata.reportId;
+    if (metadata?.reportContentHash) run.reportContentHash = metadata.reportContentHash;
     if (metadata?.error) run.error = metadata.error;
     if (typeof metadata?.scannedFiles === "number") run.scannedFiles = metadata.scannedFiles;
 
     return run;
+  }
+
+  /**
+   * Cancels an active analysis run.
+   */
+  cancelRun(runId: string, reason: string = "Cancelled by client"): AnalysisRunState {
+    const run = this.runs.get(runId);
+    if (!run) {
+      throw new Error(`Analysis run ${runId} does not exist.`);
+    }
+
+    if (run.status === "COMPLETED" || run.status === "FAILED" || run.status === "CANCELLED") {
+      return run;
+    }
+
+    run.cancelled = true;
+    run.cancellationReason = reason;
+    return this.transitionState(runId, "CANCELLED", { note: reason });
+  }
+
+  /**
+   * Checks whether an analysis run has been cancelled.
+   */
+  isCancelled(runId: string): boolean {
+    const run = this.runs.get(runId);
+    return Boolean(run?.cancelled || run?.status === "CANCELLED");
   }
 
   getRun(runId: string): AnalysisRunState | null {

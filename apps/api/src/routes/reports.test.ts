@@ -66,12 +66,17 @@ test("Reports API: Authorization token lifecycle and security enforcement", asyn
 
     // 1c. Valid server-provenanced report MUST succeed and return 201 Created
     const { runManager } = await import("../services/runManager.js");
-    const { issueProvenanceToken } = await import("../services/provenance.js");
+    const { issueProvenanceToken, computeReportContentHash } = await import("../services/provenance.js");
     const runId = "run_auth_test_1";
     runManager.createOrGetRun({
       runId,
       opportunityId: sampleReport.opportunityId,
       repositoryUrl: sampleReport.repositoryUrl,
+    });
+    const contentHash = computeReportContentHash(sampleReport);
+    runManager.transitionState(runId, "COMPLETED", {
+      reportId: sampleReport.id,
+      reportContentHash: contentHash,
     });
     const provenanceToken = issueProvenanceToken({
       runId,
@@ -79,8 +84,95 @@ test("Reports API: Authorization token lifecycle and security enforcement", asyn
       opportunityId: sampleReport.opportunityId,
       repositoryUrl: sampleReport.repositoryUrl,
       resolvedCommitSha: sampleReport.resolvedCommitSha,
+      contentHash,
     });
 
+    // 1d. Assessment status tampering rejected: changing status to 'needs_review' invalidates provenance
+    const tamperedStatusReport = JSON.parse(JSON.stringify(sampleReport));
+    tamperedStatusReport.assessments[0].status = "needs_review";
+    const statusTamperedRes = await fetch("http://localhost:3097/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        report: tamperedStatusReport,
+        runId,
+        provenanceToken,
+      }),
+    });
+    assert.equal(statusTamperedRes.status, 403);
+    const statusTamperedJson = (await statusTamperedRes.json()) as any;
+    assert.equal(statusTamperedJson.code, "INVALID_PROVENANCE_SIGNATURE");
+
+    // 1e. Citation tampering rejected: fabricating a citation invalidates provenance
+    const tamperedCitationReport = JSON.parse(JSON.stringify(sampleReport));
+    tamperedCitationReport.assessments[0].citations = [
+      {
+        candidateId: "cand_forged",
+        repository: "owner/repo",
+        commitSha: sampleReport.resolvedCommitSha,
+        path: "src/secret.ts",
+        canonicalUrl: "https://github.com/owner/repo/blob/c0ffee/src/secret.ts",
+        snippet: "forged snippet",
+      },
+    ];
+    const citationTamperedRes = await fetch("http://localhost:3097/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        report: tamperedCitationReport,
+        runId,
+        provenanceToken,
+      }),
+    });
+    assert.equal(citationTamperedRes.status, 403);
+    const citationTamperedJson = (await citationTamperedRes.json()) as any;
+    assert.equal(citationTamperedJson.code, "INVALID_PROVENANCE_SIGNATURE");
+
+    // 1f. Rationale and coverage summary tampering rejected
+    const tamperedCoverageReport = JSON.parse(JSON.stringify(sampleReport));
+    tamperedCoverageReport.coverageSummary.demonstrated = 999;
+    const coverageTamperedRes = await fetch("http://localhost:3097/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        report: tamperedCoverageReport,
+        runId,
+        provenanceToken,
+      }),
+    });
+    assert.equal(coverageTamperedRes.status, 403);
+    const coverageTamperedJson = (await coverageTamperedRes.json()) as any;
+    assert.equal(coverageTamperedJson.code, "INVALID_PROVENANCE_SIGNATURE");
+
+    // 1g. Cross-report token reuse rejected: using token on another report ID
+    const otherReport = JSON.parse(JSON.stringify(sampleReport));
+    otherReport.id = "rep_different_id_999";
+    const crossReportRes = await fetch("http://localhost:3097/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        report: otherReport,
+        runId,
+        provenanceToken,
+      }),
+    });
+    assert.equal(crossReportRes.status, 403);
+    const crossReportJson = (await crossReportRes.json()) as any;
+    assert.equal(crossReportJson.code, "INVALID_PROVENANCE_SIGNATURE");
+
+    // 1h. Malformed token rejected
+    const malformedTokenRes = await fetch("http://localhost:3097/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        report: sampleReport,
+        runId,
+        provenanceToken: "not-a-valid-hex-token",
+      }),
+    });
+    assert.equal(malformedTokenRes.status, 403);
+
+    // 1i. Now submit UNMODIFIED legitimate report -> MUST succeed with 201 Created
     const createRes = await fetch("http://localhost:3097/api/reports", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

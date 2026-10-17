@@ -15,7 +15,7 @@ import { GemmaClient } from "@parakh/integrations";
 import { config } from "../config.js";
 import { getStorage } from "../storage/index.js";
 
-import { issueProvenanceToken } from "../services/provenance.js";
+import { issueProvenanceToken, computeReportContentHash } from "../services/provenance.js";
 import { runManager } from "../services/runManager.js";
 
 export const analysisRouter = Router();
@@ -55,6 +55,15 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
       repositoryUrl: canonicalUrl,
     });
 
+    if (runManager.isCancelled(runId)) {
+      res.status(499).json({
+        status: "cancelled",
+        runId,
+        message: "Analysis run was cancelled before repository ingestion.",
+      });
+      return;
+    }
+
     runManager.transitionState(runId, "INGESTING_REPO");
 
     const ingestion = await RepositoryIngestionService.ingest(repositoryUrl, {
@@ -62,6 +71,15 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
       maxFiles: Math.min(config.MAX_REPOSITORY_FILES, 30),
       maxPaths: config.MAX_REPOSITORY_FILES * 10,
     });
+
+    if (runManager.isCancelled(runId)) {
+      res.status(499).json({
+        status: "cancelled",
+        runId,
+        message: "Analysis run was cancelled after repository ingestion.",
+      });
+      return;
+    }
 
     const records = ingestion.records;
     const commitSha = ingestion.commitSha;
@@ -82,6 +100,15 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
       retriever,
     });
 
+    if (runManager.isCancelled(runId)) {
+      res.status(499).json({
+        status: "cancelled",
+        runId,
+        message: "Analysis run was cancelled before assessment evaluation.",
+      });
+      return;
+    }
+
     runManager.transitionState(runId, "ASSESSING");
 
     const report: AssessmentReport = await assessmentService.evaluateRepository({
@@ -100,27 +127,78 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
       records,
     });
 
+    if (runManager.isCancelled(runId)) {
+      res.status(499).json({
+        status: "cancelled",
+        runId,
+        message: "Analysis run was cancelled during evaluation. Persisting report aborted.",
+      });
+      return;
+    }
+
     report.skippedFilesCount = skippedFilesCount;
 
     // Validate output report strictly conforms to AssessmentReportSchema contract
     const validatedReport = AssessmentReportSchema.parse(report);
 
-    // Complete run state transition
-    runManager.transitionState(runId, "COMPLETED", { reportId: validatedReport.id });
+    // Compute canonical deterministic content hash binding all report fields
+    const contentHash = computeReportContentHash(validatedReport);
 
-    // Issue cryptographic provenance token binding report to verified server run
+    // Complete run state transition recording authoritative content hash
+    runManager.transitionState(runId, "COMPLETED", {
+      reportId: validatedReport.id,
+      reportContentHash: contentHash,
+    });
+
+    // Issue cryptographic provenance token binding report content to verified server run
     const provenanceToken = issueProvenanceToken({
       runId,
       reportId: validatedReport.id,
       opportunityId: effectiveOpportunityId,
       repositoryUrl: canonicalUrl,
       resolvedCommitSha: commitSha,
+      contentHash,
     });
 
-    // Persist verified report server-side with 256-bit secure viewToken
-    const viewToken = crypto.randomBytes(32).toString("hex");
+    // Persistence policy: Production must not silently fall back to ephemeral memory
     const storage = getStorage();
-    await storage.saveReport(validatedReport, viewToken);
+    const isPersistent = storage.isPersistent();
+
+    if (config.NODE_ENV === "production" && !isPersistent && process.env.STORAGE_MODE !== "memory") {
+      res.status(503).json({
+        status: "error",
+        code: "DURABLE_STORAGE_UNAVAILABLE",
+        message:
+          "Durable database persistence is unavailable in production. Assessment completed but report cannot be durably saved or shared.",
+        report: validatedReport,
+        runId,
+        provenanceToken,
+        persisted: false,
+        shareable: false,
+      });
+      return;
+    }
+
+    // Persist verified report server-side with 256-bit secure viewToken
+    let viewToken: string | undefined;
+    try {
+      viewToken = crypto.randomBytes(32).toString("hex");
+      await storage.saveReport(validatedReport, viewToken);
+    } catch (saveErr: any) {
+      if (config.NODE_ENV === "production" && process.env.STORAGE_MODE !== "memory") {
+        res.status(503).json({
+          status: "error",
+          code: "PERSISTENCE_FAILURE",
+          message: `Failed to persist assessment report to durable storage: ${saveErr.message}`,
+          report: validatedReport,
+          runId,
+          provenanceToken,
+          persisted: false,
+          shareable: false,
+        });
+        return;
+      }
+    }
 
     res.status(200).json({
       status: "success",
@@ -134,7 +212,7 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
         isMock: config.MODEL_PROVIDER === "mock" || (!config.MODEL_API_KEY && !config.AI_STUDIO_API_KEY),
         filesScanned: records.length,
         storageMode: storage.getMode(),
-        persisted: storage.isPersistent(),
+        persisted: isPersistent,
         provenanceVerified: true,
       },
     });
@@ -148,6 +226,41 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
  * Orchestrates full end-to-end capability evaluation.
  */
 analysisRouter.post("/api/analysis", handleAnalysis);
+
+/**
+ * POST /api/analysis/:runId/cancel
+ * Signals server-side cancellation of an active analysis run.
+ */
+analysisRouter.post("/api/analysis/:runId/cancel", (req: Request, res: Response): void => {
+  const { runId } = req.params;
+  const reason = (req.body?.reason as string) || "Client requested cancellation";
+
+  const run = runManager.getRun(runId);
+  if (!run) {
+    res.status(404).json({
+      status: "error",
+      message: `Analysis run '${runId}' not found.`,
+    });
+    return;
+  }
+
+  if (run.status === "COMPLETED") {
+    res.status(400).json({
+      status: "error",
+      message: `Cannot cancel analysis run '${runId}' because it has already completed.`,
+    });
+    return;
+  }
+
+  const cancelled = runManager.cancelRun(runId, reason);
+  res.status(200).json({
+    status: "success",
+    runId,
+    cancelled: Boolean(cancelled),
+    reason,
+    message: "Analysis run cancellation dispatched.",
+  });
+});
 
 /**
  * POST /api/assessment/analyze

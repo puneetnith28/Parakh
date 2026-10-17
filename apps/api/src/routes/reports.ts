@@ -10,6 +10,7 @@ import {
 } from "../middleware/tokenAuth.js";
 
 import { verifyReportProvenance } from "../services/provenance.js";
+import { config } from "../config.js";
 
 export const reportsRouter = Router();
 
@@ -59,6 +60,15 @@ reportsRouter.post("/api/reports", async (req, res): Promise<void> => {
     const viewToken = generateViewToken();
 
     const storage = getStorage();
+    if (config.NODE_ENV === "production" && !storage.isPersistent() && process.env.STORAGE_MODE !== "memory") {
+      res.status(503).json({
+        status: "error",
+        code: "DURABLE_STORAGE_UNAVAILABLE",
+        message: "Durable database persistence is unavailable in production. Report cannot be persisted or shared.",
+      });
+      return;
+    }
+
     await storage.saveReport(sanitizedReport, viewToken);
 
     res.status(201).json({
@@ -105,6 +115,16 @@ reportsRouter.post(
   async (req: AuthenticatedReportRequest, res: Response): Promise<void> => {
     const reportId = req.params.id;
     const viewToken = req.reportRecord?.viewToken;
+    const storage = getStorage();
+
+    if (config.NODE_ENV === "production" && !storage.isPersistent() && process.env.STORAGE_MODE !== "memory") {
+      res.status(503).json({
+        status: "error",
+        code: "DURABLE_STORAGE_UNAVAILABLE",
+        message: "Cannot generate shareable URL: durable storage is unavailable for this report.",
+      });
+      return;
+    }
 
     res.status(200).json({
       status: "success",

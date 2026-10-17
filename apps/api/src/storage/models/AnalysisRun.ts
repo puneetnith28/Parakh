@@ -6,6 +6,7 @@ export type RunStatus =
   | "RETRIEVING_CHUNKS"
   | "ASSESSING"
   | "COMPLETED"
+  | "CANCELLED"
   | "FAILED";
 
 export interface IAnalysisRunDocument extends Document {
@@ -31,7 +32,7 @@ const AnalysisRunMongooseSchema = new Schema<IAnalysisRunDocument>(
     idempotencyKey: { type: String, sparse: true, index: true },
     status: {
       type: String,
-      enum: ["INITIALIZED", "INGESTING_REPO", "RETRIEVING_CHUNKS", "ASSESSING", "COMPLETED", "FAILED"],
+      enum: ["INITIALIZED", "INGESTING_REPO", "RETRIEVING_CHUNKS", "ASSESSING", "COMPLETED", "CANCELLED", "FAILED"],
       default: "INITIALIZED",
       required: true,
     },
