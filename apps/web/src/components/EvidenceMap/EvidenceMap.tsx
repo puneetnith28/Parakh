@@ -1,25 +1,25 @@
-import { useState } from "react";
-import { LayoutGrid, List, FileCode, AlertTriangle, ArrowUpRight } from "lucide-react";
-import { RequirementAssessment, Citation } from "@parakh/contracts";
-import { StatusBadge } from "./StatusBadge.tsx";
+import { useState } from 'react';
+import { LayoutGrid, List, FileCode, AlertTriangle, ArrowUpRight } from 'lucide-react';
+import { RequirementAssessment, Citation } from '@parakh/contracts';
+import { StatusBadge } from '../ui/Badge';
 
-interface EvidenceMapProps {
+export interface EvidenceMapProps {
   assessments: RequirementAssessment[];
   onSelectCitation?: (citation: Citation, assessment: RequirementAssessment) => void;
   onOpenOverride?: (assessment: RequirementAssessment) => void;
 }
 
 export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: EvidenceMapProps) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   if (assessments.length === 0) {
     return (
       <section
         role="region"
         aria-label="Evidence Map Empty State"
-        className="p-8 sm:p-12 text-center rounded-2xl bg-neutral-950/75 border border-red-950/40 backdrop-blur-md"
+        className="p-8 sm:p-12 text-center rounded-[28px] bg-[#F2F4F0] border border-[#E2E5DE]"
       >
-        <p className="text-zinc-400 text-sm">No requirement assessments available yet.</p>
+        <p className="text-[#5F625E] text-sm">No requirement assessments available yet.</p>
       </section>
     );
   }
@@ -27,10 +27,10 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
   return (
     <section role="region" aria-label="Evidence Map" className="space-y-6">
       {/* Top Controls: View Toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">Evidence Map</h2>
-          <p className="text-xs text-zinc-400">
+          <h2 className="text-xl font-bold text-[#111111] tracking-tight">Evidence Map</h2>
+          <p className="text-xs text-[#5F625E] mt-0.5">
             Transparent mapping between client requirements and verified repository code.
           </p>
         </div>
@@ -38,37 +38,37 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
         <div
           role="tablist"
           aria-label="Evidence view layout options"
-          className="flex items-center self-start sm:self-auto bg-black/60 p-1 rounded-xl border border-red-950/50"
+          className="flex items-center self-start sm:self-auto bg-[#F2F4F0] p-1 rounded-2xl border border-[#E2E5DE]"
         >
           <button
             type="button"
             role="tab"
-            aria-selected={viewMode === "grid"}
+            aria-selected={viewMode === 'grid'}
             aria-label="Switch to Grid View"
-            onClick={() => setViewMode("grid")}
-            className={`p-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
-              viewMode === "grid"
-                ? "bg-red-950/70 text-rose-200 border border-red-500/40 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
+            onClick={() => setViewMode('grid')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#163300] ${
+              viewMode === 'grid'
+                ? 'bg-white text-[#111111] shadow-sm'
+                : 'text-[#5F625E] hover:text-[#111111]'
             }`}
           >
-            <LayoutGrid className="w-4 h-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Grid</span>
+            <LayoutGrid className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Grid</span>
           </button>
           <button
             type="button"
             role="tab"
-            aria-selected={viewMode === "list"}
+            aria-selected={viewMode === 'list'}
             aria-label="Switch to List View"
-            onClick={() => setViewMode("list")}
-            className={`p-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
-              viewMode === "list"
-                ? "bg-red-950/70 text-rose-200 border border-red-500/40 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
+            onClick={() => setViewMode('list')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#163300] ${
+              viewMode === 'list'
+                ? 'bg-white text-[#111111] shadow-sm'
+                : 'text-[#5F625E] hover:text-[#111111]'
             }`}
           >
-            <List className="w-4 h-4" aria-hidden="true" />
-            <span className="hidden sm:inline">List</span>
+            <List className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>List</span>
           </button>
         </div>
       </div>
@@ -76,9 +76,9 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
       {/* Cards Layout */}
       <div
         className={
-          viewMode === "grid"
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4"
-            : "space-y-3"
+          viewMode === 'grid'
+            ? 'grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6'
+            : 'space-y-4'
         }
       >
         {assessments.map((item) => {
@@ -87,25 +87,17 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
             <article
               key={item.requirementId}
               aria-label={`Assessment for requirement ${item.requirementId}`}
-              className={`p-5 rounded-2xl bg-neutral-950/75 border border-red-950/40 hover:border-red-500/40 backdrop-blur-md transition-all duration-200 flex flex-col justify-between group shadow-sm hover:shadow-lg ${
-                item.status === "demonstrated"
-                  ? "hover:border-emerald-500/30"
-                  : item.status === "partially_demonstrated"
-                  ? "hover:border-amber-500/30"
-                  : item.status === "needs_review"
-                  ? "hover:border-indigo-500/30"
-                  : "hover:border-red-900/50"
-              }`}
+              className="p-6 rounded-[24px] bg-white border border-[#E2E5DE] hover:border-[#163300]/30 transition-all duration-200 flex flex-col justify-between group shadow-sm hover:shadow-md"
             >
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 {/* Header: ID + Badges */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 border border-slate-700/50">
+                    <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#F2F4F0] text-[#111111] border border-[#E2E5DE]">
                       {item.requirementId}
                     </span>
                     {item.manuallyOverridden && (
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
                         Manually Verified
                       </span>
                     )}
@@ -114,13 +106,13 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
                 </div>
 
                 {/* Requirement Text */}
-                <p className="text-sm font-semibold text-slate-100 leading-snug">
+                <p className="text-sm font-bold text-[#111111] leading-snug">
                   {item.requirementText}
                 </p>
 
                 {/* Rationale */}
-                <div className="text-xs text-slate-300/90 leading-relaxed bg-slate-950/40 p-3 rounded-xl border border-slate-800/40">
-                  <span className="font-medium text-slate-400 block mb-1">Assessment Rationale:</span>
+                <div className="text-xs text-[#5F625E] leading-relaxed bg-[#F2F4F0] p-4 rounded-xl border border-[#E2E5DE]">
+                  <span className="font-bold text-[#111111] block mb-1">Assessment Rationale:</span>
                   {item.rationale}
                 </div>
 
@@ -128,47 +120,41 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
                 {item.downgradeReason && (
                   <div
                     role="alert"
-                    className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/20 text-xs text-amber-300"
+                    className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900"
                   >
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" aria-hidden="true" />
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" aria-hidden="true" />
                     <span>{item.downgradeReason}</span>
                   </div>
                 )}
 
                 {/* Limitations */}
                 {item.limitations && (
-                  <div className="text-xs text-slate-400">
-                    <span className="text-slate-500 font-medium">Missing / Limitations: </span>
+                  <div className="text-xs text-[#5F625E]">
+                    <span className="text-[#111111] font-semibold">Missing / Limitations: </span>
                     {item.limitations}
                   </div>
                 )}
               </div>
 
               {/* Citations Footer & Actions */}
-              <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between gap-2 flex-wrap">
+              <div className="mt-5 pt-3.5 border-t border-[#E2E5DE] flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   {hasCitations ? (
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <FileCode className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
-                      <span className="text-xs font-medium text-slate-300">
-                        {item.citations.length} cited {item.citations.length === 1 ? "proof" : "proofs"}
+                      <FileCode className="w-3.5 h-3.5 text-[#5F625E]" aria-hidden="true" />
+                      <span className="text-xs font-medium text-[#5F625E]">
+                        {item.citations.length} cited {item.citations.length === 1 ? 'proof' : 'proofs'}
                       </span>
-                      <div className="flex items-center gap-1 ml-1 flex-wrap">
+                      <div className="flex items-center gap-1.5 ml-1 flex-wrap">
                         {item.citations.slice(0, 2).map((cit, idx) => (
                           <button
                             key={idx}
                             type="button"
                             aria-label={`Inspect evidence in ${cit.path}`}
                             onClick={() => onSelectCitation?.(cit, item)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                onSelectCitation?.(cit, item);
-                              }
-                            }}
-                            className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800/90 text-emerald-300 hover:bg-slate-700 hover:text-emerald-200 border border-slate-700/60 transition inline-flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+                            className="text-[11px] font-mono px-2 py-0.5 rounded-lg bg-[#F2F4F0] text-[#163300] hover:bg-[#9FE870]/40 font-bold border border-[#E2E5DE] transition inline-flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#163300]"
                           >
-                            <span>{cit.path.split("/").pop()}</span>
+                            <span>{cit.path.split('/').pop()}</span>
                             <ArrowUpRight className="w-2.5 h-2.5 opacity-60" aria-hidden="true" />
                           </button>
                         ))}
@@ -177,7 +163,7 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
                             type="button"
                             aria-label={`View ${item.citations.length - 2} additional citations`}
                             onClick={() => onSelectCitation?.(item.citations[0], item)}
-                            className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800/60 text-slate-400 hover:text-slate-200 focus:outline-none focus-visible:ring-1 focus-visible:ring-sky-400"
+                            className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[#F2F4F0] text-[#5F625E] hover:text-[#111111]"
                           >
                             +{item.citations.length - 2} more
                           </button>
@@ -185,7 +171,7 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
                       </div>
                     </div>
                   ) : (
-                    <span className="text-xs text-slate-500 italic">No citations found in scan</span>
+                    <span className="text-xs text-[#828580] italic">No citations found in scan</span>
                   )}
                 </div>
 
@@ -194,7 +180,7 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
                     type="button"
                     aria-label={`Adjust status for requirement ${item.requirementId}`}
                     onClick={() => onOpenOverride(item)}
-                    className="text-xs text-slate-400 hover:text-slate-200 underline underline-offset-2 transition focus:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 rounded"
+                    className="text-xs font-bold text-[#163300] hover:underline transition rounded"
                   >
                     Adjust status
                   </button>
@@ -207,3 +193,5 @@ export function EvidenceMap({ assessments, onSelectCitation, onOpenOverride }: E
     </section>
   );
 }
+
+export default EvidenceMap;
