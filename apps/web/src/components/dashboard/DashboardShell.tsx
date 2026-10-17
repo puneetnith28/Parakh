@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, User } from 'lucide-react';
+import { Menu, X, User, ChevronDown } from 'lucide-react';
 import { Sidebar, DashboardNavTab } from './Sidebar';
 export type { DashboardNavTab };
 
@@ -93,8 +93,11 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
 
           <div className="flex items-center gap-4">
             {headerRight}
-            <div className="w-9 h-9 rounded-full bg-[#F2F4F0] border border-[#E2E5DE] flex items-center justify-center text-[#5F625E] hover:text-[#111111] cursor-pointer transition-colors">
-              <User className="w-4 h-4" />
+            <div className="flex items-center gap-2 cursor-pointer group">
+              <div className="w-9 h-9 rounded-full bg-[#F2F4F0] border border-[#E2E5DE] flex items-center justify-center text-[#5F625E] group-hover:text-[#111111] transition-colors">
+                <User className="w-4 h-4" />
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-[#5F625E] group-hover:text-[#111111] transition-colors" />
             </div>
           </div>
         </div>
