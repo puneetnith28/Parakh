@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspaces --if-present",
+    "dev": "npm run dev --workspaces --if-present --parallel",
     "build": "npm run build --workspaces --if-present",
     "test:workspaces": "npm run test --workspaces --if-present",
     "test:unit": "tsx --test tests/unit/*.test.ts",
