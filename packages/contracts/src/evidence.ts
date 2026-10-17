@@ -16,6 +16,23 @@ export const PinnedRevisionSchema = z.object({
 
 export type PinnedRevision = z.infer<typeof PinnedRevisionSchema>;
 
+export const RepoMetadataSchema = z.object({
+  owner: z.string().min(1),
+  repo: z.string().min(1),
+  fullName: z.string().min(1),
+  description: z.string().nullable().optional(),
+  defaultBranch: z.string(),
+  isPrivate: z.boolean(),
+  stars: z.number().int().nonnegative().optional(),
+  forks: z.number().int().nonnegative().optional(),
+  openIssues: z.number().int().nonnegative().optional(),
+  language: z.string().nullable().optional(),
+  languages: z.record(z.string(), z.number()).optional(),
+  updatedAt: z.string().optional(),
+});
+
+export type RepoMetadata = z.infer<typeof RepoMetadataSchema>;
+
 export const EvidenceRecordSchema = z.object({
   id: z.string().min(1),
   repository: z.string(), // owner/repo

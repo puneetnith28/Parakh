@@ -1,4 +1,15 @@
 import { z } from "zod";
+import { RequirementSchema } from "./requirements.js";
+
+export const AnalysisRequestSchema = z.object({
+  opportunityId: z.string().optional(),
+  title: z.string().optional(),
+  requirements: z.array(RequirementSchema).min(1, "At least one requirement is required for analysis"),
+  repositoryUrl: z.string().url("A valid repository URL is required"),
+  ref: z.string().optional(),
+});
+
+export type AnalysisRequest = z.infer<typeof AnalysisRequestSchema>;
 
 export const EvidenceStatusSchema = z.enum([
   "demonstrated",

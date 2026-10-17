@@ -14,6 +14,6 @@
   },
   "scripts": {
     "build": "echo \"contracts ready\"",
-    "test": "tsx --test src/contracts.test.ts"
+    "test": "tsx --test src/**/*.test.ts"
   }
 }

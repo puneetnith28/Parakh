@@ -128,3 +128,37 @@ test("AssessmentReportSchema validates complete report payload", () => {
   assert.equal(parsed.status, "completed");
   assert.equal(parsed.scannedFilesCount, 15);
 });
+
+test("RepoMetadataSchema validates repository metadata", async () => {
+  const { RepoMetadataSchema } = await import("./evidence.js");
+  const metadata = {
+    owner: "puneetnith28",
+    repo: "Parakh",
+    fullName: "puneetnith28/Parakh",
+    description: "Developer capability platform",
+    defaultBranch: "main",
+    isPrivate: false,
+    stars: 12,
+  };
+  const parsed = RepoMetadataSchema.parse(metadata);
+  assert.equal(parsed.defaultBranch, "main");
+  assert.equal(parsed.isPrivate, false);
+});
+
+test("AnalysisRequestSchema validates structured analysis invocation request", async () => {
+  const { AnalysisRequestSchema } = await import("./assessment.js");
+  const req = {
+    repositoryUrl: "https://github.com/puneetnith28/Parakh",
+    requirements: [
+      {
+        id: "req_001",
+        text: "Implement role-based authorization",
+        category: "security" as const,
+        priority: "mandatory" as const,
+      },
+    ],
+  };
+  const parsed = AnalysisRequestSchema.parse(req);
+  assert.equal(parsed.requirements.length, 1);
+  assert.equal(parsed.repositoryUrl, "https://github.com/puneetnith28/Parakh");
+});
