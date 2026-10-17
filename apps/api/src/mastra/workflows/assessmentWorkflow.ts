@@ -3,7 +3,6 @@ import {
   type EvidenceRecord,
   type RequirementAssessment,
   type AssessmentReport,
-  type EvidenceStatus,
   ModelAssessmentOutputSchema,
 } from "@parakh/contracts";
 import {

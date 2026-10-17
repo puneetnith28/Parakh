@@ -47,7 +47,6 @@ export class BenchmarkRunner {
 
       // Scenario 7: Vendored code disqualification
       if (tc.expected.vendoredDisqualified) {
-        const hasVendoredEvidence = tc.input.files.some((f) => f.isVendored);
         const filteredFiles = tc.input.files.filter((f) => !f.isVendored && !f.path.startsWith("vendor/"));
         const candidateEvidenceFound = filteredFiles.some((f) => f.content.includes("CryptoJS"));
 

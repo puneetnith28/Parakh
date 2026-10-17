@@ -1,8 +1,6 @@
-import mongoose from "mongoose";
 import { AssessmentReport } from "@parakh/contracts";
 import { ReportStorage, StoredOpportunityRecord } from "./memoryStore.js";
 import { AssessmentReportModel, OpportunityModel } from "./models/Report.js";
-import { mongoConnection } from "./mongodb.js";
 
 /**
  * MongoDB Atlas Storage Adapter utilizing versioned Mongoose documents.

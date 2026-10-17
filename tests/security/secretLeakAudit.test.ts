@@ -1,9 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { scrubSecrets, scrubObject } from "../../apps/api/src/utils/scrubber.js";
+import { scrubSecrets } from "../../apps/api/src/utils/scrubber.js";
 import { sentryBeforeSend } from "../../apps/api/src/observability/sentry.js";
 import { getStorage } from "../../apps/api/src/storage/index.js";
-import type { AssessmentReport } from "@parakh/contracts";
 
 describe("Security: Privacy, Secret Leakage, & Redaction Verification Audit", () => {
   it("scrubs database connection passwords from log lines and error strings", () => {

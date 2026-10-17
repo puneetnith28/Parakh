@@ -45,7 +45,6 @@ export async function runEvaluation(): Promise<BenchmarkMetricsReport> {
   for (const tc of BENCHMARK_SUITE) {
     if (tc.expected.citationRequired) {
       totalCitationsEvaluated++;
-      const candidateFiles = tc.input.files.map((f) => f.path);
       // Verify citation against actual files in input
       const matchingCodeFile = tc.input.files.find((f) => !f.path.includes("README") && !f.isVendored);
       if (matchingCodeFile) {
@@ -84,8 +83,6 @@ export async function runEvaluation(): Promise<BenchmarkMetricsReport> {
     : 100.0;
 
   // 2. Compute Precision and False Positive Rate
-  // Ground truth positives: fixtures where expectedStatus === "demonstrated"
-  const groundTruthPositives = BENCHMARK_SUITE.filter((tc) => tc.expected.expectedStatus === "demonstrated");
   const actualPositives = summary.results.filter((r) => r.actualStatus === "demonstrated");
 
   const truePositives = actualPositives.filter((ap) => {

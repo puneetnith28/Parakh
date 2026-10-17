@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import app from "../../apps/api/src/server.js";
 import { AssessmentReport } from "@parakh/contracts";
-import { getStorage, setStorage, MemoryReportStorage } from "../../apps/api/src/storage/index.js";
+import { setStorage, MemoryReportStorage } from "../../apps/api/src/storage/index.js";
 import { runManager } from "../../apps/api/src/services/runManager.js";
 import { ensureDatabaseIndexes } from "../../apps/api/src/storage/models/indexes.js";
 

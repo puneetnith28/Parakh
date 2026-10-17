@@ -27,7 +27,7 @@ export class BackboardAdapter {
    * Records candidate memory state to Backboard if configured.
    */
   public async recordAssessmentMemory(
-    entry: BackboardMemoryEntry
+    _entry: BackboardMemoryEntry
   ): Promise<{ recorded: boolean; reason?: string }> {
     if (!this.isEnabled()) {
       return {

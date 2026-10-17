@@ -4,7 +4,6 @@ import {
   AnalysisRequestSchema,
   AssessmentReportSchema,
   type AssessmentReport,
-  type EvidenceRecord,
 } from "@parakh/contracts";
 import {
   validateGitHubUrl,
@@ -42,7 +41,7 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
       return;
     }
 
-    const { owner, repo, canonicalUrl } = urlValidation;
+    const { canonicalUrl } = urlValidation;
     const runId = crypto.randomUUID();
     const effectiveOpportunityId = opportunityId || `opp_${crypto.randomUUID()}`;
 

@@ -54,7 +54,7 @@ test("RepositoryIngestionService pins 40-character commit SHA and produces valid
         ],
       };
     },
-    async fetchBlobContent(owner: string, repo: string, fileSha: string) {
+    async fetchBlobContent(_owner: string, _repo: string, _fileSha: string) {
       return "export const hello = 'world';\n";
     },
   };
