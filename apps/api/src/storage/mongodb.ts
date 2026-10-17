@@ -41,7 +41,7 @@ export class MongoConnectionManager {
    * Attempts connection to MongoDB Atlas. If uri is omitted or empty,
    * gracefully skips without error, enabling stateless memory mode.
    */
-  public async connect(uri?: string): Promise<boolean> {
+  public async connect(uri?: string, retries: number = 2): Promise<boolean> {
     const targetUri = uri !== undefined ? uri : process.env.MONGODB_URI;
 
     if (!targetUri || !targetUri.trim().startsWith("mongodb")) {
@@ -57,19 +57,35 @@ export class MongoConnectionManager {
     }
 
     this.isConnecting = true;
+    const maxAttempts = retries + 1;
+    const isLocal = targetUri.includes("localhost") || targetUri.includes("127.0.0.1");
+    const useTls = !isLocal || targetUri.includes("+srv:") || targetUri.includes("tls=true") || targetUri.includes("ssl=true");
+
     try {
-      await mongoose.connect(targetUri, {
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5000,
-        connectTimeoutMS: 8000,
-        tls: true,
-        tlsAllowInvalidCertificates: false,
-      });
-      return true;
-    } catch (err: any) {
-      console.warn(
-        `[Parakh Storage] MongoDB connection failed (${err.message}). Falling back to stateless memory store.`
-      );
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          await mongoose.connect(targetUri, {
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 5000,
+            connectTimeoutMS: 8000,
+            tls: useTls,
+            tlsAllowInvalidCertificates: false,
+          });
+          return true;
+        } catch (err: any) {
+          if (attempt < maxAttempts) {
+            console.warn(
+              `[Parakh Storage] MongoDB connection attempt ${attempt}/${maxAttempts} failed (${err.message}). Retrying in 1s...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          } else {
+            console.warn(
+              `[Parakh Storage] MongoDB connection failed (${err.message}). Falling back to stateless memory store.`
+            );
+            return false;
+          }
+        }
+      }
       return false;
     } finally {
       this.isConnecting = false;

@@ -6,7 +6,7 @@ import { mongoConnection } from "../storage/mongodb.js";
 
 export const healthRouter = Router();
 
-healthRouter.get("/healthz", (_req: Request, res: Response) => {
+const getHealthStatus = (_req: Request, res: Response) => {
   res.status(200).json({
     status: "ok",
     service: "parakh-api",
@@ -20,7 +20,10 @@ healthRouter.get("/healthz", (_req: Request, res: Response) => {
     mastra: mastraOrchestrator.getStatus(),
     storage: mongoConnection.getStatus(),
   });
-});
+};
+
+healthRouter.get("/healthz", getHealthStatus);
+healthRouter.get("/api/health", getHealthStatus);
 
 healthRouter.get("/api/ping", (_req: Request, res: Response) => {
   res.status(200).json({

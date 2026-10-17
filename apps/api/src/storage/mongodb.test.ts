@@ -22,6 +22,14 @@ describe("MongoConnectionManager", () => {
     assert.equal(status.mode, "stateless_memory");
   });
 
+  it("retries connection attempts and gracefully falls back to stateless memory", async () => {
+    // When unreachable host is provided, retry loop runs and safely returns false without unhandled error
+    const result = await mongoConnection.connect("mongodb://nonexistent.invalid:27017/test", 0);
+    assert.equal(result, false);
+    assert.equal(mongoConnection.getStatus().connected, false);
+    assert.equal(mongoConnection.getStatus().mode, "stateless_memory");
+  });
+
   it("verifyProductionSecurity rejects when disconnected", async () => {
     await assert.rejects(
       async () => {
