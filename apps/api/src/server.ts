@@ -41,12 +41,40 @@ const allowedOrigins = new Set([
   "http://127.0.0.1:3000",
 ]);
 
-app.use(helmet());
+export function isAllowedOrigin(origin?: string): boolean {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+  try {
+    const parsed = new URL(origin);
+    // Allow any onrender.com origin (e.g. Parakh API, Web, or staging instances)
+    if (parsed.hostname.endsWith(".onrender.com")) {
+      return true;
+    }
+    // Allow production custom domain
+    if (parsed.hostname === "parakh.tech" || parsed.hostname.endsWith(".parakh.tech")) {
+      return true;
+    }
+    // Allow local development
+    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. server-to-server, curl, tests)
-      if (!origin || allowedOrigins.has(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`CORS blocked: Origin ${origin} is not authorized.`));
