@@ -13,9 +13,14 @@ export interface MongoHealthStatus {
 export class MongoConnectionManager {
   private static instance: MongoConnectionManager;
   private connectPromise: Promise<boolean> | null = null;
+  private lastError: string | null = null;
 
   private constructor() {
     this.setupListeners();
+  }
+
+  public getLastError(): string | null {
+    return this.lastError;
   }
 
   public static getInstance(): MongoConnectionManager {
@@ -90,13 +95,26 @@ export class MongoConnectionManager {
     database?: string
   ): Promise<boolean> {
     const rawUri = uri !== undefined ? uri : config.MONGODB_URI;
-    const targetUri = rawUri?.trim();
+    let targetUri = rawUri?.trim();
+    if (targetUri) {
+      if (targetUri.startsWith("MONGODB_URI=")) {
+        targetUri = targetUri.slice("MONGODB_URI=".length).trim();
+      }
+      targetUri = targetUri.replace(/^["'\\]+|["'\\]+$/g, "").trim();
+      if (!targetUri.startsWith("mongodb://") && !targetUri.startsWith("mongodb+srv://")) {
+        if (targetUri.includes("mongodb.net")) {
+          targetUri = `mongodb+srv://${targetUri}`;
+        }
+      }
+    }
 
-    if (!targetUri || !targetUri.startsWith("mongodb")) {
+    if (!targetUri || (!targetUri.startsWith("mongodb://") && !targetUri.startsWith("mongodb+srv://"))) {
+      this.lastError = `Invalid MongoDB URI format: Scheme must start with 'mongodb://' or 'mongodb+srv://'. Received: ${targetUri ? scrubSecrets(targetUri) : "(empty)"}`;
       return false;
     }
 
     if (mongoose.connection.readyState === 1) {
+      this.lastError = null;
       return true; // Already connected
     }
 
@@ -121,9 +139,11 @@ export class MongoConnectionManager {
             tls: useTls,
             tlsAllowInvalidCertificates: false,
           });
+          this.lastError = null;
           return true;
         } catch (err: any) {
           const scrubbedError = scrubSecrets(err?.message || String(err));
+          this.lastError = scrubbedError;
           if (attempt < maxAttempts) {
             console.warn(
               `[Parakh Storage] MongoDB connection attempt ${attempt}/${maxAttempts} failed (${scrubbedError}). Retrying in 1s...`

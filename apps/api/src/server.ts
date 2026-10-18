@@ -140,7 +140,8 @@ export async function startServer(port: number = Number(PORT)): Promise<Server> 
         console.warn("[Parakh API] Index registration warning:", err.message);
       }
     } else if (isProduction && !isExplicitMemory) {
-      console.error("[Parakh API] FATAL: Failed to connect to required MongoDB in production.");
+      const reason = mongoConnection.getLastError() || "Connection could not be established.";
+      console.error(`[Parakh API] FATAL: Failed to connect to required MongoDB in production: ${reason}`);
     }
   } else if (isProduction && !isExplicitMemory) {
     console.warn("[Parakh API] WARNING: MONGODB_URI is not set in production mode.");

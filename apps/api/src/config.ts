@@ -108,6 +108,19 @@ export function loadConfig(rawEnv: Record<string, string | undefined> = process.
   ) {
     normalized.FRONTEND_URL = `https://${normalized.FRONTEND_URL}`;
   }
+  if (normalized.MONGODB_URI) {
+    let uri = normalized.MONGODB_URI.trim();
+    if (uri.startsWith("MONGODB_URI=")) {
+      uri = uri.slice("MONGODB_URI=".length).trim();
+    }
+    uri = uri.replace(/^["'\\]+|["'\\]+$/g, "").trim();
+    if (uri && !uri.startsWith("mongodb://") && !uri.startsWith("mongodb+srv://")) {
+      if (uri.includes("mongodb.net")) {
+        uri = `mongodb+srv://${uri}`;
+      }
+    }
+    normalized.MONGODB_URI = uri;
+  }
   const result = envSchema.safeParse(normalized);
   if (!result.success) {
     const errorDetails = result.error.errors
