@@ -18,7 +18,7 @@ describe("Tiger Data pgvector Hybrid Retrieval Layer", () => {
 
   test("executes hybrid query and converts rows to CandidateSnippets when client configured", async () => {
     const mockClient: TigerDbQueryClient = {
-      async query(sql, params) {
+      async query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }> {
         assert.ok(sql.includes("plainto_tsquery"));
         assert.ok(sql.includes("vector"));
         assert.equal(params?.[0], "facebook/react");
@@ -39,7 +39,7 @@ describe("Tiger Data pgvector Hybrid Retrieval Layer", () => {
               text_score: 0.85,
               vector_score: 0.92,
             },
-          ],
+          ] as unknown as T[],
         };
       },
     };

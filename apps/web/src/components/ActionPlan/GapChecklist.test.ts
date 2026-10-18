@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { RequirementAssessment } from "@parakh/contracts";
-import { generateGapActions } from "./GapChecklist.tsx";
+import { generateGapActions, GapActionItem } from "./GapChecklist.tsx";
 
 test("generateGapActions extracts nextActions and synthesizes gap items", () => {
   const sampleAssessments: RequirementAssessment[] = [
@@ -43,16 +43,16 @@ test("generateGapActions extracts nextActions and synthesizes gap items", () => 
   const actions = generateGapActions(sampleAssessments);
 
   // req_001 is demonstrated, so 0 gap actions
-  assert.equal(actions.some((a) => a.requirementId === "req_001"), false);
+  assert.equal(actions.some((a: GapActionItem) => a.requirementId === "req_001"), false);
 
   // req_002 has model provided nextAction
-  const req2Action = actions.find((a) => a.requirementId === "req_002");
+  const req2Action = actions.find((a: GapActionItem) => a.requirementId === "req_002");
   assert.ok(req2Action);
   assert.equal(req2Action?.actionText, "Add Redis client connection and cache helper");
 
   // req_003 has synthesized alternative repo & client clarification actions
-  const req3Actions = actions.filter((a) => a.requirementId === "req_003");
+  const req3Actions = actions.filter((a: GapActionItem) => a.requirementId === "req_003");
   assert.equal(req3Actions.length, 2);
-  assert.equal(req3Actions.some((a) => a.category === "alternative_repo"), true);
-  assert.equal(req3Actions.some((a) => a.category === "client_clarification"), true);
+  assert.equal(req3Actions.some((a: GapActionItem) => a.category === "alternative_repo"), true);
+  assert.equal(req3Actions.some((a: GapActionItem) => a.category === "client_clarification"), true);
 });

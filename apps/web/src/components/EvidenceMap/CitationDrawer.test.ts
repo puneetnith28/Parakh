@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildGitHubCommitPermalink,
   formatLineRangeText,
-} from "./CitationDrawer.js";
+} from "./CitationDrawer.tsx";
 import type { Citation } from "@parakh/contracts";
 
 describe("CitationDrawer and GitHub Commit Permalink Engine", () => {
