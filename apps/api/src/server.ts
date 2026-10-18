@@ -30,6 +30,11 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = new Set([
   config.FRONTEND_URL,
   config.WEB_ORIGIN,
+  config.FRONTEND_URL.replace(/\/$/, ""),
+  config.WEB_ORIGIN.replace(/\/$/, ""),
+  "https://parakh.tech",
+  "https://www.parakh.tech",
+  "https://parakh-web.onrender.com",
   "http://localhost:5173",
   "http://localhost:3000",
   "http://127.0.0.1:5173",

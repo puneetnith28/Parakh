@@ -92,6 +92,20 @@ export function loadConfig(rawEnv: Record<string, string | undefined> = process.
   if (!normalized.MODEL_NAME && normalized.GEMMA_MODEL_ID) {
     normalized.MODEL_NAME = normalized.GEMMA_MODEL_ID;
   }
+  if (
+    normalized.WEB_ORIGIN &&
+    !normalized.WEB_ORIGIN.startsWith("http://") &&
+    !normalized.WEB_ORIGIN.startsWith("https://")
+  ) {
+    normalized.WEB_ORIGIN = `https://${normalized.WEB_ORIGIN}`;
+  }
+  if (
+    normalized.FRONTEND_URL &&
+    !normalized.FRONTEND_URL.startsWith("http://") &&
+    !normalized.FRONTEND_URL.startsWith("https://")
+  ) {
+    normalized.FRONTEND_URL = `https://${normalized.FRONTEND_URL}`;
+  }
   const result = envSchema.safeParse(normalized);
   if (!result.success) {
     const errorDetails = result.error.errors

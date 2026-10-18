@@ -109,4 +109,15 @@ describe("Configuration and Model Provider Mode Validation", () => {
     assert.equal(getModelFamily("llama-3-70b"), "other");
     assert.equal(isGemmaModel("llama-3-70b"), false);
   });
+
+  test("normalizes Render property:host bare hostnames with https:// prefix", () => {
+    const cfg = loadConfig({
+      NODE_ENV: "development",
+      MODEL_PROVIDER: "mock",
+      WEB_ORIGIN: "parakh-web.onrender.com",
+      FRONTEND_URL: "parakh-web.onrender.com",
+    });
+    assert.equal(cfg.WEB_ORIGIN, "https://parakh-web.onrender.com");
+    assert.equal(cfg.FRONTEND_URL, "https://parakh-web.onrender.com");
+  });
 });
