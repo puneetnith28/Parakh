@@ -73,6 +73,8 @@ const envSchema = z.object({
   ANALYSIS_TIMEOUT_SECONDS: z.coerce.number().default(120),
 });
 
+export type AppConfig = z.infer<typeof envSchema>;
+
 export function getModelFamily(modelName: string): "gemma" | "gemini" | "other" {
   const lower = modelName.toLowerCase();
   if (lower.startsWith("gemma") || lower.includes("gemma")) return "gemma";
