@@ -32,6 +32,15 @@ In accordance with Parakh's core engineering principles:
 - **Evaluation:** Useful for distributed batch tasks. For the hackathon and primary production deployments, Render combined with containerized multi-stage Dockerfiles provides lower operational overhead.
 - **Architecture:** Implemented in `packages/integrations/src/secondary/digitalocean.ts`. When `DIGITALOCEAN_ACCESS_TOKEN` is absent, the adapter automatically resolves to the primary container environment (`provider: "render"`).
 
+### D. SerpApi (External Documentation Lookup Evaluation & Architectural Decision)
+- **Role:** External web search for third-party library documentation and reference material.
+- **Evaluation:** Evaluated for potentially providing external documentation links to help developers interpret assessment results.
+- **Architectural Decision (Disconnected by Design):** SerpApi is **intentionally kept disconnected from the assessment evaluation workflow**.
+  - **Evidence Grounding Invariant:** Parakh's core mandate requires that all capability assessments be grounded strictly and cryptographically in repository source code. External Google searches must *never* substantiate candidate competence.
+  - **Non-Track Sponsor:** SerpApi is not an applicable sponsor prize category for DEV Hacktoberfest Week 2.
+  - **Failure Domain Isolation:** Injecting external web searches adds unnecessary latency, non-deterministic HTTP failure points, and external rate-limit dependencies.
+  - **Client Isolation:** The standalone client (`packages/integrations/src/serpapi/client.ts`) strictly enforces `isCandidateEvidence: false` and `sourceType: "external_reference_context"`, guaranteeing that if called in future context tools, it can never contaminate cryptographic report provenance.
+
 ---
 
 ## 3. Configuration & Feature Flags
@@ -41,3 +50,5 @@ In accordance with Parakh's core engineering principles:
 | `enableElevenLabsAudio` | `ENABLE_ELEVENLABS_AUDIO=true` or `ELEVENLABS_API_KEY` | Enabled if key provided, otherwise skipped |
 | `enableBackboardMemory` | `ENABLE_BACKBOARD_MEMORY=true` or `BACKBOARD_API_KEY` | Enabled if key provided, otherwise skipped |
 | `enableDigitalOceanWorkers` | `ENABLE_DIGITALOCEAN_WORKERS=true` or `DIGITALOCEAN_ACCESS_TOKEN` | Defaults to Render / Docker local |
+| `enableSerpApi` | `SERPAPI_API_KEY` | Disconnected by design (preserves candidate evidence isolation) |
+
