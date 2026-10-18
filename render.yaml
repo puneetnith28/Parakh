@@ -50,7 +50,6 @@ services:
   - type: web
     name: parakh-web
     runtime: static
-    region: oregon
     buildCommand: npm install && npm run build --workspace=@parakh/contracts && npm run build --workspace=@parakh/web
     staticPublishPath: ./apps/web/dist
     autoDeploy: true
