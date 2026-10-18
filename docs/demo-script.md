@@ -54,21 +54,29 @@
 
 ---
 
-### Segment 5: Gap Action Plan & Proposal Generation (2:15 – 2:40)
-- **Visual:** Scroll down to the **Gap Resolution Checklist** and **Draft Proposal Kit**.
+### Segment 5: Executive Audio Briefing & Persistence (2:10 – 2:40)
+- **Visual:** In the Report Dashboard, the user clicks **"Listen to Executive Briefing"** on the `AudioBriefingPlayer`. An audio waveform loads and plays a synthesized executive summary generated via ElevenLabs (`POST /api/reports/:id/audio`).
+- **Action:** User copies the verified share link with the cryptographic `viewToken`, opens a private window or refreshes the page, and demonstrates instantaneous retrieval of the persistent report from MongoDB Atlas with full cryptographic provenance.
 - **Voiceover:**
-  > "Parakh doesn't just evaluate — it prepares you to win the contract. Unmet requirements automatically generate clarifying questions to ask the client and actionable sprint steps.
+  > "For hiring managers and recruiters on the go, Parakh generates an executive audio briefing using ElevenLabs. The briefing is strictly grounded in verified report findings — zero hallucination, with complete playback controls.
   > 
-  > It drafts a customized proposal where every technical claim is hyperlinked to verified lines of code in your repository. You stand out immediately as the only candidate offering verifiable proof."
+  > Every assessment report is persistently stored in MongoDB Atlas with native TTL lifecycle management and compound query indexing. The report is accessible via a secure 256-bit token with O(1) retrieval speed."
 
 ---
 
-### Segment 6: Architecture, Sponsor Integrations & Outro (2:40 – 2:55)
-- **Visual:** Quick glance at the architecture diagram, Sentry tracing dashboard showing sanitized spans, and terminal displaying the 73 passed tests.
+### Segment 6: Sponsor Observability, Tracing & Outro (2:40 – 3:00)
+- **Visual:** Sentry dashboard view showing the live assessment trace with distinguishable spans:
+  - `assessment.repo_ingestion`
+  - `assessment.evidence_retrieval`
+  - `assessment.citation_validation`
+  - `assessment.model_inference`
+  - `assessment.provenance_signing`
+  - `assessment.report_persistence`
+  Notice prompt truncation and source buffer omission verifying zero secret or source leakage.
 - **Voiceover:**
-  > "Built with Google Gemma 2 on Google AI Studio, Mastra agent workflows, MongoDB Atlas persistence, and Sentry tracing with zero-secret leakage.
+  > "Under the hood, Parakh instruments full assessment lifecycle tracing with Sentry Agent Tracing. Every retrieval step, model call, citation check, and cryptographic signature is measurable with strict data minimization — private repository source buffers and API keys are scrubbed before network egress.
   > 
-  > Parakh: Prove your skills. Back every claim. Open-source under Apache-2.0."
+  > Parakh: Built with Google AI Studio and Gemma, MongoDB Atlas, Sentry Agent Tracing, ElevenLabs, and Render. Prove your skills. Back every claim. Open-source under Apache-2.0."
 - **Visual:** End screen showing GitHub repo link: `github.com/puneetnith28/Parakh` and Hacktoberfest 2026 badge.
 
 ---
