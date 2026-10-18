@@ -22,9 +22,9 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         {/* Subtle pill tag */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F2F4F0] border border-[#E2E5DE] mb-6">
           <span className="w-2 h-2 rounded-full bg-[#163300] animate-pulse" />
-          <span className="text-xs font-semibold text-[#163300] tracking-wide uppercase">
+          {/* <span className="text-xs font-semibold text-[#163300] tracking-wide uppercase">
             Evidence-Grounded Repository Intelligence
-          </span>
+          </span> */}
         </div>
 
         {/* Reference 1 Bold Compact Uppercase Headline */}

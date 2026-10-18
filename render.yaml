@@ -3,7 +3,6 @@ services:
   - type: web
     name: parakh-api
     runtime: node
-    region: oregon
     plan: starter
     buildCommand: npm install && npm run build --workspaces --if-present
     startCommand: npm run start --workspace=@parakh/api
