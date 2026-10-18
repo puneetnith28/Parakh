@@ -48,7 +48,7 @@ export class EvidenceRanker {
     this.weights = {
       ...DEFAULT_SOURCE_WEIGHTS,
       ...(options.weights || {}),
-    };
+    } as Record<FileType, number>;
   }
 
   /**

@@ -4,7 +4,7 @@ services:
     name: parakh-api
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build --workspaces --if-present
+    buildCommand: npm install && npm run build --workspace=@parakh/contracts && npm run build --workspaces --if-present
     startCommand: npm run start --workspace=@parakh/api
     healthCheckPath: /healthz
     autoDeploy: true

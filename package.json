@@ -6,12 +6,12 @@
   "description": "Prove your skills. Back every claim. Open-source, evidence-grounded developer capability assessment.",
   "license": "Apache-2.0",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present --parallel",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace=@parakh/contracts && npm run build --workspaces --if-present",
     "test:workspaces": "npm run test --workspaces --if-present",
     "test:unit": "tsx --test tests/unit/*.test.ts",
     "test:integration": "tsx --test tests/integration/*.test.ts",
