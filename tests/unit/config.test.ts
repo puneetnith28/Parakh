@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { loadConfig } from "../../apps/api/src/config.js";
+import { loadConfig, getModelFamily, isGemmaModel } from "../../apps/api/src/config.js";
 
 describe("Configuration and Model Provider Mode Validation", () => {
   test("allows explicit mock provider in development", () => {
@@ -78,5 +78,35 @@ describe("Configuration and Model Provider Mode Validation", () => {
       MODEL_PROVIDER: "mock",
     });
     assert.equal(cfg.MODEL_NAME, "gemini-3.8-flash");
+    assert.equal(getModelFamily(cfg.MODEL_NAME), "gemini");
+    assert.equal(isGemmaModel(cfg.MODEL_NAME), false);
+  });
+
+  test("resolves GEMMA_MODEL_ID when MODEL_NAME is omitted", () => {
+    const cfg = loadConfig({
+      NODE_ENV: "development",
+      MODEL_PROVIDER: "mock",
+      GEMMA_MODEL_ID: "gemma-2-9b-it",
+    });
+    assert.equal(cfg.MODEL_NAME, "gemma-2-9b-it");
+    assert.equal(getModelFamily(cfg.MODEL_NAME), "gemma");
+    assert.equal(isGemmaModel(cfg.MODEL_NAME), true);
+  });
+
+  test("accurately classifies model families and Gemma eligibility", () => {
+    assert.equal(getModelFamily("gemma-2-9b-it"), "gemma");
+    assert.equal(isGemmaModel("gemma-2-9b-it"), true);
+
+    assert.equal(getModelFamily("gemma-2-27b-it"), "gemma");
+    assert.equal(isGemmaModel("gemma-2-27b-it"), true);
+
+    assert.equal(getModelFamily("gemini-1.5-flash"), "gemini");
+    assert.equal(isGemmaModel("gemini-1.5-flash"), false);
+
+    assert.equal(getModelFamily("gemini-3.8-flash"), "gemini");
+    assert.equal(isGemmaModel("gemini-3.8-flash"), false);
+
+    assert.equal(getModelFamily("llama-3-70b"), "other");
+    assert.equal(isGemmaModel("llama-3-70b"), false);
   });
 });

@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import mongoose from "mongoose";
-import { config } from "../config.js";
+import { config, getModelFamily, isGemmaModel } from "../config.js";
 import { mongoConnection } from "../storage/mongodb.js";
 
 export const integrationsRouter = Router();
@@ -25,10 +25,12 @@ integrationsRouter.get("/api/integrations/status", (_req: Request, res: Response
   const isMongoConnected = mongoose.connection.readyState === 1;
   const isModelKeyProvided = Boolean(config.AI_STUDIO_API_KEY || config.MODEL_API_KEY);
   const isModelMock = config.MODEL_PROVIDER === "mock" || !isModelKeyProvided;
+  const modelFamily = getModelFamily(config.MODEL_NAME);
+  const isGemmaEligible = isGemmaModel(config.MODEL_NAME);
 
   const integrations: Record<string, IntegrationStatus> = {
     gemma: {
-      name: "Google Gemma / Google AI Studio",
+      name: isGemmaEligible ? "Google Gemma (Open Weights)" : "Google AI Studio (Gemini)",
       category: "core",
       status: isModelMock ? "fallback_mock" : "active",
       configured: isModelKeyProvided,
@@ -38,6 +40,11 @@ integrationsRouter.get("/api/integrations/status", (_req: Request, res: Response
       details: {
         provider: config.MODEL_PROVIDER,
         modelName: config.MODEL_NAME,
+        modelFamily,
+        isGemmaEligible,
+        sponsorTrackEligibility: isGemmaEligible
+          ? "Gemma Open Models & Google AI Studio"
+          : "Google AI Studio (Gemini-backed; not Gemma-eligible)",
         temperatureClamp: "0.0 - 0.2",
         quotaGuard: "active (15 RPM free-tier pacing)",
       },

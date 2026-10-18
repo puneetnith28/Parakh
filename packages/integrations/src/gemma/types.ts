@@ -23,6 +23,8 @@ export interface ModelGenerationResult {
   usage: ModelUsage;
   provider: GemmaProviderType;
   model: string;
+  modelFamily?: "gemma" | "gemini" | "other";
+  isGemmaEligible?: boolean;
   latencyMs: number;
   isMock: boolean;
 }

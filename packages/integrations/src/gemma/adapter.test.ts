@@ -148,4 +148,43 @@ describe("Unified Gemma Model Adapter", () => {
     assert.equal(realRes.isMock, false);
     assert.equal(realRes.provider, "google-ai");
   });
+
+  test("correctly determines model architecture family and distinguishes Gemma from Gemini", () => {
+    const geminiAdapter = new GemmaModelAdapter({ modelName: "gemini-3.8-flash" });
+    assert.equal(geminiAdapter.getModelFamily(), "gemini");
+    assert.equal(geminiAdapter.isGemmaEligible(), false);
+
+    const gemmaAdapter = new GemmaModelAdapter({ modelName: "gemma-2-9b-it" });
+    assert.equal(gemmaAdapter.getModelFamily(), "gemma");
+    assert.equal(gemmaAdapter.isGemmaEligible(), true);
+
+    const gemma27b = new GemmaModelAdapter({ modelName: "gemma-2-27b-it" });
+    assert.equal(gemma27b.getModelFamily(), "gemma");
+    assert.equal(gemma27b.isGemmaEligible(), true);
+  });
+
+  test("omits responseMimeType when querying Gemma models on Google AI Studio to prevent 400 rejection", async () => {
+    let capturedBody: any;
+    const mockFetch: typeof fetch = async (_url, init) => {
+      capturedBody = JSON.parse(init?.body as string);
+      return new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: "{\"status\":\"demonstrated\"}" }] } }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    };
+
+    const gemmaAdapter = new GemmaModelAdapter({
+      provider: "google-ai",
+      modelName: "gemma-2-9b-it",
+      apiKey: "test_key",
+      fetchFn: mockFetch,
+    });
+
+    const res = await gemmaAdapter.generateText("test");
+    assert.equal(res.isGemmaEligible, true);
+    assert.equal(res.modelFamily, "gemma");
+    assert.equal(capturedBody.generationConfig.responseMimeType, undefined);
+  });
 });

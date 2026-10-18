@@ -27,6 +27,7 @@ const envSchema = z.object({
 
   // Model provider
   MODEL_PROVIDER: z.string().default("google"),
+  GEMMA_MODEL_ID: z.string().optional(),
   MODEL_NAME: z.string().default("gemini-3.8-flash"),
   MODEL_API_KEY: z.string().optional(),
   AI_STUDIO_API_KEY: z.string().optional(),
@@ -72,12 +73,24 @@ const envSchema = z.object({
   ANALYSIS_TIMEOUT_SECONDS: z.coerce.number().default(120),
 });
 
-export type AppConfig = z.infer<typeof envSchema>;
+export function getModelFamily(modelName: string): "gemma" | "gemini" | "other" {
+  const lower = modelName.toLowerCase();
+  if (lower.startsWith("gemma") || lower.includes("gemma")) return "gemma";
+  if (lower.startsWith("gemini") || lower.includes("gemini")) return "gemini";
+  return "other";
+}
+
+export function isGemmaModel(modelName: string): boolean {
+  return getModelFamily(modelName) === "gemma";
+}
 
 export function loadConfig(rawEnv: Record<string, string | undefined> = process.env): AppConfig {
   const normalized = { ...rawEnv };
   if (!normalized.MODEL_API_KEY && normalized.AI_STUDIO_API_KEY) {
     normalized.MODEL_API_KEY = normalized.AI_STUDIO_API_KEY;
+  }
+  if (!normalized.MODEL_NAME && normalized.GEMMA_MODEL_ID) {
+    normalized.MODEL_NAME = normalized.GEMMA_MODEL_ID;
   }
   const result = envSchema.safeParse(normalized);
   if (!result.success) {

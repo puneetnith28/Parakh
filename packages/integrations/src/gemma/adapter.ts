@@ -45,9 +45,34 @@ export class GemmaModelAdapter {
         : rawProvider === "ollama"
         ? "ollama"
         : "mock";
-    this.modelName = config.modelName || process.env.MODEL_NAME || "gemini-3.8-flash";
+    this.modelName =
+      config.modelName ||
+      process.env.GEMMA_MODEL_ID ||
+      process.env.MODEL_NAME ||
+      "gemini-3.8-flash";
     this.baseUrl = config.baseUrl || this.getDefaultBaseUrl(this.provider);
     this.fetch = config.fetchFn || globalThis.fetch;
+  }
+
+  /**
+   * Determine model architecture family (Gemma open weights vs Gemini proprietary).
+   */
+  getModelFamily(): "gemma" | "gemini" | "other" {
+    const lower = this.modelName.toLowerCase();
+    if (lower.startsWith("gemma") || lower.includes("gemma")) {
+      return "gemma";
+    }
+    if (lower.startsWith("gemini") || lower.includes("gemini")) {
+      return "gemini";
+    }
+    return "other";
+  }
+
+  /**
+   * Verify if the active model qualifies under the official Gemma sponsor criteria.
+   */
+  isGemmaEligible(): boolean {
+    return this.getModelFamily() === "gemma";
   }
 
   private getDefaultBaseUrl(provider: GemmaProviderType): string {
@@ -170,6 +195,8 @@ export class GemmaModelAdapter {
             this.modelName === "gemini-3.8-flash" || this.modelName === "gemma-2-9b-it"
               ? "mock-extractor"
               : this.modelName,
+          modelFamily: this.getModelFamily(),
+          isGemmaEligible: this.isGemmaEligible(),
           latencyMs: Date.now() - startTime,
           isMock: true,
         };
@@ -192,6 +219,8 @@ export class GemmaModelAdapter {
           this.modelName === "gemini-3.8-flash" || this.modelName === "gemma-2-9b-it"
             ? "mock-evaluator"
             : this.modelName,
+        modelFamily: this.getModelFamily(),
+        isGemmaEligible: this.isGemmaEligible(),
         latencyMs: Date.now() - startTime,
         isMock: true,
       };
@@ -238,14 +267,19 @@ export class GemmaModelAdapter {
     }
 
     const endpoint = `${this.baseUrl}/models/${this.modelName}:generateContent?key=${this.apiKey}`;
+    const isGemma = this.isGemmaEligible();
+    const generationConfig: Record<string, unknown> = {
+      temperature,
+      topP: options.topP ?? 0.95,
+      maxOutputTokens: options.maxOutputTokens ?? 2048,
+    };
+    if (!isGemma) {
+      generationConfig.responseMimeType = "application/json";
+    }
+
     const payload = {
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature,
-        topP: options.topP ?? 0.95,
-        maxOutputTokens: options.maxOutputTokens ?? 2048,
-        responseMimeType: "application/json",
-      },
+      generationConfig,
       systemInstruction: options.systemInstruction
         ? { parts: [{ text: options.systemInstruction }] }
         : undefined,
@@ -288,6 +322,8 @@ export class GemmaModelAdapter {
       },
       provider: "google-ai",
       model: this.modelName,
+      modelFamily: this.getModelFamily(),
+      isGemmaEligible: isGemma,
       latencyMs: Date.now() - startTime,
       isMock: false,
     };
@@ -337,6 +373,8 @@ export class GemmaModelAdapter {
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       provider: "huggingface",
       model: this.modelName,
+      modelFamily: this.getModelFamily(),
+      isGemmaEligible: this.isGemmaEligible(),
       latencyMs: Date.now() - startTime,
       isMock: false,
     };
@@ -375,6 +413,8 @@ export class GemmaModelAdapter {
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       provider: "ollama",
       model: this.modelName,
+      modelFamily: this.getModelFamily(),
+      isGemmaEligible: this.isGemmaEligible(),
       latencyMs: Date.now() - startTime,
       isMock: false,
     };
