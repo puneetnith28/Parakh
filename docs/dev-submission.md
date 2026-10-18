@@ -90,28 +90,33 @@ Explore the interactive Evidence Map, inspect line-level code proofs in a slide-
 
 Parakh was built with profound architectural discipline across all 100 planned steps:
 
-### 1. Google Gemma 2 & Google AI Studio
-- Used for bounded requirement extraction and capability synthesis.
+### 1. Google AI Studio & Google Gemma 2
+- Powers bounded requirement extraction and capability synthesis via Google AI Studio API.
 - Protected by `QuotaGuard` implementing exponential backoff with jitter and 800ms pacing for free-tier quotas.
 - Temperature strictly clamped to `0.0 - 0.2` to eliminate creative hallucinations.
+- Natively supports Gemma 2 open-weights models (`gemma-2-9b-it`) alongside Google AI Studio Gemini models.
 
-### 2. Mastra Agent Orchestration
-- Coordinates the asynchronous pipeline connecting document parsing, candidate chunk indexing, reasoning, and citation validation.
-- Provides typed step execution with complete error boundary isolation.
+### 2. Typed Agent Workflow Orchestration (Mastra Architectural Pattern)
+- Coordinates the multi-stage asynchronous pipeline connecting document parsing, candidate chunk indexing, reasoning, and deterministic citation validation.
+- Implemented as a native typed TypeScript workflow engine following Mastra architectural principles with complete error boundary isolation.
 
 ### 3. MongoDB Atlas
 - Secure cloud document persistence storing encrypted audit sessions, tenant tokens, and cached evidence graphs.
-- Configured with TLS 1.3, compound index optimizations (`{ createdAt: -1 }`, `{ viewToken: 1 }`), and automated session fallback mode.
+- Hardened with TLS 1.3, native TTL document expiration (`{ expiresAt: 1 }`), compound O(1) tenant isolation indexes (`{ reportId: 1, viewToken: 1 }`), and automated session fallback mode.
 
 ### 4. Sentry Agent Tracing & Privacy Scrubber
-- Distributed end-to-end tracing across React frontend spans and Express backend handlers.
+- Distributed tracing instrumented across every stage of the assessment lifecycle (repo ingestion, evidence retrieval, citation validation, model reasoning, provenance signing, persistence).
 - Features `scrubSecrets()`, an automated redaction engine that ensures database credentials, personal access tokens, and bearer keys are scrubbed from telemetry before network egress.
 
-### 5. GitHub Copilot
+### 5. ElevenLabs Executive Audio Briefings
+- Authenticated `POST /api/reports/:id/audio` endpoint and interactive `AudioBriefingPlayer` in the report dashboard.
+- Generates concise, cryptographically grounded audio executive summaries for hiring managers and recruiters.
+
+### 6. GitHub Copilot
 - Documented in [docs/copilot-usage.md](https://github.com/puneetnith28/Parakh/blob/main/docs/copilot-usage.md): accelerated AST visitor authoring, Zod schema typing, and adversarial test harness scaffolding.
 
-### 6. Render
-- Continuous deployment pipeline with infrastructure-as-code blueprints in `render.yaml`.
+### 7. Render
+- Continuous deployment pipeline with infrastructure-as-code blueprints in `render.yaml` and health-check monitoring (`/healthz`, `/api/ready`).
 
 ---
 

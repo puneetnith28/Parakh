@@ -194,14 +194,15 @@ Read the full report with granular scenario breakdowns in [docs/evaluation-resul
 
 Parakh integrates sponsors with high architectural fidelity:
 
-- **Google Gemma 2 (via Google AI Studio):** Used for bounded requirement extraction and capability reasoning with strict temperature clamping (`0.0 - 0.2`) and prompt injection shields.
-- **Mastra:** Coordinates the multi-step agent workflow pipeline (requirement indexing, candidate retrieval, model evaluation, and citation verification).
-- **MongoDB Atlas:** Houses encrypted audit reports, tenant tokens, and cached evidence hashes with TTL indexes.
-- **Sentry:** Provides real-time Agent Tracing with automated PII and credential scrubbing (`scrubSecrets`).
+- **Google AI Studio & Gemma 2:** Powers bounded requirement extraction and capability reasoning with strict temperature clamping (`0.0 - 0.2`) and prompt injection shields (supporting Gemini models and Gemma 2 open weights via `GEMMA_MODEL_ID`).
+- **Typed Agent Workflow Engine:** Coordinates the multi-step typed workflow pipeline (requirement indexing, candidate retrieval, model evaluation, and citation verification) using TypeScript workflow abstractions inspired by the Mastra pattern.
+- **MongoDB Atlas:** Houses encrypted audit reports, tenant tokens, and cached evidence hashes with native TTL and compound query indexes.
+- **Sentry:** Provides real-time Agent Tracing across the entire assessment lifecycle with automated PII and credential scrubbing (`scrubSecrets`).
+- **ElevenLabs:** Generates secure, authenticated executive audio briefings from assessment reports with interactive playback in the report dashboard.
 - **GitHub Copilot:** Accelerated test fixture authoring, AST typing, and schema validation. Read the prompt log in [docs/copilot-usage.md](docs/copilot-usage.md).
-- **Render:** Cloud hosting with automatic GitHub deployment and health-check monitoring.
+- **Render:** Cloud hosting with infrastructure-as-code blueprints (`render.yaml`) and health-check monitoring.
 
-See the complete integration catalog in [docs/sponsor-integrations.md](docs/sponsor-integrations.md).
+See the complete integration catalog and honest status ledger in [docs/sponsor-integrations.md](docs/sponsor-integrations.md).
 
 ---
 
