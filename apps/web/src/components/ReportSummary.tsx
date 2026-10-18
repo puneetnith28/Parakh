@@ -14,15 +14,18 @@ import { AssessmentReport } from '@parakh/contracts';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { ProgressBar } from './ui/ProgressBar';
+import { AudioBriefingPlayer } from './AudioBriefingPlayer';
 
 export interface ReportSummaryProps {
   report: AssessmentReport;
+  viewToken?: string | null;
   onExportPrint?: () => void;
   onExportJson?: () => void;
 }
 
 export const ReportSummary: React.FC<ReportSummaryProps> = ({
   report,
+  viewToken,
   onExportPrint,
   onExportJson,
 }) => {
@@ -103,6 +106,9 @@ export const ReportSummary: React.FC<ReportSummaryProps> = ({
           )}
         </div>
       </div>
+
+      {/* Executive Audio Briefing Player */}
+      <AudioBriefingPlayer reportId={report.id} viewToken={viewToken} />
 
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

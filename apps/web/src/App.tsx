@@ -423,7 +423,7 @@ export default function App() {
                   {/* Active Sub-tab View */}
                   {activeResultsTab === 'map' && (
                     <div className="space-y-6">
-                      <ReportSummary report={report} />
+                      <ReportSummary report={report} viewToken={viewToken} />
                       <EvidenceMap
                         assessments={report.assessments}
                         onSelectCitation={(citation, assessment) => {

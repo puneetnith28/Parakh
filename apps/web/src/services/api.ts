@@ -280,3 +280,69 @@ export async function fetchHealthDiagnostics(): Promise<HealthDiagnosticsResult>
   return (await res.json()) as HealthDiagnosticsResult;
 }
 
+export interface ReportAudioResult {
+  status: "success" | "disabled" | "error";
+  audioBase64?: string;
+  mimeType?: string;
+  voiceId?: string;
+  durationEstimateSeconds?: number;
+  byteLength?: number;
+  summaryText?: string;
+  message?: string;
+  code?: string;
+}
+
+/**
+ * Request executive audio briefing for an assessment report.
+ */
+export async function fetchReportAudio(
+  id: string,
+  token?: string | null
+): Promise<ReportAudioResult> {
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+  const url = getApiUrl(`/api/reports/${encodeURIComponent(id)}/audio${tokenParam}`);
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+    headers["X-Report-Token"] = token;
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (res.status === 503) {
+    return {
+      status: "disabled",
+      code: data.code || "ELEVENLABS_UNCONFIGURED",
+      message: data.message || "ElevenLabs voice narration is unconfigured on this server.",
+      summaryText: data.summaryText,
+    };
+  }
+
+  if (!res.ok) {
+    return {
+      status: "error",
+      code: data.code || `HTTP_${res.status}`,
+      message: data.message || `Audio request failed: HTTP ${res.status}`,
+      summaryText: data.summaryText,
+    };
+  }
+
+  return {
+    status: "success",
+    audioBase64: data.audioBase64,
+    mimeType: data.mimeType || "audio/mpeg",
+    voiceId: data.voiceId,
+    durationEstimateSeconds: data.durationEstimateSeconds,
+    byteLength: data.byteLength,
+    summaryText: data.summaryText,
+  };
+}
+
+
