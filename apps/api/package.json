@@ -8,8 +8,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "type-check": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
     "start": "node dist/server.js",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsc -p tsconfig.test.json --noEmit && tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@parakh/assessment": "*",
@@ -28,12 +29,12 @@
     "helmet": "^8.0.0",
     "mongoose": "^9.11.2",
     "multer": "^2.4.0",
+    "pdf-lib": "^1.17.1",
     "typescript": "^5.6.3",
     "unpdf": "^1.9.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "pdf-lib": "^1.17.1",
     "tsx": "^4.19.1"
   }
 }
