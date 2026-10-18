@@ -37,9 +37,37 @@ Parakh deploys as two decoupled services:
 | `GITHUB_TOKEN` | `parakh-api` | Optional | Dashboard Secret | GitHub API PAT for extended rate limits |
 | `VITE_API_BASE_URL` | `parakh-web` | Yes | From `parakh-api` host | Backend API base URL consumed by Vite client |
 
-## Verification and Deployment Status
+## Step-by-Step Render Deployment Workflow
 
-- **Configuration-Only vs. Validated Live Deployment:**
-  - The repository's `render.yaml`, build scripts, health probes, and CORS origins are verified and build cleanly.
-  - Live deployment requires linking a GitHub repository to a live Render account and supplying valid production secrets (`AI_STUDIO_API_KEY`, `MONGODB_URI`) in the Render Dashboard.
-  - In absence of live credentials during local CI, Parakh gracefully degrades to in-memory storage and mock model reasoning, while strictly refusing to start in production without credentials.
+To deploy or reactivate Parakh on Render:
+
+1. **Log in to Render Dashboard:** Navigate to [dashboard.render.com](https://dashboard.render.com).
+2. **Create New Blueprint Instance:**
+   - Click **New +** -> **Blueprint**.
+   - Select and connect your repository: `puneetnith28/Parakh` (branch: `main`).
+   - Render automatically parses `render.yaml` and discovers both services (`parakh-api` and `parakh-web`).
+3. **Configure Required Secret Environment Variables:**
+   Under `parakh-api`, supply the following secrets marked `sync: false`:
+   - `AI_STUDIO_API_KEY`: Google AI Studio API key for Gemini/Gemma models.
+   - `MONGODB_URI`: MongoDB Atlas connection string (`mongodb+srv://...`).
+   - `SENTRY_DSN` *(Optional)*: Sentry project DSN.
+   - `ELEVENLABS_API_KEY` *(Optional)*: ElevenLabs API key for executive voice synthesis.
+   - `GITHUB_TOKEN` *(Optional)*: GitHub Personal Access Token to prevent unauthenticated 60 req/hr rate limits.
+4. **Deploy Blueprint:**
+   - Click **Apply**.
+   - Render will build both services:
+     - `parakh-api`: Runs `npm install && npm run build --workspaces --if-present` followed by `npm run start --workspace=@parakh/api`.
+     - `parakh-web`: Runs `npm install && npm run build --workspace=@parakh/contracts && npm run build --workspace=@parakh/web` and publishes `./apps/web/dist`.
+5. **Verify Service Health:**
+   - Liveness: `curl -s https://<your-api-slug>.onrender.com/healthz`
+   - Diagnostic: `curl -s https://<your-api-slug>.onrender.com/api/health/mongodb`
+   - Integrations Status: `curl -s https://<your-api-slug>.onrender.com/api/integrations/status`
+
+## Verification and Diagnostics
+
+- **Routing Status (`x-render-routing: no-server`):**
+  - If `curl https://parakh-web.onrender.com` returns `HTTP 404` with `x-render-routing: no-server`, the service slug is either unprovisioned, renamed, or suspended. Complete the Blueprint step above to register the slug.
+- **Starter Tier Cold Starts:**
+  - On Render Starter/Free plans, services spin down after 15 minutes of inactivity. Initial requests may take 30–50 seconds to boot.
+- **Frontend API Base URL Normalization:**
+  - `apps/web/src/config/api.ts` automatically prepends `https://` to bare hostnames emitted by Render's `property: host` reference.
