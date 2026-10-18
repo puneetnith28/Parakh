@@ -11,6 +11,8 @@ import {
 
 import { verifyReportProvenance } from "../services/provenance.js";
 import { config } from "../config.js";
+import { elevenLabsAdapter } from "@parakh/integrations";
+import { buildExecutiveSummaryText } from "../services/audioBriefingService.js";
 
 export const reportsRouter = Router();
 
@@ -161,3 +163,66 @@ reportsRouter.delete(
     }
   }
 );
+
+/**
+ * POST /api/reports/:id/audio
+ * Generates an executive audio briefing for an assessment report using ElevenLabs narration.
+ * Requires valid cryptographic viewToken via requireReportToken middleware.
+ */
+reportsRouter.post(
+  "/api/reports/:id/audio",
+  requireReportToken,
+  async (req: AuthenticatedReportRequest, res: Response): Promise<void> => {
+    try {
+      const report = req.reportRecord?.report;
+      if (!report) {
+        res.status(404).json({
+          status: "error",
+          code: "REPORT_NOT_FOUND",
+          message: "Report record not found.",
+        });
+        return;
+      }
+
+      const summaryText = buildExecutiveSummaryText(report);
+
+      if (!elevenLabsAdapter.isEnabled()) {
+        res.status(503).json({
+          status: "disabled",
+          code: "ELEVENLABS_UNCONFIGURED",
+          message: "ElevenLabs voice narration is unconfigured or disabled on this server.",
+          summaryText,
+        });
+        return;
+      }
+
+      const narration = await elevenLabsAdapter.narrateSummary(summaryText);
+
+      if (!narration.success) {
+        res.status(502).json({
+          status: "error",
+          code: "AUDIO_GENERATION_FAILED",
+          message: narration.skippedReason || narration.error || "Audio synthesis failed.",
+          summaryText,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        status: "success",
+        audioBase64: narration.audioBase64,
+        mimeType: narration.mimeType || "audio/mpeg",
+        voiceId: narration.voiceId,
+        durationEstimateSeconds: narration.durationEstimateSeconds,
+        byteLength: narration.byteLength,
+        summaryText,
+      });
+    } catch (err: any) {
+      res.status(500).json({
+        status: "error",
+        message: err.message || "Failed to generate assessment audio briefing.",
+      });
+    }
+  }
+);
+

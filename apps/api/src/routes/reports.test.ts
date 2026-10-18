@@ -232,6 +232,38 @@ test("Reports API: Authorization token lifecycle and security enforcement", asyn
     const shareJson = (await shareRes.json()) as any;
     assert.ok(shareJson.shareUrl.includes(validToken));
 
+    // 6b. POST /api/reports/:id/audio without token returns 401 Unauthorized
+    const audioUnauthRes = await fetch(`http://localhost:3097/api/reports/${sampleReport.id}/audio`, {
+      method: "POST",
+    });
+    assert.equal(audioUnauthRes.status, 401);
+
+    // 6c. POST /api/reports/:id/audio with invalid token returns 403 Forbidden
+    const audioForbiddenRes = await fetch(`http://localhost:3097/api/reports/${sampleReport.id}/audio`, {
+      method: "POST",
+      headers: { "X-Report-Token": "invalid_token_12345" },
+    });
+    assert.equal(audioForbiddenRes.status, 403);
+
+    // 6d. POST /api/reports/:id/audio with valid token returns 503 when unconfigured with grounded summaryText
+    const savedKey = process.env.ELEVENLABS_API_KEY;
+    delete process.env.ELEVENLABS_API_KEY;
+    try {
+      const audioRes = await fetch(`http://localhost:3097/api/reports/${sampleReport.id}/audio`, {
+        method: "POST",
+        headers: { "X-Report-Token": validToken },
+      });
+      assert.equal(audioRes.status, 503);
+      const audioJson = (await audioRes.json()) as any;
+      assert.equal(audioJson.status, "disabled");
+      assert.equal(audioJson.code, "ELEVENLABS_UNCONFIGURED");
+      assert.ok(audioJson.summaryText);
+    } finally {
+      if (savedKey !== undefined) {
+        process.env.ELEVENLABS_API_KEY = savedKey;
+      }
+    }
+
     // 7. DELETE with valid token returns 204 No Content
     const deleteRes = await fetch(`http://localhost:3097/api/reports/${sampleReport.id}`, {
       method: "DELETE",
@@ -244,7 +276,152 @@ test("Reports API: Authorization token lifecycle and security enforcement", asyn
       headers: { "X-Report-Token": validToken },
     });
     assert.equal(afterDeleteRes.status, 404);
+
+    // 9. Subsequent POST /audio returns 404 Not Found
+    const afterDeleteAudioRes = await fetch(`http://localhost:3097/api/reports/${sampleReport.id}/audio`, {
+      method: "POST",
+      headers: { "X-Report-Token": validToken },
+    });
+    assert.equal(afterDeleteAudioRes.status, 404);
   } finally {
     server.close();
   }
 });
+
+test("Reports API: POST /api/reports/:id/audio handles upstream success and failure when configured", async () => {
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(3098, resolve));
+
+  const originalEnvKey = process.env.ELEVENLABS_API_KEY;
+  const originalFetch = globalThis.fetch;
+
+  try {
+    const { runManager } = await import("../services/runManager.js");
+    const { issueProvenanceToken, computeReportContentHash } = await import("../services/provenance.js");
+
+    const sampleReport: AssessmentReport = {
+      id: "rep_audio_mock_test",
+      opportunityId: "opp_mock_1",
+      opportunityTitle: "Principal Systems Engineer",
+      repositoryUrl: "https://github.com/org/repo",
+      resolvedCommitSha: "abcdef".repeat(6) + "1234",
+      status: "completed",
+      assessments: [
+        {
+          requirementId: "req_001",
+          requirementTitle: "Distributed Consensus",
+          requirementText: "Must use Raft consensus",
+          status: "demonstrated",
+          rationale: "Found Raft implementation",
+          citedCandidateIds: [],
+          citations: [],
+          nextActions: [],
+          confidence: "high",
+          manuallyOverridden: false,
+        },
+      ],
+      coverageSummary: {
+        total: 1,
+        demonstrated: 1,
+        partiallyDemonstrated: 0,
+        notDemonstrated: 0,
+        needsReview: 0,
+      },
+      scannedFilesCount: 5,
+      skippedFilesCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    const runId = "run_audio_mock_1";
+    runManager.createOrGetRun({
+      runId,
+      opportunityId: sampleReport.opportunityId,
+      repositoryUrl: sampleReport.repositoryUrl,
+    });
+    const contentHash = computeReportContentHash(sampleReport);
+    runManager.transitionState(runId, "COMPLETED", {
+      reportId: sampleReport.id,
+      reportContentHash: contentHash,
+    });
+    const provenanceToken = issueProvenanceToken({
+      runId,
+      reportId: sampleReport.id,
+      opportunityId: sampleReport.opportunityId,
+      repositoryUrl: sampleReport.repositoryUrl,
+      resolvedCommitSha: sampleReport.resolvedCommitSha,
+      contentHash,
+    });
+
+    const createRes = await fetch("http://localhost:3098/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        report: sampleReport,
+        runId,
+        provenanceToken,
+      }),
+    });
+    assert.equal(createRes.status, 201);
+    const { viewToken } = (await createRes.json()) as any;
+
+    // Enable ElevenLabs key for this test
+    process.env.ELEVENLABS_API_KEY = "test_elevenlabs_secret_key";
+
+    // 1. Mock upstream 200 audio synthesis
+    const mockAudioBytes = Buffer.from("mock_mp3_payload_for_testing");
+    globalThis.fetch = async (url: any, init?: any) => {
+      const urlStr = String(url);
+      if (urlStr.includes("api.elevenlabs.io")) {
+        return new Response(mockAudioBytes, {
+          status: 200,
+          headers: { "Content-Type": "audio/mpeg" },
+        });
+      }
+      return originalFetch(url, init);
+    };
+
+    const successRes = await fetch(`http://localhost:3098/api/reports/${sampleReport.id}/audio`, {
+      method: "POST",
+      headers: { "X-Report-Token": viewToken },
+    });
+    assert.equal(successRes.status, 200);
+    const successJson = (await successRes.json()) as any;
+    assert.equal(successJson.status, "success");
+    assert.equal(successJson.audioBase64, mockAudioBytes.toString("base64"));
+    assert.equal(successJson.mimeType, "audio/mpeg");
+    assert.ok(successJson.summaryText.includes("Principal Systems Engineer"));
+    assert.ok(successJson.summaryText.includes("Must use Raft consensus"));
+
+    // 2. Mock upstream 429 rate limit
+    globalThis.fetch = async (url: any, init?: any) => {
+      const urlStr = String(url);
+      if (urlStr.includes("api.elevenlabs.io")) {
+        return new Response(JSON.stringify({ detail: "Quota exceeded" }), {
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return originalFetch(url, init);
+    };
+
+    const rateLimitRes = await fetch(`http://localhost:3098/api/reports/${sampleReport.id}/audio`, {
+      method: "POST",
+      headers: { "X-Report-Token": viewToken },
+    });
+    assert.equal(rateLimitRes.status, 502);
+    const rateLimitJson = (await rateLimitRes.json()) as any;
+    assert.equal(rateLimitJson.status, "error");
+    assert.equal(rateLimitJson.code, "AUDIO_GENERATION_FAILED");
+    assert.ok(rateLimitJson.message.includes("rate limit or quota exceeded"));
+    assert.ok(!rateLimitJson.message.includes("test_elevenlabs_secret_key")); // zero leak
+  } finally {
+    if (originalEnvKey === undefined) {
+      delete process.env.ELEVENLABS_API_KEY;
+    } else {
+      process.env.ELEVENLABS_API_KEY = originalEnvKey;
+    }
+    globalThis.fetch = originalFetch;
+    server.close();
+  }
+});
+

@@ -38,7 +38,7 @@ export class ElevenLabsAdapter {
   readonly modelId: string;
   readonly timeoutMs: number;
   readonly maxCharacters: number;
-  private readonly fetch: typeof fetch;
+  private readonly fetchFn?: typeof fetch;
 
   constructor(config: ElevenLabsConfig | string = {}) {
     if (typeof config === "string") {
@@ -47,19 +47,23 @@ export class ElevenLabsAdapter {
       this.modelId = DEFAULT_MODEL_ID;
       this.timeoutMs = DEFAULT_TIMEOUT_MS;
       this.maxCharacters = DEFAULT_MAX_CHARACTERS;
-      this.fetch = globalThis.fetch;
     } else {
       this.apiKey = config.apiKey || process.env.ELEVENLABS_API_KEY;
       this.voiceId = config.voiceId || DEFAULT_VOICE_ID;
       this.modelId = config.modelId || DEFAULT_MODEL_ID;
       this.timeoutMs = config.timeoutMs || DEFAULT_TIMEOUT_MS;
       this.maxCharacters = config.maxCharacters || DEFAULT_MAX_CHARACTERS;
-      this.fetch = config.fetchFn || globalThis.fetch;
+      this.fetchFn = config.fetchFn;
     }
   }
 
+  private getApiKey(): string | undefined {
+    return this.apiKey || process.env.ELEVENLABS_API_KEY;
+  }
+
   public isEnabled(): boolean {
-    return Boolean(this.apiKey && this.apiKey.trim().length > 0);
+    const key = this.getApiKey();
+    return Boolean(key && key.trim().length > 0);
   }
 
   /**
@@ -67,7 +71,8 @@ export class ElevenLabsAdapter {
    * Gracefully returns skipped status if key is absent or request fails.
    */
   public async narrateSummary(summaryText: string): Promise<ElevenLabsNarrationResult> {
-    if (!this.isEnabled()) {
+    const activeKey = this.getApiKey();
+    if (!this.isEnabled() || !activeKey) {
       return {
         success: false,
         voiceId: this.voiceId,
@@ -87,8 +92,10 @@ export class ElevenLabsAdapter {
     const controller = new AbortController();
     const timeoutHandle = setTimeout(() => controller.abort(), this.timeoutMs);
 
+    const fetchImpl = this.fetchFn || globalThis.fetch;
+
     try {
-      const response = await this.fetch(
+      const response = await fetchImpl(
         `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(this.voiceId)}`,
         {
           method: "POST",
@@ -96,7 +103,7 @@ export class ElevenLabsAdapter {
           headers: {
             "Content-Type": "application/json",
             Accept: "audio/mpeg",
-            "xi-api-key": this.apiKey!,
+            "xi-api-key": activeKey,
           },
           body: JSON.stringify({
             text: sanitizedText,
