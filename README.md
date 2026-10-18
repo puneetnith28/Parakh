@@ -30,7 +30,7 @@ When applying for competitive software contracts, agency RFPs, or senior enginee
 
 ## 🏛️ System Architecture
 
-Parakh is structured as a modular TypeScript monorepo with strict package boundaries:
+Parakh is structured as a modular TypeScript monorepo with strict package boundaries *(for the complete 11-diagram technical blueprint and sponsor workflows, see [Architecture.md](Architecture.md))*:
 
 ```mermaid
 graph TD
@@ -74,6 +74,27 @@ parakh/
 
 ---
 
+## 📚 Master Documentation Suite
+
+Every domain topic is governed by an authoritative, verified technical specification:
+
+- 🏛️ **[System Architecture Specification](Architecture.md)** — Comprehensive architecture blueprint with 11 verified Mermaid diagrams covering system context, monorepo topology, 6-stage assessment pipeline, security isolation boundaries, and detailed integration flows for all 8 sponsors.
+- 📐 **[Capability Scoring Rules & Formulas](docs/evaluation-results.md)** — Deterministic code citation verification algorithms, AST/test weighting heuristics, conservative downgrade matrices (`demonstrated`, `partially_demonstrated`, `needs_review`, `not_demonstrated`), and BM25 lexical ranking formulas.
+- 🔌 **[REST API Reference Specification](docs/api-reference.md)** — Complete catalog of all Express API endpoints, HTTP verbs, Zod request/response schemas, status codes, and error envelopes.
+- 🗄️ **[Document Database Schema & Lifecycle](docs/data-architecture.md)** — MongoDB Atlas collection schemas, compound tenant query indexes `{ reportId: 1, viewToken: 1 }`, native TTL expiration indexes, and HMAC SHA-256 cryptographic provenance digests.
+- ⚙️ **[Environment & Configuration Reference](.env.example)** — Complete dictionary of environment variables across frontend Vite, backend Express API, Google AI Studio/Gemma, MongoDB Atlas, Sentry, and ElevenLabs.
+- 🚀 **[Production & Local Deployment Runbook](docs/render-deployment.md)** — Step-by-step deployment guide for Render Cloud (web service `parakh-api` + static site `parakh-web` via `render.yaml`), FQDN hostname resolution, CORS whitelisting, and local monorepo setup.
+- 🔒 **[Security Architecture & Threat Model](docs/security.md)** — Defense-in-depth security specification detailing SSRF perimeter defense, private IP ranges blocking, sensitive file denylists, secret scrubbing, and Sentry PII redaction.
+- 🛡️ **[Sponsor Prize Eligibility & Category Audit](docs/prize-eligibility.md)** — Evidence-based qualification audit for Google AI Studio, MongoDB Atlas, Sentry Agent Tracing, ElevenLabs, and Render tracks with strict anti-hallucination disclaimers.
+- 🛠️ **[Maintenance & Operations Guide](docs/release-checklist.md)** — Release checklist, automated CI/CD procedures, build validation across workspace packages, dependency audits, and incident recovery protocols.
+- 🧪 **[Quality Assurance & Test Matrix](docs/evaluation-results.md)** — 100% passing automated test suite across unit, integration, security, and deterministic benchmark scenarios with zero-hallucination citation guarantees.
+- 📋 **[Technical Requirements Document (TRD)](docs/architecture-overview.md)** — Full technical requirements, functional specifications, architectural decision records (ADRs for Temporal and Mastra patterns), and technology stack rationales.
+- 🗺️ **[Application Flow & User Journeys](docs/demo-script.md)** — Step-by-step walkthrough of the 5-stage assessment workflow, interactive evidence map, gap checklists, proposal kit generation, and executive audio briefings.
+- 🧭 **[Master Documentation Index](docs/README.md)** — Navigation guide, domain topic directory, and recommended reading paths for reviewers, hackathon judges, and architects.
+- 🤝 **[Developer Contribution & Attribution Guidelines](docs/attribution.md)** — Apache-2.0 licensing, third-party library attributions, Git commit conventions, and [AI-assisted pair programming disclosures](docs/copilot-usage.md).
+
+---
+
 ## ✨ Key Features & Capabilities
 
 - **Zero-Tolerance Citation Grounding:** Every positive assessment status requires a verifiable, line-level code citation from the repository. Hallucinated line numbers or candidate IDs trigger automatic downgrade to `needs_review`.
@@ -89,7 +110,8 @@ parakh/
 ## 🚀 Live Demo & Quickstart
 
 - **Live Staging URL:** [https://parakh-web.onrender.com](https://parakh-web.onrender.com) *(Render Cloud)*
-- **API Health Endpoint:** `https://parakh-api.onrender.com/api/health`
+- **API Health Endpoint:** [https://parakh-api-kyyz.onrender.com/healthz](https://parakh-api-kyyz.onrender.com/healthz)
+- **MongoDB Health Diagnostic:** [https://parakh-api-kyyz.onrender.com/api/health/mongodb](https://parakh-api-kyyz.onrender.com/api/health/mongodb)
 - **Video Demonstration Walkthrough:** [docs/demo-script.md](docs/demo-script.md)
 
 ---
