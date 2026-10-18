@@ -143,18 +143,21 @@ test("sentryBeforeSend enforces strict data minimization: redacts source records
   const sanitized = sentryBeforeSend(eventWithRawData);
   assert.ok(sanitized);
 
+  const reqData = sanitized?.request?.data as Record<string, any> | undefined;
+  const extraData = sanitized?.extra as Record<string, any> | undefined;
+
   // Raw file records must be replaced with count summary
   assert.equal(
-    typeof sanitized?.request?.data?.records,
+    typeof reqData?.records,
     "string"
   );
-  assert.ok(sanitized?.request?.data?.records?.includes("2 repository records omitted"));
-  assert.ok(sanitized?.extra?.records?.includes("2 repository records omitted"));
+  assert.ok(reqData?.records?.includes("2 repository records omitted"));
+  assert.ok(extraData?.records?.includes("2 repository records omitted"));
 
   // Prompt must be truncated to <= 300 chars
-  assert.ok(sanitized?.request?.data?.prompt?.includes("[truncated]"));
-  assert.ok(sanitized?.request?.data?.prompt?.length <= 320);
-  assert.ok(sanitized?.extra?.prompt?.includes("[truncated]"));
+  assert.ok(reqData?.prompt?.includes("[truncated]"));
+  assert.ok(reqData?.prompt?.length <= 320);
+  assert.ok(extraData?.prompt?.includes("[truncated]"));
 });
 
 test("trackStep safe degradation: observability failure never interrupts core workflow", async () => {

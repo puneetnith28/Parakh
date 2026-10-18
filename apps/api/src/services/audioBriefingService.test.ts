@@ -19,18 +19,21 @@ const mockReport: AssessmentReport = {
   assessments: [
     {
       requirementId: "req_1",
-      requirementTitle: "Distributed Tracing with Sentry",
       requirementText: "Implement Sentry tracing in backend services",
       status: "demonstrated",
       rationale: "Found Sentry tracing spans in assessment workflow",
       citedCandidateIds: ["cand_1"],
       citations: [
         {
-          file: "src/tracer.ts",
+          path: "src/tracer.ts",
+          commitSha: "a".repeat(40),
+          repository: "owner/repo",
+          canonicalUrl: "https://github.com/owner/repo/blob/master/src/tracer.ts#L10-L25",
+          candidateId: "cand_1",
+          evidenceType: "ast_definition",
           startLine: 10,
           endLine: 25,
           snippet: "Sentry.startSpan(...)",
-          relevance: "High",
         },
       ],
       nextActions: [],
@@ -39,7 +42,6 @@ const mockReport: AssessmentReport = {
     },
     {
       requirementId: "req_2",
-      requirementTitle: "MongoDB Atlas Persistence",
       requirementText: "Store reports in MongoDB database",
       status: "demonstrated",
       rationale: "Found MongoDB model schemas and connection manager",
@@ -51,7 +53,6 @@ const mockReport: AssessmentReport = {
     },
     {
       requirementId: "req_3",
-      requirementTitle: "Temporal Workflow Engine",
       requirementText: "Use Temporal as core workflow orchestrator",
       status: "not_demonstrated",
       rationale: "No active Temporal worker or workflow runtime found",

@@ -309,7 +309,6 @@ test("Reports API: POST /api/reports/:id/audio handles upstream success and fail
       assessments: [
         {
           requirementId: "req_001",
-          requirementTitle: "Distributed Consensus",
           requirementText: "Must use Raft consensus",
           status: "demonstrated",
           rationale: "Found Raft implementation",
