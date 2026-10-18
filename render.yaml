@@ -3,7 +3,7 @@ services:
   - type: web
     name: parakh-api
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install && npm run build --workspaces --if-present
     startCommand: npm run start --workspace=@parakh/api
     healthCheckPath: /healthz
