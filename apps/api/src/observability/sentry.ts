@@ -84,20 +84,67 @@ export function initSentry(): SentryStatus {
   };
 }
 
+export function isSentryInitialized(): boolean {
+  return isInitialized;
+}
+
 /**
  * Wraps async workflow steps with Sentry span tracking for latency & error attribution.
+ * Integrates directly with Sentry distributed tracing when initialized, setting
+ * sanitized attributes, duration telemetry, and status codes.
  */
 export async function trackStep<T>(
   stepName: string,
   operation: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
+  data?: Record<string, unknown>
 ): Promise<T> {
   const startTime = Date.now();
+  const scrubbedData = data ? (scrubObject(data) as Record<string, any>) : undefined;
+
+  if (isInitialized) {
+    return Sentry.startSpan(
+      {
+        name: stepName,
+        op: operation,
+        attributes: scrubbedData,
+      },
+      async (span) => {
+        try {
+          const result = await fn();
+          const latencyMs = Date.now() - startTime;
+          span?.setAttribute("latency_ms", latencyMs);
+          span?.setStatus({ code: 1 }); // OK
+          return result;
+        } catch (error) {
+          const latencyMs = Date.now() - startTime;
+          span?.setAttribute("latency_ms", latencyMs);
+          span?.setStatus({
+            code: 2,
+            message: error instanceof Error ? error.message : "Step failed",
+          });
+          captureExceptionScrubbed(error, {
+            stepName,
+            operation,
+            latencyMs,
+            ...scrubbedData,
+          });
+          throw error;
+        }
+      }
+    );
+  }
+
   try {
     const result = await fn();
     return result;
   } catch (error) {
-    captureExceptionScrubbed(error, { stepName, operation, latencyMs: Date.now() - startTime });
+    captureExceptionScrubbed(error, {
+      stepName,
+      operation,
+      latencyMs: Date.now() - startTime,
+      ...scrubbedData,
+    });
     throw error;
   }
 }

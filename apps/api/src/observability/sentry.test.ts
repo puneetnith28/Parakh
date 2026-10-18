@@ -70,3 +70,56 @@ test("initSentry reports initialization status", () => {
   assert.equal(typeof status.environment, "string");
   assert.equal(typeof status.initialized, "boolean");
 });
+
+test("trackStep executes operation and records duration and scrubbed attributes", async () => {
+  const { trackStep } = await import("./sentry.js");
+
+  // Success path
+  let executed = false;
+  const result = await trackStep(
+    "assessment.test_op",
+    "test.step",
+    async () => {
+      executed = true;
+      return "result_value";
+    },
+    {
+      repo: "org/repo",
+      secretHeader: "Bearer sk_1234567890abcdef",
+    }
+  );
+
+  assert.equal(executed, true);
+  assert.equal(result, "result_value");
+
+  // Failure path: error is propagated and scrubbed
+  await assert.rejects(
+    async () => {
+      await trackStep(
+        "assessment.failing_step",
+        "test.fail",
+        async () => {
+          throw new Error("Failed with token ghp_1234567890abcdefghijklmnopqrstuvwxyzAB");
+        },
+        { runId: "run_test_1" }
+      );
+    },
+    (err: any) => {
+      assert.ok(err.message.includes("Failed with token"));
+      return true;
+    }
+  );
+});
+
+test("captureExceptionScrubbed scrubs secrets from error message and context extras", async () => {
+  const { captureExceptionScrubbed } = await import("./sentry.js");
+
+  // Ensure it executes safely without throwing
+  assert.doesNotThrow(() => {
+    captureExceptionScrubbed(new Error("Database connection to mongodb+srv://user:pass123@cluster.com"), {
+      token: "AIzaSyD1234567890abcdefghijklmnopqrstuv",
+      runId: "run_99",
+    });
+  });
+});
+

@@ -14,6 +14,7 @@ import {
   type RequirementCandidateUniverse,
 } from "@parakh/assessment";
 import { GemmaClient, formatAssessmentPrompt, HARDENED_ASSESSMENT_SYSTEM_INSTRUCTION } from "@parakh/integrations";
+import { trackStep } from "../observability/sentry.js";
 
 /**
  * Resilient Assessment Service with Bounded Retries and Graceful Degradation.
@@ -118,9 +119,20 @@ export class AssessmentService {
             await new Promise((resolve) => setTimeout(resolve, this.backoffMs * attempt));
           }
 
-          const inference = await this.gemmaClient.executeConservativeReasoning(
-            prompt,
-            HARDENED_ASSESSMENT_SYSTEM_INSTRUCTION
+          const inference = await trackStep(
+            "assessment.model_inference",
+            "model.reasoning",
+            async () => {
+              return this.gemmaClient.executeConservativeReasoning(
+                prompt,
+                HARDENED_ASSESSMENT_SYSTEM_INSTRUCTION
+              );
+            },
+            {
+              requirementId: req.id,
+              candidateCount: uni.candidateCount,
+              attempt,
+            }
           );
           rawResponse = inference.text;
           break; // Success
@@ -166,13 +178,23 @@ export class AssessmentService {
       };
     };
 
-    return this.evaluator.evaluateRequirement(
-      {
-        requirement,
-        universe,
-        modelEvaluator,
+    return trackStep(
+      "assessment.citation_validation",
+      "citation.validate",
+      async () => {
+        return this.evaluator.evaluateRequirement(
+          {
+            requirement,
+            universe,
+            modelEvaluator,
+          },
+          records
+        );
       },
-      records
+      {
+        requirementId: requirement.id,
+        candidateCount: universe.candidateCount,
+      }
     );
   }
 
@@ -190,9 +212,19 @@ export class AssessmentService {
       indexedAt: new Date().toISOString(),
     };
 
-    const universes = this.retriever
-      ? await this.retriever.retrieveBatch(requirements, repoIndex)
-      : this.candidateSelector.selectBatch(requirements, repoIndex);
+    const universes = await trackStep(
+      "assessment.evidence_retrieval",
+      "retrieval.candidates",
+      async () => {
+        return this.retriever
+          ? await this.retriever.retrieveBatch(requirements, repoIndex)
+          : this.candidateSelector.selectBatch(requirements, repoIndex);
+      },
+      {
+        requirementCount: requirements.length,
+        totalFiles: records.length,
+      }
+    );
     const assessments: RequirementAssessment[] = [];
 
     for (let i = 0; i < universes.length; i++) {

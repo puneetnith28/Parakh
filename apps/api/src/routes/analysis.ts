@@ -18,6 +18,7 @@ import { getStorage } from "../storage/index.js";
 
 import { issueProvenanceToken, computeReportContentHash } from "../services/provenance.js";
 import { runManager } from "../services/runManager.js";
+import { trackStep } from "../observability/sentry.js";
 
 export const analysisRouter = Router();
 
@@ -78,12 +79,22 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
     runManager.transitionState(runId, "INGESTING_REPO");
 
     const client = new GitHubClient({ token: config.GITHUB_TOKEN });
-    const ingestion = await RepositoryIngestionService.ingest(repositoryUrl, {
-      client,
-      ref,
-      maxFiles: Math.min(config.MAX_REPOSITORY_FILES, 30),
-      maxPaths: config.MAX_REPOSITORY_FILES * 10,
-    });
+    const ingestion = await trackStep(
+      "assessment.repo_ingestion",
+      "repo.ingest",
+      async () => {
+        return RepositoryIngestionService.ingest(repositoryUrl, {
+          client,
+          ref,
+          maxFiles: Math.min(config.MAX_REPOSITORY_FILES, 30),
+          maxPaths: config.MAX_REPOSITORY_FILES * 10,
+        });
+      },
+      {
+        repositoryUrl: canonicalUrl,
+        ref: ref || "HEAD",
+      }
+    );
 
     if (runManager.isCancelled(runId)) {
       res.status(499).json({
@@ -124,21 +135,32 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
 
     runManager.transitionState(runId, "ASSESSING");
 
-    const report: AssessmentReport = await assessmentService.evaluateRepository({
-      runId,
-      opportunityId: effectiveOpportunityId,
-      opportunityTitle: title,
-      repositoryUrl: canonicalUrl,
-      commitSha,
-      repoMetadata: {
-        owner: ingestion.owner,
-        repo: ingestion.repo,
-        defaultBranch: ingestion.metadata.defaultBranch,
+    const report: AssessmentReport = await trackStep(
+      "assessment.pipeline_evaluation",
+      "assessment.evaluate",
+      async () => {
+        return assessmentService.evaluateRepository({
+          runId,
+          opportunityId: effectiveOpportunityId,
+          opportunityTitle: title,
+          repositoryUrl: canonicalUrl,
+          commitSha,
+          repoMetadata: {
+            owner: ingestion.owner,
+            repo: ingestion.repo,
+            defaultBranch: ingestion.metadata.defaultBranch,
+          },
+          warnings: ingestion.warnings,
+          requirements,
+          records,
+        });
       },
-      warnings: ingestion.warnings,
-      requirements,
-      records,
-    });
+      {
+        runId,
+        requirementCount: requirements.length,
+        fileCount: records.length,
+      }
+    );
 
     if (runManager.isCancelled(runId)) {
       res.status(499).json({
@@ -154,23 +176,32 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
     // Validate output report strictly conforms to AssessmentReportSchema contract
     const validatedReport = AssessmentReportSchema.parse(report);
 
-    // Compute canonical deterministic content hash binding all report fields
-    const contentHash = computeReportContentHash(validatedReport);
+    // Compute canonical deterministic content hash and issue cryptographic provenance token
+    const { contentHash, provenanceToken } = await trackStep(
+      "assessment.provenance_signing",
+      "provenance.sign",
+      async () => {
+        const hash = computeReportContentHash(validatedReport);
+        const token = issueProvenanceToken({
+          runId,
+          reportId: validatedReport.id,
+          opportunityId: effectiveOpportunityId,
+          repositoryUrl: canonicalUrl,
+          resolvedCommitSha: commitSha,
+          contentHash: hash,
+        });
+        return { contentHash: hash, provenanceToken: token };
+      },
+      {
+        runId,
+        reportId: validatedReport.id,
+      }
+    );
 
     // Complete run state transition recording authoritative content hash
     runManager.transitionState(runId, "COMPLETED", {
       reportId: validatedReport.id,
       reportContentHash: contentHash,
-    });
-
-    // Issue cryptographic provenance token binding report content to verified server run
-    const provenanceToken = issueProvenanceToken({
-      runId,
-      reportId: validatedReport.id,
-      opportunityId: effectiveOpportunityId,
-      repositoryUrl: canonicalUrl,
-      resolvedCommitSha: commitSha,
-      contentHash,
     });
 
     // Persistence policy: Production must not silently fall back to ephemeral memory
@@ -196,7 +227,18 @@ async function handleAnalysis(req: Request, res: Response, next: NextFunction): 
     let viewToken: string | undefined;
     try {
       viewToken = crypto.randomBytes(32).toString("hex");
-      await storage.saveReport(validatedReport, viewToken);
+      await trackStep(
+        "assessment.report_persistence",
+        "storage.persist",
+        async () => {
+          return storage.saveReport(validatedReport, viewToken!);
+        },
+        {
+          reportId: validatedReport.id,
+          storageMode: storage.getMode(),
+          isPersistent: storage.isPersistent(),
+        }
+      );
     } catch (saveErr: any) {
       if (config.NODE_ENV === "production" && process.env.STORAGE_MODE !== "memory") {
         res.status(503).json({
