@@ -33,12 +33,19 @@ export function sentryBeforeSend(event: Sentry.ErrorEvent): Sentry.ErrorEvent | 
     });
   }
 
-  // Scrub extra context & tags
+  // Scrub extra context & tags (redact raw source files and bounded prompts)
   if (event.extra) {
-    event.extra = scrubObject(event.extra);
+    const scrubbedExtra = scrubObject(event.extra) as Record<string, any>;
+    if (scrubbedExtra.records && Array.isArray(scrubbedExtra.records)) {
+      scrubbedExtra.records = `[${scrubbedExtra.records.length} repository records omitted for data minimization]`;
+    }
+    if (typeof scrubbedExtra.prompt === "string" && scrubbedExtra.prompt.length > 300) {
+      scrubbedExtra.prompt = scrubbedExtra.prompt.slice(0, 300) + "... [truncated]";
+    }
+    event.extra = scrubbedExtra;
   }
 
-  // Scrub request headers / query params
+  // Scrub request headers / query params / body
   if (event.request) {
     if (event.request.headers) {
       event.request.headers = scrubObject(event.request.headers);
@@ -47,7 +54,16 @@ export function sentryBeforeSend(event: Sentry.ErrorEvent): Sentry.ErrorEvent | 
       event.request.query_string = scrubSecrets(String(event.request.query_string));
     }
     if (event.request.data) {
-      event.request.data = scrubObject(event.request.data);
+      const scrubbedData = scrubObject(event.request.data) as Record<string, any>;
+      if (scrubbedData && typeof scrubbedData === "object") {
+        if (Array.isArray(scrubbedData.records)) {
+          scrubbedData.records = `[${scrubbedData.records.length} repository records omitted for data minimization]`;
+        }
+        if (typeof scrubbedData.prompt === "string" && scrubbedData.prompt.length > 300) {
+          scrubbedData.prompt = scrubbedData.prompt.slice(0, 300) + "... [truncated]";
+        }
+      }
+      event.request.data = scrubbedData;
     }
   }
 

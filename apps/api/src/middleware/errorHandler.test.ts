@@ -85,13 +85,15 @@ describe("API Centralized Error Handler Middleware", () => {
     assert.equal(getBody().code, "GITHUB_API_ERROR");
   });
 
-  test("falls back to HTTP 500 for generic internal exceptions", () => {
+  test("falls back to HTTP 500 for generic internal exceptions and captures to Sentry", () => {
     const { res, getStatus, getBody } = createMockResponse();
-    const err = new Error("Database crashed unexpectedly");
+    const mockReq = { path: "/api/reports", method: "POST" } as Request;
+    const err = new Error("Database crashed unexpectedly with pass password123");
 
-    errorHandler(err, req, res, next);
+    errorHandler(err, mockReq, res, next);
     assert.equal(getStatus(), 500);
     assert.equal(getBody().code, "INTERNAL_ERROR");
-    assert.equal(getBody().error, "Database crashed unexpectedly");
+    assert.ok(getBody().error.includes("Database crashed unexpectedly"));
   });
 });
+

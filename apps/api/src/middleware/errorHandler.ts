@@ -7,6 +7,8 @@ import {
   GitHubApiError,
 } from "@parakh/evidence";
 
+import { captureExceptionScrubbed } from "../observability/sentry.js";
+
 /**
  * Centralized API Error Handling Middleware.
  *
@@ -66,9 +68,17 @@ export function errorHandler(
     return;
   }
 
-  // 5. Generic Error fallback
+  // 5. Generic Error fallback (unexpected 5xx server exceptions sent to Sentry)
   const message = err instanceof Error ? err.message : "Internal server error occurred";
   const statusCode = (err as { status?: number; statusCode?: number }).statusCode || 500;
+
+  if (statusCode >= 500) {
+    captureExceptionScrubbed(err, {
+      path: req.path,
+      method: req.method,
+      statusCode,
+    });
+  }
 
   res.status(statusCode).json({
     error: message,
