@@ -124,9 +124,9 @@ export async function startServer(port: number = Number(PORT)): Promise<Server> 
   const isProduction = config.NODE_ENV === "production";
   const isExplicitMemory = process.env.STORAGE_MODE === "memory";
 
-  if (process.env.MONGODB_URI) {
+  if (config.MONGODB_URI) {
     console.log("[Parakh API] Initializing MongoDB connection...");
-    const connected = await mongoConnection.connect(process.env.MONGODB_URI);
+    const connected = await mongoConnection.connect(config.MONGODB_URI);
     if (connected) {
       try {
         await ensureDatabaseIndexes();

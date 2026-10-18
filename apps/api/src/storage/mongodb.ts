@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import { config } from "../config.js";
+import { scrubSecrets } from "../utils/scrubber.js";
 
 export interface MongoHealthStatus {
   connected: boolean;
@@ -29,7 +31,10 @@ export class MongoConnectionManager {
     });
 
     mongoose.connection.on("error", (err) => {
-      console.warn("[Parakh Storage] MongoDB connection error:", err.message);
+      console.warn(
+        "[Parakh Storage] MongoDB connection error:",
+        scrubSecrets(err?.message || String(err))
+      );
     });
 
     mongoose.connection.on("disconnected", () => {
@@ -38,14 +43,56 @@ export class MongoConnectionManager {
   }
 
   /**
+   * Resolves the target database name applying explicit precedence:
+   * 1. Explicit programmatic override passed directly to connect()
+   * 2. Explicit custom MONGODB_DATABASE environment variable (when non-default)
+   * 3. Database name specified in URI pathname (e.g. mongodb://host:port/my_db)
+   * 4. Centrally configured database name or default 'parakh'
+   */
+  public resolveDatabaseName(uri?: string, explicitDb?: string): string {
+    // 1. Programmatic database parameter takes highest precedence
+    if (explicitDb && explicitDb.trim().length > 0) {
+      return explicitDb.trim();
+    }
+
+    // 2. Explicit custom MONGODB_DATABASE environment variable (when non-default)
+    const envDb = process.env.MONGODB_DATABASE?.trim();
+    if (envDb && envDb.length > 0 && envDb !== "parakh") {
+      return envDb;
+    }
+
+    // 3. Database path specified in URI (e.g. mongodb://host:port/custom_db)
+    if (uri) {
+      try {
+        const normalized = uri.replace(/^mongodb(\+srv)?:\/\//, "http://");
+        const parsed = new URL(normalized);
+        const pathDb = parsed.pathname.replace(/^\//, "").trim();
+        if (pathDb.length > 0) {
+          return decodeURIComponent(pathDb);
+        }
+      } catch {
+        // Fall back to configured default if URI parsing fails
+      }
+    }
+
+    // 4. Centrally configured database name or default 'parakh'
+    return envDb || config.MONGODB_DATABASE || "parakh";
+  }
+
+  /**
    * Attempts connection to MongoDB Atlas. If uri is omitted or empty,
    * gracefully skips without error, enabling stateless memory mode.
    * If a connection attempt is already in flight, awaits and returns the existing promise.
    */
-  public async connect(uri?: string, retries: number = 2): Promise<boolean> {
-    const targetUri = uri !== undefined ? uri : process.env.MONGODB_URI;
+  public async connect(
+    uri?: string,
+    retries: number = 2,
+    database?: string
+  ): Promise<boolean> {
+    const rawUri = uri !== undefined ? uri : config.MONGODB_URI;
+    const targetUri = rawUri?.trim();
 
-    if (!targetUri || !targetUri.trim().startsWith("mongodb")) {
+    if (!targetUri || !targetUri.startsWith("mongodb")) {
       return false;
     }
 
@@ -57,6 +104,8 @@ export class MongoConnectionManager {
       return this.connectPromise;
     }
 
+    const targetDbName = this.resolveDatabaseName(targetUri, database);
+
     this.connectPromise = (async () => {
       const maxAttempts = retries + 1;
       const isLocal = targetUri.includes("localhost") || targetUri.includes("127.0.0.1");
@@ -65,6 +114,7 @@ export class MongoConnectionManager {
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
           await mongoose.connect(targetUri, {
+            dbName: targetDbName,
             maxPoolSize: 10,
             serverSelectionTimeoutMS: 5000,
             connectTimeoutMS: 8000,
@@ -73,19 +123,20 @@ export class MongoConnectionManager {
           });
           return true;
         } catch (err: any) {
+          const scrubbedError = scrubSecrets(err?.message || String(err));
           if (attempt < maxAttempts) {
             console.warn(
-              `[Parakh Storage] MongoDB connection attempt ${attempt}/${maxAttempts} failed (${err.message}). Retrying in 1s...`
+              `[Parakh Storage] MongoDB connection attempt ${attempt}/${maxAttempts} failed (${scrubbedError}). Retrying in 1s...`
             );
             await new Promise((resolve) => setTimeout(resolve, 1000));
           } else {
             if (process.env.NODE_ENV === "production" && process.env.STORAGE_MODE !== "memory") {
               console.error(
-                `[Parakh Storage] CRITICAL: MongoDB connection failed (${err.message}). Ephemeral fallback is prohibited in production.`
+                `[Parakh Storage] CRITICAL: MongoDB connection failed (${scrubbedError}). Ephemeral fallback is prohibited in production.`
               );
             } else {
               console.warn(
-                `[Parakh Storage] MongoDB connection failed (${err.message}). Falling back to stateless memory store.`
+                `[Parakh Storage] MongoDB connection failed (${scrubbedError}). Falling back to stateless memory store.`
               );
             }
             return false;

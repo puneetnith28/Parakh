@@ -4,8 +4,10 @@ import { AssessmentReport } from "@parakh/contracts";
 export interface IAssessmentReportDocument extends Document {
   reportId: string;
   opportunityId: string;
+  opportunityTitle?: string;
   repositoryUrl: string;
   resolvedCommitSha: string;
+  repoMetadata?: AssessmentReport["repoMetadata"];
   status: "pending" | "in_progress" | "completed" | "failed";
   schemaVersion: number;
   viewToken: string;
@@ -19,6 +21,15 @@ export interface IAssessmentReportDocument extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const RepoMetadataMongooseSchema = new Schema(
+  {
+    owner: { type: String, required: true },
+    repo: { type: String, required: true },
+    defaultBranch: { type: String },
+  },
+  { _id: false }
+);
 
 const CitationMongooseSchema = new Schema(
   {
@@ -64,12 +75,14 @@ const ReportMongooseSchema = new Schema<IAssessmentReportDocument>(
   {
     reportId: { type: String, required: true, unique: true, index: true },
     opportunityId: { type: String, required: true, index: true },
+    opportunityTitle: { type: String },
     repositoryUrl: { type: String, required: true },
     resolvedCommitSha: {
       type: String,
       required: true,
       match: /^[0-9a-fA-F]{40}$/,
     },
+    repoMetadata: { type: RepoMetadataMongooseSchema },
     status: {
       type: String,
       enum: ["pending", "in_progress", "completed", "failed"],

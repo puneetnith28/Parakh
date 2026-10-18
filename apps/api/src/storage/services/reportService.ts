@@ -25,8 +25,10 @@ export class ReportService {
         await AssessmentReportModel.create({
           reportId: sanitized.id,
           opportunityId: sanitized.opportunityId,
+          opportunityTitle: sanitized.opportunityTitle,
           repositoryUrl: sanitized.repositoryUrl,
           resolvedCommitSha: sanitized.resolvedCommitSha,
+          repoMetadata: sanitized.repoMetadata,
           status: sanitized.status,
           schemaVersion: 1,
           viewToken,
@@ -34,6 +36,8 @@ export class ReportService {
           coverageSummary: sanitized.coverageSummary,
           scannedFilesCount: sanitized.scannedFilesCount,
           skippedFilesCount: sanitized.skippedFilesCount,
+          limitations: sanitized.limitations || [],
+          gapRecommendations: sanitized.gapRecommendations || [],
           expiresAt: new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000),
         });
       }

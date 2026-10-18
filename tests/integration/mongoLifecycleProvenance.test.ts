@@ -15,7 +15,8 @@ import { runManager } from "../../apps/api/src/services/runManager.js";
 import { reportService } from "../../apps/api/src/storage/services/reportService.js";
 import { AssessmentReport } from "@parakh/contracts";
 
-const realMongoUri = process.env.MONGODB_URI;
+// Only connect to live Atlas if TEST_LIVE_MONGODB is explicitly set; otherwise default to stateless memory
+const realMongoUri = process.env.TEST_LIVE_MONGODB === "true" ? process.env.MONGODB_URI : undefined;
 
 describe("MongoDB Lifecycle, Provenance Preservation, and Tamper Detection Suite", () => {
   let server: http.Server;
@@ -32,8 +33,14 @@ describe("MongoDB Lifecycle, Provenance Preservation, and Tamper Detection Suite
   const originalReport: AssessmentReport = {
     id: reportId,
     opportunityId,
+    opportunityTitle: "Staff Platform & Distributed Systems Engineer",
     repositoryUrl,
     resolvedCommitSha,
+    repoMetadata: {
+      owner: "acme",
+      repo: "platform",
+      defaultBranch: "main",
+    },
     status: "completed",
     assessments: [
       {
@@ -69,7 +76,7 @@ describe("MongoDB Lifecycle, Provenance Preservation, and Tamper Detection Suite
     },
     scannedFilesCount: 20,
     skippedFilesCount: 1,
-    limitations: ["Tested against live MongoDB Atlas cluster"],
+    limitations: ["Tested against local or mock test storage"],
     gapRecommendations: ["Verify automated index maintenance"],
     createdAt: new Date().toISOString(),
   };
@@ -227,4 +234,89 @@ describe("MongoDB Lifecycle, Provenance Preservation, and Tamper Detection Suite
     });
     assert.equal(apiLookup.status, 404, "Deleted report must return 404 on API endpoints");
   });
+
+  test("5. Provenance verification fails if opportunityTitle or repoMetadata is altered", () => {
+    const canonicalHash = computeReportContentHash(originalReport);
+    const token = issueProvenanceToken({
+      runId,
+      reportId,
+      opportunityId,
+      repositoryUrl,
+      resolvedCommitSha,
+      contentHash: canonicalHash,
+    });
+
+    // 1. Tamper opportunityTitle
+    const tamperedTitle = {
+      ...originalReport,
+      opportunityTitle: "Completely Fabricated Title",
+    };
+    const titleHash = computeReportContentHash(tamperedTitle);
+    assert.notEqual(titleHash, canonicalHash);
+    const titleVerification = verifyReportProvenance(tamperedTitle, runId, token);
+    assert.equal(titleVerification.verified, false);
+
+    // 2. Tamper repoMetadata
+    const tamperedRepo = {
+      ...originalReport,
+      repoMetadata: {
+        owner: "evil-org",
+        repo: "trojan-platform",
+        defaultBranch: "exploit",
+      },
+    };
+    const repoHash = computeReportContentHash(tamperedRepo);
+    assert.notEqual(repoHash, canonicalHash);
+    const repoVerification = verifyReportProvenance(tamperedRepo, runId, token);
+    assert.equal(repoVerification.verified, false);
+  });
+
+  test("6. Backward compatibility: older documents missing optional fields produce stable canonical hash", () => {
+    const legacyReport: AssessmentReport = {
+      id: "rep_legacy_compat_001",
+      opportunityId: "opp_legacy_compat",
+      // opportunityTitle omitted
+      repositoryUrl: "https://github.com/acme/legacy-compat",
+      resolvedCommitSha: "f".repeat(40),
+      // repoMetadata omitted
+      status: "completed",
+      assessments: [],
+      coverageSummary: {
+        total: 0,
+        demonstrated: 0,
+        partiallyDemonstrated: 0,
+        notDemonstrated: 0,
+        needsReview: 0,
+      },
+      scannedFilesCount: 5,
+      skippedFilesCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    const legacyHash = computeReportContentHash(legacyReport);
+    assert.ok(typeof legacyHash === "string" && legacyHash.length === 64);
+
+    runManager.createOrGetRun({
+      runId: "run_legacy_001",
+      opportunityId: legacyReport.opportunityId,
+      repositoryUrl: legacyReport.repositoryUrl,
+    });
+    runManager.transitionState("run_legacy_001", "COMPLETED", {
+      reportId: legacyReport.id,
+      reportContentHash: legacyHash,
+    });
+
+    const legacyToken = issueProvenanceToken({
+      runId: "run_legacy_001",
+      reportId: legacyReport.id,
+      opportunityId: legacyReport.opportunityId,
+      repositoryUrl: legacyReport.repositoryUrl,
+      resolvedCommitSha: legacyReport.resolvedCommitSha,
+      contentHash: legacyHash,
+    });
+
+    const verification = verifyReportProvenance(legacyReport, "run_legacy_001", legacyToken);
+    assert.equal(verification.verified, true);
+  });
 });
+

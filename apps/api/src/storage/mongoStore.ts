@@ -26,8 +26,10 @@ export class MongoReportStorage implements ReportStorage {
       {
         reportId: report.id,
         opportunityId: report.opportunityId,
+        opportunityTitle: report.opportunityTitle,
         repositoryUrl: report.repositoryUrl,
         resolvedCommitSha: report.resolvedCommitSha,
+        repoMetadata: report.repoMetadata,
         status: report.status,
         schemaVersion: 1,
         viewToken,
@@ -52,8 +54,18 @@ export class MongoReportStorage implements ReportStorage {
     const report: AssessmentReport = {
       id: doc.reportId,
       opportunityId: doc.opportunityId,
+      ...(doc.opportunityTitle ? { opportunityTitle: doc.opportunityTitle } : {}),
       repositoryUrl: doc.repositoryUrl,
       resolvedCommitSha: doc.resolvedCommitSha,
+      ...(doc.repoMetadata && doc.repoMetadata.owner
+        ? {
+            repoMetadata: {
+              owner: doc.repoMetadata.owner,
+              repo: doc.repoMetadata.repo,
+              ...(doc.repoMetadata.defaultBranch ? { defaultBranch: doc.repoMetadata.defaultBranch } : {}),
+            },
+          }
+        : {}),
       status: doc.status as any,
       assessments: doc.assessments as any,
       coverageSummary: doc.coverageSummary as any,
@@ -77,8 +89,18 @@ export class MongoReportStorage implements ReportStorage {
     return {
       id: doc.reportId,
       opportunityId: doc.opportunityId,
+      ...(doc.opportunityTitle ? { opportunityTitle: doc.opportunityTitle } : {}),
       repositoryUrl: doc.repositoryUrl,
       resolvedCommitSha: doc.resolvedCommitSha,
+      ...(doc.repoMetadata && doc.repoMetadata.owner
+        ? {
+            repoMetadata: {
+              owner: doc.repoMetadata.owner,
+              repo: doc.repoMetadata.repo,
+              ...(doc.repoMetadata.defaultBranch ? { defaultBranch: doc.repoMetadata.defaultBranch } : {}),
+            },
+          }
+        : {}),
       status: doc.status as any,
       assessments: doc.assessments as any,
       coverageSummary: doc.coverageSummary as any,
