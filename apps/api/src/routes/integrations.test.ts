@@ -57,7 +57,22 @@ describe("Integration Truthfulness & Status Disclosure Endpoint", () => {
     assert.ok(sentry);
     assert.equal(sentry.configured, Boolean(config.SENTRY_DSN));
 
-    // 4. Counts are consistent
+    // 4. ElevenLabs status check
+    const elevenLabs = body.integrations.elevenLabs;
+    assert.ok(elevenLabs);
+    assert.equal(elevenLabs.configured, Boolean(config.ELEVENLABS_API_KEY));
+    assert.equal(
+      elevenLabs.status,
+      config.ELEVENLABS_API_KEY ? "active" : "implemented_unconfigured"
+    );
+
+    // 5. Truthful experimental/prototype status checks
+    assert.equal(body.integrations.temporal.status, "evaluated_architectural_adr");
+    assert.equal(body.integrations.serpApi.status, "disconnected_by_design");
+    assert.equal(body.integrations.backboard.status, "simulated_mock");
+    assert.equal(body.integrations.tigerData.isMockOrSimulated, true);
+
+    // 6. Counts are consistent
     assert.equal(typeof body.activeIntegrationsCount, "number");
     assert.equal(typeof body.fallbackIntegrationsCount, "number");
     assert.equal(

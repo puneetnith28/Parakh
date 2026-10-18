@@ -8,7 +8,18 @@ export const integrationsRouter = Router();
 export interface IntegrationStatus {
   name: string;
   category: "core" | "sponsor" | "secondary";
-  status: "active" | "connected" | "fallback_mock" | "fallback_in_memory" | "configured_unverified" | "unconfigured" | "disabled" | "blueprint_spec" | "evaluated_architectural_adr";
+  status:
+    | "active"
+    | "connected"
+    | "implemented_unconfigured"
+    | "fallback_mock"
+    | "fallback_in_memory"
+    | "partially_implemented"
+    | "simulated_mock"
+    | "disconnected_by_design"
+    | "evaluated_architectural_adr"
+    | "blueprint_spec"
+    | "disabled";
   configured: boolean;
   reachable: boolean;
   verified: boolean;
@@ -62,83 +73,106 @@ integrationsRouter.get("/api/integrations/status", (_req: Request, res: Response
         isPersistent: isMongoConnected,
         readyState: mongoose.connection.readyState,
         health: mongoConnection.getStatus(),
+        ttlIndexing: "active ({ expiresAt: 1 }, expireAfterSeconds: 0)",
+        compoundTokenQueryIndex: "active ({ reportId: 1, viewToken: 1 })",
       },
     },
     sentry: {
-      name: "Sentry (Observability & Tracing)",
+      name: "Sentry (Observability & Agent Tracing)",
       category: "sponsor",
-      status: config.SENTRY_DSN ? "active" : "disabled",
+      status: config.SENTRY_DSN ? "active" : "implemented_unconfigured",
       configured: Boolean(config.SENTRY_DSN),
       reachable: Boolean(config.SENTRY_DSN),
       verified: Boolean(config.SENTRY_DSN),
       isMockOrSimulated: !config.SENTRY_DSN,
       details: {
         environment: config.SENTRY_ENVIRONMENT,
-        piiScrubbing: "active (scrubSecrets filter)",
-      },
-    },
-    tigerData: {
-      name: "TigerData (PGVector Retrieval)",
-      category: "sponsor",
-      status: config.TIGERDATA_DATABASE_URL ? "configured_unverified" : "fallback_in_memory",
-      configured: Boolean(config.TIGERDATA_DATABASE_URL),
-      reachable: false,
-      verified: false,
-      isMockOrSimulated: !config.TIGERDATA_DATABASE_URL,
-      details: {
-        engine: config.TIGERDATA_DATABASE_URL ? "pgvector" : "in_memory_cosine",
-      },
-    },
-    temporal: {
-      name: "Temporal (Durable Workflows)",
-      category: "sponsor",
-      status: config.TEMPORAL_ADDRESS ? "configured_unverified" : "evaluated_architectural_adr",
-      configured: Boolean(config.TEMPORAL_ADDRESS),
-      reachable: false,
-      verified: false,
-      isMockOrSimulated: !config.TEMPORAL_ADDRESS,
-      details: {
-        documentation: "docs/temporal-evaluation.md",
-      },
-    },
-    serpApi: {
-      name: "SerpApi (Documentation Search)",
-      category: "sponsor",
-      status: config.SERPAPI_API_KEY ? "configured_unverified" : "unconfigured",
-      configured: Boolean(config.SERPAPI_API_KEY),
-      reachable: false,
-      verified: false,
-      isMockOrSimulated: !config.SERPAPI_API_KEY,
-      details: {
-        evidenceIsolation: "external_docs_only (never substantiates code claims)",
+        piiScrubbing: "active (scrubSecrets filter & data minimization)",
+        agentTracingSpans: "repo_ingestion, evidence_retrieval, citation_validation, model_inference, provenance_signing, report_persistence",
       },
     },
     elevenLabs: {
-      name: "ElevenLabs (Voice Narration)",
+      name: "ElevenLabs (Executive Audio Briefings)",
       category: "secondary",
-      status: config.ELEVENLABS_API_KEY ? "configured_unverified" : "disabled",
+      status: config.ELEVENLABS_API_KEY ? "active" : "implemented_unconfigured",
       configured: Boolean(config.ELEVENLABS_API_KEY),
+      reachable: Boolean(config.ELEVENLABS_API_KEY),
+      verified: Boolean(config.ELEVENLABS_API_KEY),
+      isMockOrSimulated: !config.ELEVENLABS_API_KEY,
+      details: {
+        endpoint: "POST /api/reports/:id/audio",
+        uiPlayer: "AudioBriefingPlayer in ReportSummary",
+        characterLimit: 800,
+        audioEncoding: "mp3_44100_128",
+      },
+    },
+    tigerData: {
+      name: "TigerData (PGVector Retrieval Prototype)",
+      category: "sponsor",
+      status: config.TIGERDATA_DATABASE_URL ? "partially_implemented" : "fallback_in_memory",
+      configured: Boolean(config.TIGERDATA_DATABASE_URL),
       reachable: false,
       verified: false,
-      isMockOrSimulated: !config.ELEVENLABS_API_KEY,
+      isMockOrSimulated: true,
+      details: {
+        implementationState: "prototype_adapter",
+        activeEngine: "in_memory_cosine",
+        notice: "Prototype adapter; live PostgreSQL/pgvector cluster connection not verified",
+      },
+    },
+    temporal: {
+      name: "Temporal (Durable Workflows ADR)",
+      category: "sponsor",
+      status: "evaluated_architectural_adr",
+      configured: Boolean(config.TEMPORAL_ADDRESS),
+      reachable: false,
+      verified: false,
+      isMockOrSimulated: true,
+      details: {
+        implementationState: "architectural_evaluation",
+        evaluationDoc: "docs/temporal-evaluation.md",
+        notice: "Evaluated architectural blueprint; no active Temporal Server runtime worker",
+      },
+    },
+    serpApi: {
+      name: "SerpApi (External Reference Search)",
+      category: "secondary",
+      status: "disconnected_by_design",
+      configured: Boolean(config.SERPAPI_API_KEY),
+      reachable: false,
+      verified: false,
+      isMockOrSimulated: true,
+      details: {
+        implementationState: "standalone_client",
+        evidenceIsolation: "external_reference_only (isCandidateEvidence: false strictly enforced)",
+        rationale: "Disconnected by design to preserve cryptographic repository evidence integrity",
+      },
     },
     backboard: {
-      name: "Backboard (Context Memory)",
+      name: "Backboard (Developer Context Memory Stub)",
       category: "secondary",
-      status: config.BACKBOARD_API_KEY ? "configured_unverified" : "disabled",
+      status: "simulated_mock",
       configured: Boolean(config.BACKBOARD_API_KEY),
       reachable: false,
       verified: false,
-      isMockOrSimulated: !config.BACKBOARD_API_KEY,
+      isMockOrSimulated: true,
+      details: {
+        implementationState: "stub_mock",
+        primaryPersistence: "Handled by MongoDB Atlas",
+      },
     },
     digitalOcean: {
-      name: "DigitalOcean (Compute Worker)",
+      name: "DigitalOcean (Compute Worker Specification)",
       category: "secondary",
-      status: config.DIGITALOCEAN_ACCESS_TOKEN ? "configured_unverified" : "blueprint_spec",
+      status: "blueprint_spec",
       configured: Boolean(config.DIGITALOCEAN_ACCESS_TOKEN),
       reachable: false,
       verified: false,
-      isMockOrSimulated: !config.DIGITALOCEAN_ACCESS_TOKEN,
+      isMockOrSimulated: true,
+      details: {
+        implementationState: "blueprint_spec",
+        runtimeProvider: "Render / Docker primary",
+      },
     },
   };
 
