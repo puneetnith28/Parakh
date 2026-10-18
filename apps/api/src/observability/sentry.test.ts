@@ -123,3 +123,57 @@ test("captureExceptionScrubbed scrubs secrets from error message and context ext
   });
 });
 
+test("sentryBeforeSend enforces strict data minimization: redacts source records and truncates prompts", () => {
+  const eventWithRawData: any = {
+    request: {
+      data: {
+        records: [
+          { path: "src/secret.ts", content: "const secretKey = 'my_raw_repo_code';" },
+          { path: "src/db.ts", content: "mongoose.connect();" },
+        ],
+        prompt: "System: Evaluate candidate repository. " + "A".repeat(400),
+      },
+    },
+    extra: {
+      records: [{ file: "secret.ts" }, { file: "token.ts" }],
+      prompt: "B".repeat(500),
+    },
+  };
+
+  const sanitized = sentryBeforeSend(eventWithRawData);
+  assert.ok(sanitized);
+
+  // Raw file records must be replaced with count summary
+  assert.equal(
+    typeof sanitized?.request?.data?.records,
+    "string"
+  );
+  assert.ok(sanitized?.request?.data?.records?.includes("2 repository records omitted"));
+  assert.ok(sanitized?.extra?.records?.includes("2 repository records omitted"));
+
+  // Prompt must be truncated to <= 300 chars
+  assert.ok(sanitized?.request?.data?.prompt?.includes("[truncated]"));
+  assert.ok(sanitized?.request?.data?.prompt?.length <= 320);
+  assert.ok(sanitized?.extra?.prompt?.includes("[truncated]"));
+});
+
+test("trackStep safe degradation: observability failure never interrupts core workflow", async () => {
+  const { trackStep } = await import("./sentry.js");
+
+  // Even if data parameter has cyclical or invalid properties, trackStep must succeed
+  const circular: any = { name: "test" };
+  circular.self = circular;
+
+  const result = await trackStep(
+    "assessment.resilience_test",
+    "test.resilience",
+    async () => {
+      return 12345;
+    },
+    circular
+  );
+
+  assert.equal(result, 12345);
+});
+
+

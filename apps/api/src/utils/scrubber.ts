@@ -71,22 +71,28 @@ export function scrubSecrets(input: string): string {
 
 /**
  * Recursively scrubs credentials from structured objects (logs, metadata, errors).
+ * Handles circular references safely using a WeakSet.
  */
-export function scrubObject<T>(obj: T): T {
+export function scrubObject<T>(obj: T, seen: WeakSet<object> = new WeakSet()): T {
   if (obj === null || obj === undefined) return obj;
 
   if (typeof obj === "string") {
     return scrubSecrets(obj) as unknown as T;
   }
 
-  if (Array.isArray(obj)) {
-    return obj.map((item) => scrubObject(item)) as unknown as T;
-  }
-
   if (typeof obj === "object" && !(obj instanceof Date) && !(obj instanceof RegExp)) {
+    if (seen.has(obj as object)) {
+      return "[Circular]" as unknown as T;
+    }
+    seen.add(obj as object);
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => scrubObject(item, seen)) as unknown as T;
+    }
+
     const copy: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      copy[key] = scrubObject(value);
+      copy[key] = scrubObject(value, seen);
     }
     return copy;
   }
