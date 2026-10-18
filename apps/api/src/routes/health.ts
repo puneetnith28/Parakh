@@ -5,6 +5,7 @@ import { mastraOrchestrator } from "../mastra/index.js";
 import { config } from "../config.js";
 import { mongoConnection } from "../storage/mongodb.js";
 import { getStorage } from "../storage/index.js";
+import { scrubSecrets } from "../utils/scrubber.js";
 
 export const healthRouter = Router();
 
@@ -46,6 +47,39 @@ const getHealthStatus = (_req: Request, res: Response) => {
 };
 
 healthRouter.get("/api/health", getHealthStatus);
+
+// 3. MongoDB Atlas Deep Diagnostic: /api/health/mongodb
+// Verifies live Atlas TLS encryption, database name, and round-trip ping latency
+healthRouter.get("/api/health/mongodb", async (_req: Request, res: Response): Promise<void> => {
+  const status = mongoConnection.getStatus();
+  if (!status.connected) {
+    res.status(200).json({
+      connected: false,
+      mode: status.mode,
+      message: "MongoDB Atlas is not connected (running in stateless in-memory session mode)",
+    });
+    return;
+  }
+
+  try {
+    const security = await mongoConnection.verifyProductionSecurity();
+    res.status(200).json({
+      connected: true,
+      mode: "mongodb",
+      host: security.host,
+      database: security.database,
+      tlsEnforced: security.tlsEnforced,
+      pingMs: security.pingMs,
+      message: `MongoDB Atlas connected securely to database '${security.database}' with TLS enforced`,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(500).json({
+      connected: false,
+      error: scrubSecrets(message),
+    });
+  }
+});
 
 healthRouter.get("/api/ready", (_req: Request, res: Response) => {
   const currentStorage = getStorage();

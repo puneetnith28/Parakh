@@ -27,10 +27,16 @@ describe("Integration Truthfulness & Status Disclosure Endpoint", () => {
     assert.equal(body.truthfulReportingMandate, true);
     assert.ok(body.integrations);
 
-    // 1. Gemma status check
+    // 1. Model / Google AI Studio status check
     const gemma = body.integrations.gemma;
     assert.ok(gemma);
-    assert.equal(gemma.name, "Google Gemma / Google AI Studio");
+    assert.ok(
+      gemma.name === "Google AI Studio (Gemini)" ||
+      gemma.name === "Google Gemma (Open Weights)"
+    );
+    assert.ok(gemma.details);
+    assert.ok("modelFamily" in gemma.details);
+    assert.ok("isGemmaEligible" in gemma.details);
     const hasKey = Boolean(config.AI_STUDIO_API_KEY || config.MODEL_API_KEY);
     assert.equal(gemma.configured, hasKey);
     if (!hasKey || config.MODEL_PROVIDER === "mock") {

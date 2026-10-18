@@ -111,6 +111,11 @@ const ReportMongooseSchema = new Schema<IAssessmentReportDocument>(
   }
 );
 
+// Optimize O(1) token-authenticated report retrieval and tenant isolation
+ReportMongooseSchema.index({ reportId: 1, viewToken: 1 });
+// Native MongoDB Atlas TTL index for automatic document lifecycle cleanup
+ReportMongooseSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0, sparse: true });
+
 // Models
 export const AssessmentReportModel: Model<IAssessmentReportDocument> =
   mongoose.models.AssessmentReport ||

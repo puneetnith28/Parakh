@@ -83,8 +83,8 @@ test("audioBriefingService: buildExecutiveSummaryText synthesizes strictly groun
   assert.ok(summary.includes("abcdef1")); // short commit sha
   assert.ok(summary.includes("2 of 3 discrete technical requirements verified"));
   assert.ok(summary.includes("1 requirement lacked code implementation evidence"));
-  assert.ok(summary.includes("Distributed Tracing with Sentry"));
-  assert.ok(summary.includes("MongoDB Atlas Persistence"));
+  assert.ok(summary.includes("Implement Sentry tracing"));
+  assert.ok(summary.includes("Store reports in MongoDB"));
   assert.ok(summary.includes("cryptographically grounded"));
   assert.ok(summary.length <= 800, `Summary length ${summary.length} exceeds 800 characters`);
 });
